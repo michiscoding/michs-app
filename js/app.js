@@ -10,9 +10,14 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.setAttribute('aria-label', 'toggle dark mode');
     btn.textContent = '☾';
     document.body.appendChild(btn);
+    const updateIcon = () => {
+        btn.textContent = document.body.classList.contains('dark') ? '☀︎' : '☾';
+    };
+    updateIcon();
     btn.addEventListener('click', () => {
         const isDark = document.body.classList.toggle('dark');
         localStorage.setItem('dark', isDark ? '1' : '0');
+        updateIcon();
     });
 });
 
@@ -55,11 +60,17 @@ function showNav(el) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    const burger = document.getElementById('burger');
+    const burgerBtn = document.getElementById('burger-btn');
+    const burgerIcon = document.getElementById('burger-icon');
+    const closeIcon = document.getElementById('close-icon');
     const navMenu = document.querySelector('.nav-menu');
+    let navOpen = false;
 
-    burger.addEventListener('click', () => {
-        if (burger.checked) {
+    burgerBtn.addEventListener('click', () => {
+        navOpen = !navOpen;
+        burgerIcon.style.opacity = navOpen ? '0' : '1';
+        closeIcon.style.opacity = navOpen ? '1' : '0';
+        if (navOpen) {
             showNav(navMenu);
         } else {
             hideNav(navMenu);
