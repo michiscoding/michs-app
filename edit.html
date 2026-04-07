@@ -60,6 +60,11 @@
     <div class="entry-container" id="editor-view">
         <h1 id="editor-title"></h1>
         <textarea id="editor-textarea"></textarea>
+        <div id="photo-strip">
+            <div id="photo-previews"></div>
+            <label id="photo-add-btn" for="photo-input">+ add photos</label>
+            <input type="file" id="photo-input" accept="image/*,video/*" multiple>
+        </div>
         <div class="editor-actions">
             <button type="button" id="save-btn" class="btn-app">save</button>
         </div>
@@ -90,6 +95,70 @@
 
         let currentFile = null;
         let currentSha = null;
+
+        // photos: { type: 'existing', path, src } | { type: 'new', file, base64, name }
+        let photos = [];
+
+        const photoInput = document.getElementById('photo-input');
+        const photoPreviews = document.getElementById('photo-previews');
+
+        photoInput.addEventListener('change', () => {
+            Array.from(photoInput.files).forEach(addNewPhoto);
+            photoInput.value = '';
+        });
+
+        function addNewPhoto(file) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                const base64Full = e.target.result;
+                const entry = { type: 'new', file, base64: base64Full.split(',')[1], name: sanitizeName(file.name) };
+                photos.push(entry);
+                renderThumb(base64Full, entry, file.type.startsWith('video/'));
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function addExistingPhoto(path) {
+            const entry = { type: 'existing', path, src: 'https://michiscoding.github.io/' + path };
+            photos.push(entry);
+            renderThumb(entry.src, entry, false);
+        }
+
+        function renderThumb(src, entry, isVideo) {
+            const thumb = document.createElement('div');
+            thumb.className = 'photo-thumb';
+            const media = document.createElement(isVideo ? 'video' : 'img');
+            media.src = src;
+            if (isVideo) { media.muted = true; media.loop = true; media.autoplay = true; media.playsInline = true; }
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'remove-btn';
+            removeBtn.textContent = '×';
+            removeBtn.addEventListener('click', () => {
+                photos = photos.filter(p => p !== entry);
+                thumb.remove();
+            });
+            thumb.appendChild(media);
+            thumb.appendChild(removeBtn);
+            photoPreviews.appendChild(thumb);
+        }
+
+        function sanitizeName(name) {
+            return name.toLowerCase().replace(/[^a-z0-9.\-_]/g, '-');
+        }
+
+        async function uploadFile(token, path, base64) {
+            let sha;
+            const check = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (check.ok) sha = (await check.json()).sha;
+            return fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: `image ${path}`, content: base64, branch: BRANCH, ...(sha && { sha }) })
+            });
+        }
 
         // auto grow textarea
         editorTextarea.addEventListener('input', () => {
@@ -147,6 +216,12 @@
                 ? match[1].replace(/<br>\n?/g, '\n').replace(/<br>/g, '\n')
                 : '';
 
+            // parse existing gallery images
+            photos = [];
+            photoPreviews.innerHTML = '';
+            const imgMatches = [...html.matchAll(/src="\/([^"]+\.(?:jpg|jpeg|png|gif|webp|mp4|webm|mov))"/gi)];
+            imgMatches.forEach(m => addExistingPhoto(m[1]));
+
             const [yyyy, mm, dd] = file.name.replace('.html', '').split('-');
             const months = ['january','february','march','april','may','june','july','august','september','october','november','december'];
             editorTitle.textContent = `${months[parseInt(mm)-1]} ${parseInt(dd)} ${yyyy}`;
@@ -170,6 +245,8 @@
             fadeOut(editorView, () => {
                 currentFile = null;
                 currentSha = null;
+                photos = [];
+                photoPreviews.innerHTML = '';
                 fadeIn(listView);
             });
         });
@@ -180,15 +257,44 @@
 
             saveBtn.textContent = 'saving...';
 
+            const [yyyy, mm, dd] = currentFile.name.replace('.html', '').split('-');
+
+            // upload any new photos
+            const imagePaths = [];
+            for (const photo of photos) {
+                if (photo.type === 'existing') {
+                    imagePaths.push(photo.path);
+                } else {
+                    const imgPath = `entries/images/${yyyy}-${mm}-${dd}/${photo.name}`;
+                    const res = await uploadFile(token, imgPath, photo.base64);
+                    if (res.ok) imagePaths.push(imgPath);
+                }
+            }
+
             const body = editorTextarea.value
                 .split('\n')
                 .map(line => line.trimEnd())
                 .join('<br>\n');
 
-            const [yyyy, mm, dd] = currentFile.name.replace('.html', '').split('-');
             const months = ['january','february','march','april','may','june','july','august','september','october','november','december'];
             const dateTitle = `${months[parseInt(mm)-1]} ${parseInt(dd)} ${yyyy}`;
             const dateLabel = `${mm}${dd}${yyyy.slice(2)}`;
+
+            let galleryHTML = '';
+            if (imagePaths.length) {
+                const thumbs = imagePaths.map(p =>
+                    `      <div class="entry-gallery-item"><img src="/${p}" loading="lazy"></div>`
+                ).join('\n');
+                galleryHTML = [
+                    '    <div class="entry-gallery">',
+                    '      <button class="gallery-arrow gallery-prev" aria-label="previous">&#8592;</button>',
+                    '      <div class="gallery-track">',
+                    thumbs,
+                    '      </div>',
+                    '      <button class="gallery-arrow gallery-next" aria-label="next">&#8594;</button>',
+                    '    </div>',
+                ].join('\n');
+            }
 
             const parts = [
                 '<!doctype html>',
@@ -209,6 +315,7 @@
                 '    <div class="entry-content">',
                 '      <p>' + body + '</p>',
                 '    </div>',
+                galleryHTML,
                 '  </div>',
                 '<' + '/body>',
                 '<script src="/js/home.js"><' + '/script>',
