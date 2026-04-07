@@ -124,6 +124,7 @@ a:hover { text-decoration: none; }
     padding: 2rem;
     background: whitesmoke;
     border-radius: 12px;
+    transition: background-color 0.4s ease;
 }
 
 
