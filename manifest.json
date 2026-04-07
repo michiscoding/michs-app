@@ -1,6 +1,6 @@
 {
-    "name": "michiscoding",
-    "short_name": "michi",
+    "name": "michs app",
+    "short_name": "michs app",
     "start_url": "index.html",
     "display": "standalone",
     "background_color": "#f5f5f5",
