@@ -301,6 +301,21 @@ a:hover { text-decoration: none; }
 }
 
 
+#site-link {
+    position: fixed;
+    top: 3rem;
+    left: 2rem;
+    transform: translateY(-50%);
+    color: #888;
+    z-index: 100;
+    line-height: 0;
+    transition: color 0.2s;
+}
+
+#site-link:hover { color: #333; }
+body.dark #site-link { color: #666; }
+body.dark #site-link:hover { color: #eee; }
+
 /* dark mode toggle */
 #dark-toggle {
     position: fixed;
