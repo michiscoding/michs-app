@@ -21,6 +21,7 @@ if ('serviceWorker' in navigator) {
 document.addEventListener('DOMContentLoaded', () => {
     document.body.style.opacity = '1';
     setWidth();
+    setTimeout(() => document.body.classList.add('transitions-enabled'), 500);
 });
 
 // nav fade in/out

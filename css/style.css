@@ -18,6 +18,10 @@ body {
     margin-top: 3rem;
     background-color: whitesmoke;
     opacity: 0;
+    transition: opacity 1s ease-in-out;
+}
+
+body.transitions-enabled {
     transition: background-color 0.4s ease, opacity 1s ease-in-out;
 }
 
