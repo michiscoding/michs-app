@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <title>research</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="michi">
+    <style>
+        #title-input {
+            width: 100%;
+            background: none;
+            border: none;
+            border-bottom: 1px solid #ccc;
+            outline: none;
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif;
+            font-size: 2.5rem;
+            font-weight: 500;
+            color: #111;
+            padding: 0 0 0.4rem 0;
+            margin-bottom: 1.5rem;
+        }
+
+        #title-input::placeholder {
+            color: #ccc;
+            font-weight: 400;
+        }
+    </style>
+</head>
+
+<body>
+
+    <label class="burger" for="burger">
+        <input type="checkbox" id="burger">
+        <span></span>
+        <span></span>
+        <span></span>
+    </label>
+    <nav class="nav-menu">
+        <ul>
+            <li><a href="visuals.html">visuals</a></li>
+            <li><a href="edit.html">edit</a></li>
+            <li><a href="entry.html">new entry</a></li>
+            <li><span class="nav-toggle" id="work-toggle">work</span>
+                <ul class="nav-sub" id="work-sub">
+                    <li><a href="powerapps-new.html">powerapps</a></li>
+                    <li><a href="research.html">research</a></li>
+                    <li><a href="resume-edit.html">resume</a></li>
+                </ul>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="entry-container">
+        <input type="text" id="title-input" placeholder="title" autocomplete="off">
+        <textarea placeholder="write here..."></textarea>
+        <button type="button" id="post-btn" class="btn-app">post</button>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        const textarea = document.querySelector('textarea');
+
+        textarea.addEventListener('input', () => {
+            if (textarea.scrollHeight > textarea.clientHeight) {
+                textarea.style.height = textarea.scrollHeight + 'px';
+            }
+        });
+
+        const OWNER = 'michiscoding';
+        const REPO = 'michiscoding.github.io';
+        const BRANCH = 'main';
+
+        function getToken() {
+            let token = localStorage.getItem('gh_token');
+            if (!token) {
+                token = prompt('enter your github token:');
+                if (token) localStorage.setItem('gh_token', token);
+            }
+            return token;
+        }
+
+        function getDatePath() {
+            const d = new Date();
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            return `r-entry/${yyyy}-${mm}-${dd}.html`;
+        }
+
+        function getDateTitle() {
+            const months = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+            const d = new Date();
+            return `${months[d.getMonth()]} ${d.getDate()} ${d.getFullYear()}`;
+        }
+
+        function buildHTML(title, text) {
+            const body = text
+                .split('\n')
+                .map(line => line.trimEnd())
+                .join('<br>\n');
+
+            const parts = [
+                '<!doctype html>',
+                '<html lang="en">',
+                '<head>',
+                '    <meta charset="UTF-8">',
+                '    <meta name="viewport" content="width=device-width, initial-scale=1.0">',
+                '    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&display=swap" rel="stylesheet">',
+                '    <link rel="stylesheet" href="/css/bootstrap.min.css">',
+                '    <link rel="stylesheet" href="/css/home.css">',
+                '    <link rel="stylesheet" href="/css/blog.css">',
+                '    <link rel="stylesheet" href="/css/entry.css">',
+                '    <style>:root { --maxWidth: 67vw; }</style>',
+                '    <title>' + title + '</title>',
+                '</head>',
+                '<body>',
+                '  <button type="button" class="back-btn" onclick="history.back()">←</button>',
+                '  <div class="entry-container">',
+                '    <h1>' + title + '</h1>',
+                '    <div class="entry-content">',
+                '      <p>' + body + '</p>',
+                '    </div>',
+                '  </div>',
+                '<' + '/body>',
+                '<script src="/js/home.js"><' + '/script>',
+                '<' + '/html>',
+            ];
+            return parts.join('\n');
+        }
+
+        document.getElementById('post-btn').addEventListener('click', async () => {
+            const token = getToken();
+            if (!token) return;
+
+            const title = document.getElementById('title-input').value.trim();
+            if (!title) {
+                document.getElementById('title-input').focus();
+                return;
+            }
+
+            const btn = document.getElementById('post-btn');
+            const path = getDatePath();
+            const html = buildHTML(title, textarea.value);
+            const encoded = btoa(unescape(encodeURIComponent(html)));
+
+            btn.textContent = 'posting...';
+
+            try {
+                let sha;
+                const check = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (check.ok) {
+                    const existing = await check.json();
+                    sha = existing.sha;
+                }
+
+                const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: `research ${path}`,
+                        content: encoded,
+                        branch: BRANCH,
+                        ...(sha && { sha }),
+                    })
+                });
+
+                if (res.ok) {
+                    btn.textContent = 'posted!';
+                    textarea.value = '';
+                    textarea.style.height = '';
+                    document.getElementById('title-input').value = '';
+                    setTimeout(() => btn.textContent = 'post', 2000);
+                } else {
+                    const err = await res.json();
+                    console.error(err);
+                    btn.textContent = 'error — check console';
+                    setTimeout(() => btn.textContent = 'post', 3000);
+                }
+            } catch (e) {
+                console.error(e);
+                btn.textContent = 'error — check console';
+                setTimeout(() => btn.textContent = 'post', 3000);
+            }
+        });
+    </script>
+</body>
+</html>

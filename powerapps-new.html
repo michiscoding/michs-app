@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <title>new powerapps entry</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <style>
+        .field-group { margin-bottom: 1.5rem; }
+        .field-group label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #aaa;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+        .field-group input[type="text"] {
+            width: 100%;
+            background: #ededed;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            font-family: inherit;
+            font-size: 1rem;
+            color: #111;
+            outline: none;
+        }
+        .field-group textarea { min-height: 100px; }
+
+        .tag-pills {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .tag-pill {
+            background: #ededed;
+            border: none;
+            border-radius: 999px;
+            padding: 0.3rem 1rem;
+            font-family: inherit;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #aaa;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tag-pill.selected {
+            background: #222;
+            color: #fff;
+        }
+
+        #media-preview {
+            width: 100%;
+            border-radius: 8px;
+            margin-top: 0.75rem;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <label class="burger" for="burger">
+        <input type="checkbox" id="burger">
+        <span></span>
+        <span></span>
+        <span></span>
+    </label>
+    <nav class="nav-menu">
+        <ul>
+            <li><a href="visuals.html">visuals</a></li>
+            <li><a href="edit.html">edit</a></li>
+            <li><a href="entry.html">new entry</a></li>
+            <li><span class="nav-toggle" id="work-toggle">work</span>
+                <ul class="nav-sub" id="work-sub">
+                    <li><a href="powerapps-new.html">powerapps</a></li>
+                    <li><a href="research.html">research</a></li>
+                    <li><a href="resume-edit.html">resume</a></li>
+                </ul>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="entry-container">
+        <h1>new powerapps entry</h1>
+
+        <div class="field-group">
+            <label>title</label>
+            <input type="text" id="pa-title" placeholder="e.g. approval flow" autocomplete="off">
+        </div>
+
+        <div class="field-group">
+            <label>type</label>
+            <div class="tag-pills">
+                <button type="button" class="tag-pill" data-tag="flows">flows</button>
+                <button type="button" class="tag-pill" data-tag="pages">pages</button>
+                <button type="button" class="tag-pill" data-tag="apps">apps</button>
+            </div>
+        </div>
+
+        <div class="field-group">
+            <label>media (gif or mp4)</label>
+            <input type="file" id="media-input" accept="image/gif,video/mp4" style="display:none">
+            <button type="button" class="btn-app" onclick="document.getElementById('media-input').click()">choose file</button>
+            <img id="media-preview-img" style="display:none; width:100%; border-radius:8px; margin-top:0.75rem;" alt="preview">
+            <video id="media-preview-vid" style="display:none; width:100%; border-radius:8px; margin-top:0.75rem;" muted autoplay loop playsinline></video>
+        </div>
+
+        <div class="field-group">
+            <label>what it does</label>
+            <textarea id="pa-what" placeholder="describe what this does..."></textarea>
+        </div>
+
+        <div class="field-group">
+            <label>how it works</label>
+            <textarea id="pa-how" placeholder="describe the technical build..."></textarea>
+        </div>
+
+        <button type="button" id="post-btn" class="btn-app">post</button>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        const OWNER = 'michiscoding';
+        const REPO = 'michiscoding.github.io';
+        const BRANCH = 'main';
+
+        // tag selection
+        let selectedTag = '';
+        document.querySelectorAll('.tag-pill').forEach(pill => {
+            pill.addEventListener('click', () => {
+                document.querySelectorAll('.tag-pill').forEach(p => p.classList.remove('selected'));
+                pill.classList.add('selected');
+                selectedTag = pill.dataset.tag;
+            });
+        });
+
+        // media preview
+        let mediaFile = null;
+        let mediaType = '';
+
+        document.getElementById('media-input').addEventListener('change', e => {
+            mediaFile = e.target.files[0];
+            if (!mediaFile) return;
+            const url = URL.createObjectURL(mediaFile);
+            if (mediaFile.type === 'video/mp4') {
+                mediaType = 'video';
+                document.getElementById('media-preview-img').style.display = 'none';
+                const vid = document.getElementById('media-preview-vid');
+                vid.src = url;
+                vid.style.display = 'block';
+            } else {
+                mediaType = 'image';
+                document.getElementById('media-preview-vid').style.display = 'none';
+                const img = document.getElementById('media-preview-img');
+                img.src = url;
+                img.style.display = 'block';
+            }
+        });
+
+        function getToken() {
+            let token = localStorage.getItem('gh_token');
+            if (!token) {
+                token = prompt('enter your github token:');
+                if (token) localStorage.setItem('gh_token', token);
+            }
+            return token;
+        }
+
+        function slugify(title) {
+            return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        }
+
+        function getDate() {
+            const months = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+            const d = new Date();
+            return `${months[d.getMonth()]} ${d.getDate()} ${d.getFullYear()}`;
+        }
+
+        function buildDetailHTML(title, tag, what, how, mediaFilename, isVideo) {
+            const mediaEl = isVideo
+                ? '<video style="width:100%;border-radius:8px;margin-bottom:2rem;" muted autoplay loop playsinline><source src="/powerapps/' + mediaFilename + '" type="video/mp4"></video>'
+                : '<img style="width:100%;border-radius:8px;margin-bottom:2rem;" alt="' + title + '" src="/powerapps/' + mediaFilename + '">';
+
+            const parts = [
+                '<!doctype html>',
+                '<html lang="en">',
+                '<head>',
+                '    <meta charset="UTF-8">',
+                '    <meta name="viewport" content="width=device-width, initial-scale=1.0">',
+                '    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&display=swap" rel="stylesheet">',
+                '    <link rel="stylesheet" href="/css/bootstrap.min.css">',
+                '    <link rel="stylesheet" href="/css/home.css">',
+                '    <link rel="stylesheet" href="/css/entry.css">',
+                '    <style>',
+                '        :root { --maxWidth: 67vw; }',
+                '        .pa-meta { font-size: 0.8rem; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 2rem; }',
+                '        .pa-section { margin-bottom: 2rem; }',
+                '        .pa-section h2 { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; }',
+                '    </style>',
+                '    <title>' + title + '</title>',
+                '</head>',
+                '<body>',
+                '  <button type="button" class="back-btn" onclick="history.back()">←</button>',
+                '  <div class="entry-container">',
+                '    <h1>' + title + '</h1>',
+                '    <p class="pa-meta">' + tag + ' — ' + getDate() + '</p>',
+                '    ' + mediaEl,
+                '    <div class="entry-content">',
+                '      <div class="pa-section"><h2>what it does</h2><p>' + what + '</p></div>',
+                '      <div class="pa-section"><h2>how it works</h2><p>' + how + '</p></div>',
+                '    </div>',
+                '  </div>',
+                '<' + '/body>',
+                '<script src="/js/home.js"><' + '/script>',
+                '<' + '/html>',
+            ];
+            return parts.join('\n');
+        }
+
+        async function uploadToGitHub(path, content, token, isBinary = false) {
+            let encoded;
+            if (isBinary) {
+                encoded = content;
+            } else {
+                encoded = btoa(unescape(encodeURIComponent(content)));
+            }
+
+            let sha;
+            const check = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (check.ok) {
+                const existing = await check.json();
+                sha = existing.sha;
+            }
+
+            return fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: `powerapps: ${path}`,
+                    content: encoded,
+                    branch: BRANCH,
+                    ...(sha && { sha }),
+                })
+            });
+        }
+
+        document.getElementById('post-btn').addEventListener('click', async () => {
+            const title = document.getElementById('pa-title').value.trim();
+            if (!title) { document.getElementById('pa-title').focus(); return; }
+
+            const token = getToken();
+            if (!token) return;
+
+            const btn = document.getElementById('post-btn');
+            btn.textContent = 'posting...';
+
+            try {
+                const slug = slugify(title);
+                const what = document.getElementById('pa-what').value;
+                const how = document.getElementById('pa-how').value;
+                const isVideo = mediaType === 'video';
+                let mediaFilename = '';
+
+                // upload media if provided
+                if (mediaFile) {
+                    const ext = isVideo ? 'mp4' : 'gif';
+                    mediaFilename = `${slug}.${ext}`;
+                    const reader = new FileReader();
+                    const b64 = await new Promise(resolve => {
+                        reader.onload = e => resolve(e.target.result.split(',')[1]);
+                        reader.readAsDataURL(mediaFile);
+                    });
+                    await uploadToGitHub(`powerapps/${mediaFilename}`, b64, token, true);
+                }
+
+                // upload detail HTML
+                const html = buildDetailHTML(title, selectedTag, what, how, mediaFilename, isVideo);
+                await uploadToGitHub(`powerapps/${slug}.html`, html, token);
+
+                btn.textContent = 'posted!';
+                setTimeout(() => btn.textContent = 'post', 2000);
+            } catch (e) {
+                console.error(e);
+                btn.textContent = 'error — check console';
+                setTimeout(() => btn.textContent = 'post', 3000);
+            }
+        });
+    </script>
+</body>
+</html>

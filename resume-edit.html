@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <title>resume</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <style>
+        .resume-section { margin-bottom: 2rem; }
+        .resume-section > label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #aaa;
+            display: block;
+            margin-bottom: 0.75rem;
+        }
+        .resume-section textarea { min-height: 80px; }
+        .field-row {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 0.5rem;
+        }
+        .field-row input { flex: 1; }
+        .edu-location-input { max-width: 160px; }
+        .edu-date-input { max-width: 110px; }
+        .edu-block-form {
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+        .edu-block-form textarea { min-height: 60px; margin-top: 0.5rem; }
+        .remove-edu-btn {
+            background: none;
+            border: none;
+            font-size: 0.75rem;
+            color: #bbb;
+            cursor: pointer;
+            padding: 0;
+            margin-top: 0.5rem;
+            font-family: inherit;
+        }
+        .remove-edu-btn:hover { color: #888; }
+        #add-edu-btn {
+            background: none;
+            border: none;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #aaa;
+            cursor: pointer;
+            padding: 0;
+            font-family: inherit;
+            margin-top: 0.25rem;
+        }
+        #add-edu-btn:hover { color: #555; }
+    </style>
+</head>
+
+<body>
+    <label class="burger" for="burger">
+        <input type="checkbox" id="burger">
+        <span></span>
+        <span></span>
+        <span></span>
+    </label>
+    <nav class="nav-menu">
+        <ul>
+            <li><a href="visuals.html">visuals</a></li>
+            <li><a href="edit.html">edit</a></li>
+            <li><a href="entry.html">new entry</a></li>
+            <li><span class="nav-toggle" id="work-toggle">work</span>
+                <ul class="nav-sub" id="work-sub">
+                    <li><a href="powerapps-new.html">powerapps</a></li>
+                    <li><a href="research.html">research</a></li>
+                    <li><a href="resume-edit.html">resume</a></li>
+                </ul>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="entry-container">
+        <h1>resume</h1>
+
+        <div class="resume-section">
+            <label>experience</label>
+            <textarea id="exp-blurb" placeholder="e.g. creating power platform solutions for RSM since 2023..."></textarea>
+        </div>
+
+        <div class="resume-section">
+            <label>education</label>
+            <div id="edu-blocks"></div>
+            <button type="button" id="add-edu-btn" aria-label="add school">+ add school</button>
+        </div>
+
+        <div class="resume-section">
+            <label>certifications</label>
+            <textarea id="certs" placeholder="Microsoft Certified: Power Platform Developer Associate"></textarea>
+        </div>
+
+        <button type="button" id="save-btn" class="btn-app">save</button>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        const OWNER = 'michiscoding';
+        const REPO = 'michiscoding.github.io';
+        const BRANCH = 'main';
+        const PATH = 'work/resume.html';
+
+        function getToken() {
+            let token = localStorage.getItem('gh_token');
+            if (!token) {
+                token = prompt('enter your github token:');
+                if (token) localStorage.setItem('gh_token', token);
+            }
+            return token;
+        }
+
+        function addEduBlock(data = {}) {
+            const container = document.getElementById('edu-blocks');
+            const block = document.createElement('div');
+            block.className = 'edu-block-form';
+            block.innerHTML = `
+                <input type="text" class="edu-school" placeholder="school name" autocomplete="off" value="${data.school || ''}">
+                <div class="field-row">
+                    <input type="text" class="edu-program" placeholder="degree / program (optional)" autocomplete="off" value="${data.program || ''}">
+                    <input type="text" class="edu-location-input" placeholder="city, state" autocomplete="off" value="${data.location || ''}">
+                    <input type="text" class="edu-date-input" placeholder="may 2023" autocomplete="off" value="${data.date || ''}">
+                </div>
+                <textarea class="edu-courses" placeholder="relevant coursework: ...">${data.courses || ''}</textarea>
+                <button type="button" class="remove-edu-btn">remove</button>
+            `;
+            block.querySelector('.remove-edu-btn').addEventListener('click', () => block.remove());
+            block.querySelector('.edu-courses').addEventListener('input', function() {
+                if (this.scrollHeight > this.clientHeight) this.style.height = this.scrollHeight + 'px';
+            });
+            container.appendChild(block);
+        }
+
+        document.getElementById('add-edu-btn').addEventListener('click', () => addEduBlock());
+
+        function buildEduBlockHTML(block) {
+            const school = block.querySelector('.edu-school').value.trim();
+            const program = block.querySelector('.edu-program').value.trim();
+            const location = block.querySelector('.edu-location-input').value.trim();
+            const date = block.querySelector('.edu-date-input').value.trim();
+            const courses = block.querySelector('.edu-courses').value.trim();
+
+            const lines = [
+                '        <div class="edu-block">',
+                '          <div class="edu-header">',
+                '            <span class="edu-school">' + school + '</span>',
+                '            <span class="edu-meta">' + location + ' · ' + date + '</span>',
+                '          </div>',
+            ];
+            if (program) lines.push('          <div class="edu-degree">' + program + '</div>');
+            if (courses) lines.push('          <div class="edu-courses">' + courses + '</div>');
+            lines.push('        </div>');
+            return lines.join('\n');
+        }
+
+        function buildHTML(expBlurb, eduBlocks, certs) {
+            const certItems = certs
+                .split('\n')
+                .map(l => l.trim())
+                .filter(l => l.length > 0)
+                .map(l => '          <li><i>' + l + '</i></li>')
+                .join('\n');
+
+            const eduHTML = Array.from(eduBlocks).map(buildEduBlockHTML).join('\n');
+
+            const parts = [
+                '<!doctype html>',
+                '<html lang="en">',
+                '<head>',
+                '    <meta charset="UTF-8">',
+                '    <meta name="viewport" content="width=device-width, initial-scale=1.0">',
+                '    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&display=swap" rel="stylesheet">',
+                '    <link rel="stylesheet" href="/css/bootstrap.min.css">',
+                '    <link rel="stylesheet" href="/css/home.css">',
+                '    <link rel="stylesheet" href="/css/entry.css">',
+                '    <link rel="stylesheet" href="/css/resume.css">',
+                '    <style>:root { --maxWidth: 67vw; }</style>',
+                '    <title>resume</title>',
+                '</head>',
+                '<body>',
+                '  <div class="entry-container">',
+                '    <h1>resume</h1>',
+                '',
+                '    <div class="resume-section">',
+                '      <h2>experience</h2>',
+                '      <div class="entry-content">',
+                '        <p>' + expBlurb + '</p>',
+                '        <p>→ <a class="resume-link" href="/work/powerapps.html">see the work</a></p>',
+                '      </div>',
+                '    </div>',
+                '',
+                '    <div class="resume-section">',
+                '      <h2>education</h2>',
+                '      <div class="entry-content">',
+                eduHTML,
+                '      </div>',
+                '    </div>',
+                '',
+                '    <div class="resume-section">',
+                '      <h2>certifications</h2>',
+                '      <div class="entry-content">',
+                '        <ul class="cert-list">',
+                certItems,
+                '        </ul>',
+                '      </div>',
+                '    </div>',
+                '',
+                '  </div>',
+                '<' + '/body>',
+                '<script src="/js/home.js"><' + '/script>',
+                '<' + '/html>',
+            ];
+            return parts.join('\n');
+        }
+
+        async function loadResume() {
+            const token = getToken();
+            if (!token) return;
+
+            const btn = document.getElementById('save-btn');
+            btn.textContent = 'loading...';
+
+            try {
+                const apiRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${PATH}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!apiRes.ok) { btn.textContent = 'load failed'; return; }
+                const apiData = await apiRes.json();
+
+                const rawRes = await fetch(apiData.download_url);
+                if (!rawRes.ok) { btn.textContent = 'load failed'; return; }
+                const html = await rawRes.text();
+                btn.textContent = 'save';
+
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+
+                doc.querySelectorAll('.resume-section').forEach(section => {
+                    const label = section.querySelector('h2')?.textContent.trim().toLowerCase();
+                    if (!label) return;
+
+                    if (label === 'experience') {
+                        const ps = section.querySelectorAll('.entry-content p');
+                        const blurb = Array.from(ps).find(p => !p.querySelector('a'));
+                        const ta = document.getElementById('exp-blurb');
+                        ta.value = blurb ? blurb.textContent.trim() : '';
+                        ta.style.height = ta.scrollHeight + 'px';
+                    }
+
+                    if (label === 'education') {
+                        document.getElementById('edu-blocks').innerHTML = '';
+                        section.querySelectorAll('.edu-block').forEach(block => {
+                            const school = block.querySelector('.edu-school')?.textContent.trim() || '';
+                            const program = block.querySelector('.edu-degree')?.textContent.trim() || '';
+                            const meta = block.querySelector('.edu-meta')?.textContent || '';
+                            const locParts = meta.split('·');
+                            const location = locParts[0]?.trim() || '';
+                            const date = locParts[1]?.trim() || '';
+                            const courses = block.querySelector('.edu-courses')?.textContent.trim() || '';
+                            addEduBlock({ school, program, location, date, courses });
+                        });
+                    }
+
+                    if (label === 'certifications') {
+                        const certItems = section.querySelectorAll('.cert-list li');
+                        const ta = document.getElementById('certs');
+                        if (certItems.length) {
+                            ta.value = Array.from(certItems).map(li => li.textContent.trim()).join('\n');
+                        } else {
+                            const iItems = section.querySelectorAll('.entry-content i');
+                            if (iItems.length) {
+                                ta.value = Array.from(iItems).map(i => i.textContent.trim()).join('\n');
+                            }
+                        }
+                        ta.style.height = ta.scrollHeight + 'px';
+                    }
+                });
+
+            } catch(e) {
+                console.error('loadResume error:', e);
+                document.getElementById('save-btn').textContent = 'error loading';
+            }
+        }
+
+        loadResume();
+
+        document.getElementById('exp-blurb').addEventListener('input', function() {
+            if (this.scrollHeight > this.clientHeight) this.style.height = this.scrollHeight + 'px';
+        });
+        document.getElementById('certs').addEventListener('input', function() {
+            if (this.scrollHeight > this.clientHeight) this.style.height = this.scrollHeight + 'px';
+        });
+
+        document.getElementById('save-btn').addEventListener('click', async () => {
+            const token = getToken();
+            if (!token) return;
+
+            const eduBlocks = document.querySelectorAll('.edu-block-form');
+            const hasContent = document.getElementById('exp-blurb').value.trim() ||
+                               eduBlocks.length > 0 ||
+                               document.getElementById('certs').value.trim();
+            if (!hasContent) {
+                alert('fields are empty — wait for content to load before saving');
+                return;
+            }
+
+            const btn = document.getElementById('save-btn');
+            btn.textContent = 'saving...';
+
+            const html = buildHTML(
+                document.getElementById('exp-blurb').value.trim(),
+                eduBlocks,
+                document.getElementById('certs').value
+            );
+            const encoded = btoa(unescape(encodeURIComponent(html)));
+
+            const check = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${PATH}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const existing = await check.json();
+
+            const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${PATH}`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: 'update resume',
+                    content: encoded,
+                    branch: BRANCH,
+                    sha: existing.sha,
+                })
+            });
+
+            if (res.ok) {
+                btn.textContent = 'saved!';
+                setTimeout(() => btn.textContent = 'save', 2000);
+            } else {
+                btn.textContent = 'error';
+                setTimeout(() => btn.textContent = 'save', 3000);
+            }
+        });
+    </script>
+</body>
+</html>
