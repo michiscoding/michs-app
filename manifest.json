@@ -1,7 +1,7 @@
 {
     "name": "michiscoding",
     "short_name": "michi",
-    "start_url": "entry.html",
+    "start_url": "index.html",
     "display": "standalone",
     "background_color": "#f5f5f5",
     "theme_color": "#f5f5f5",
