@@ -18,7 +18,7 @@ body {
     margin-top: 3rem;
     background-color: whitesmoke;
     opacity: 0;
-    transition: opacity 1s ease-in-out;
+    transition: background-color 0.4s ease, opacity 1s ease-in-out;
 }
 
 /* top bar */
@@ -332,19 +332,16 @@ body.dark .burger-btn:hover { color: #eee; }
 
 /* dark mode toggle */
 #dark-toggle {
-    position: fixed;
-    bottom: 2rem;
-    right: 2rem;
     background: none;
     border: none;
-    font-size: 1.6rem;
+    font-size: 1.1rem;
     cursor: pointer;
     color: #888;
     padding: 0;
-    z-index: 100;
     line-height: 1;
     outline: none;
     transition: color 0.3s ease;
+    font-family: inherit;
 }
 
 #dark-toggle:hover { color: #333; }
@@ -355,7 +352,6 @@ body.dark h1 { color: #eee; }
 body.dark li { color: #ddd; }
 body.dark .nav-toggle { color: #ddd; }
 body.dark a { color: #ddd; }
-body.dark .burger span { background: #aaa; }
 body.dark #dark-toggle { color: #aaa; }
 body.dark #dark-toggle:hover { color: #eee; }
 body.dark input[type="text"] { background: #222; color: #eee; }

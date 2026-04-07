@@ -3,23 +3,6 @@
     if (localStorage.getItem('dark') === '1') document.body.classList.add('dark');
 })();
 
-document.addEventListener('DOMContentLoaded', () => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.id = 'dark-toggle';
-    btn.setAttribute('aria-label', 'toggle dark mode');
-    btn.textContent = '☾';
-    document.body.appendChild(btn);
-    const updateIcon = () => {
-        btn.textContent = document.body.classList.contains('dark') ? '☀︎' : '☾';
-    };
-    updateIcon();
-    btn.addEventListener('click', () => {
-        const isDark = document.body.classList.toggle('dark');
-        localStorage.setItem('dark', isDark ? '1' : '0');
-        updateIcon();
-    });
-});
 
 // set grid width to match homepage
 function setWidth() {
@@ -84,6 +67,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (workToggle) {
         workToggle.addEventListener('click', () => {
             workSub.classList.toggle('open');
+        });
+    }
+
+    const darkToggle = document.getElementById('dark-toggle');
+    if (darkToggle) {
+        const updateIcon = () => {
+            darkToggle.textContent = document.body.classList.contains('dark') ? '☀︎' : '☾';
+        };
+        updateIcon();
+        darkToggle.addEventListener('click', () => {
+            const isDark = document.body.classList.toggle('dark');
+            localStorage.setItem('dark', isDark ? '1' : '0');
+            updateIcon();
         });
     }
 });
