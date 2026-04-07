@@ -53,6 +53,13 @@
     <div class="entry-container">
         <h1 id="date-label" contenteditable="true" spellcheck="false">new entry</h1>
         <textarea></textarea>
+
+        <div id="photo-strip">
+            <div id="photo-previews"></div>
+            <label id="photo-add-btn" for="photo-input">+ add photos</label>
+            <input type="file" id="photo-input" accept="image/*,video/*" multiple>
+        </div>
+
         <button type="button" id="post-btn" class="btn-app">post</button>
     </div>
 
@@ -60,6 +67,52 @@
     <script>
         const textarea = document.querySelector('textarea');
         const dateLabel = document.getElementById('date-label');
+        const photoInput = document.getElementById('photo-input');
+        const photoPreviews = document.getElementById('photo-previews');
+
+        // files array: { file, base64, name }
+        const photos = [];
+
+        photoInput.addEventListener('change', () => {
+            Array.from(photoInput.files).forEach(addPhoto);
+            photoInput.value = '';
+        });
+
+        function addPhoto(file) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                const base64Full = e.target.result; // data:image/...;base64,XXX
+                const base64 = base64Full.split(',')[1];
+                const entry = { file, base64, name: sanitizeName(file.name) };
+                photos.push(entry);
+
+                const thumb = document.createElement('div');
+                thumb.className = 'photo-thumb';
+
+                const isVideo = file.type.startsWith('video/');
+                const media = document.createElement(isVideo ? 'video' : 'img');
+                media.src = base64Full;
+                if (isVideo) { media.muted = true; media.loop = true; media.autoplay = true; media.playsInline = true; }
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'remove-btn';
+                removeBtn.textContent = '×';
+                removeBtn.addEventListener('click', () => {
+                    photos.splice(photos.indexOf(entry), 1);
+                    thumb.remove();
+                });
+
+                thumb.appendChild(media);
+                thumb.appendChild(removeBtn);
+                photoPreviews.appendChild(thumb);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function sanitizeName(name) {
+            return name.toLowerCase().replace(/[^a-z0-9.\-_]/g, '-');
+        }
 
         // clear "new entry" placeholder on first click
         dateLabel.addEventListener('focus', () => {
@@ -122,13 +175,30 @@
             return `${monthName} ${parseInt(dd, 10)} ${yyyy}`;
         }
 
-        function buildHTML(text) {
+        function buildHTML(text, imagePaths) {
             const body = text
                 .split('\n')
                 .map(line => line.trimEnd())
                 .join('<br>\n');
 
             const title = getDateTitle();
+
+            let galleryHTML = '';
+            if (imagePaths.length) {
+                const thumbs = imagePaths.map(p =>
+                    `      <div class="entry-gallery-item"><img src="/${p}" loading="lazy"></div>`
+                ).join('\n');
+                galleryHTML = [
+                    '    <div class="entry-gallery">',
+                    '      <button class="gallery-arrow gallery-prev" aria-label="previous">&#8592;</button>',
+                    '      <div class="gallery-track">',
+                    thumbs,
+                    '      </div>',
+                    '      <button class="gallery-arrow gallery-next" aria-label="next">&#8594;</button>',
+                    '    </div>',
+                ].join('\n');
+            }
+
             const parts = [
                 '<!doctype html>',
                 '<html lang="en">',
@@ -148,6 +218,7 @@
                 '    <div class="entry-content">',
                 '      <p>' + body + '</p>',
                 '    </div>',
+                galleryHTML,
                 '  </div>',
                 '<' + '/body>',
                 '<script src="/js/home.js"><' + '/script>',
@@ -156,16 +227,40 @@
             return parts.join('\n');
         }
 
+        async function uploadFile(token, path, base64) {
+            let sha;
+            const check = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (check.ok) sha = (await check.json()).sha;
+
+            return fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: `image ${path}`, content: base64, branch: BRANCH, ...(sha && { sha }) })
+            });
+        }
+
         document.getElementById('post-btn').addEventListener('click', async () => {
             const token = getToken();
             if (!token) return;
 
             const btn = document.getElementById('post-btn');
+            btn.textContent = 'posting...';
+
+            // upload images first
+            const { yyyy, mm, dd } = parseDate();
+            const imagePaths = [];
+            for (const photo of photos) {
+                const imgPath = `entries/images/${yyyy}-${mm}-${dd}/${photo.name}`;
+                const res = await uploadFile(token, imgPath, photo.base64);
+                if (res.ok) imagePaths.push(imgPath);
+            }
+
             const path = getDatePath();
-            const html = buildHTML(textarea.value);
+            const html = buildHTML(textarea.value, imagePaths);
             const encoded = btoa(unescape(encodeURIComponent(html)));
 
-            btn.textContent = 'posting...';
 
             try {
                 // check if file already exists to get sha
@@ -197,6 +292,8 @@
                     textarea.value = '';
                     textarea.style.height = '';
                     dateLabel.textContent = 'new entry';
+                    photos.length = 0;
+                    photoPreviews.innerHTML = '';
                     setTimeout(() => btn.textContent = 'post', 2000);
                 } else {
                     const err = await res.json();
