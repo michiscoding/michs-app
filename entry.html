@@ -50,7 +50,7 @@
     </nav>
 
     <div class="entry-container">
-        <h1>new entry</h1>
+        <h1 id="date-label" contenteditable="true" spellcheck="false">new entry</h1>
         <textarea></textarea>
         <button type="button" id="post-btn" class="btn-app">post</button>
     </div>
@@ -58,6 +58,19 @@
     <script src="js/app.js"></script>
     <script>
         const textarea = document.querySelector('textarea');
+        const dateLabel = document.getElementById('date-label');
+
+        // clear "new entry" placeholder on first click
+        dateLabel.addEventListener('focus', () => {
+            if (dateLabel.textContent.trim() === 'new entry') {
+                dateLabel.textContent = '';
+            }
+        });
+        dateLabel.addEventListener('blur', () => {
+            if (dateLabel.textContent.trim() === '') {
+                dateLabel.textContent = 'new entry';
+            }
+        });
 
         textarea.addEventListener('input', () => {
             if (textarea.scrollHeight > textarea.clientHeight) {
@@ -78,26 +91,34 @@
             return token;
         }
 
-        function getDatePath() {
+        // parse MMDDYY → { yyyy, mm, dd }, fallback to today
+        function parseDate() {
+            const raw = dateLabel.textContent.trim();
+            if (/^\d{6}$/.test(raw)) {
+                const mm = raw.slice(0, 2);
+                const dd = raw.slice(2, 4);
+                const yy = raw.slice(4, 6);
+                const yyyy = '20' + yy;
+                return { yyyy, mm, dd };
+            }
             const d = new Date();
-            const yyyy = d.getFullYear();
-            const mm = String(d.getMonth() + 1).padStart(2, '0');
-            const dd = String(d.getDate()).padStart(2, '0');
-            return `entries/${yyyy}-${mm}-${dd}.html`;
+            return {
+                yyyy: String(d.getFullYear()),
+                mm: String(d.getMonth() + 1).padStart(2, '0'),
+                dd: String(d.getDate()).padStart(2, '0'),
+            };
         }
 
-        function getDateLabel() {
-            const d = new Date();
-            const yyyy = String(d.getFullYear()).slice(2);
-            const mm = String(d.getMonth() + 1).padStart(2, '0');
-            const dd = String(d.getDate()).padStart(2, '0');
-            return `${mm}${dd}${yyyy}`;
+        function getDatePath() {
+            const { yyyy, mm, dd } = parseDate();
+            return `entries/${yyyy}-${mm}-${dd}.html`;
         }
 
         function getDateTitle() {
             const months = ['january','february','march','april','may','june','july','august','september','october','november','december'];
-            const d = new Date();
-            return `${months[d.getMonth()]} ${d.getDate()} ${d.getFullYear()}`;
+            const { yyyy, mm, dd } = parseDate();
+            const monthName = months[parseInt(mm, 10) - 1];
+            return `${monthName} ${parseInt(dd, 10)} ${yyyy}`;
         }
 
         function buildHTML(text) {
@@ -106,6 +127,7 @@
                 .map(line => line.trimEnd())
                 .join('<br>\n');
 
+            const title = getDateTitle();
             const parts = [
                 '<!doctype html>',
                 '<html lang="en">',
@@ -116,12 +138,12 @@
                 '    <link rel="stylesheet" href="/css/blog.css">',
                 '    <link rel="stylesheet" href="/css/entry.css">',
                 '    <style>:root { --maxWidth: 67vw; }</style>',
-                '    <title>' + getDateTitle() + '</title>',
+                '    <title>' + title + '</title>',
                 '</head>',
                 '<body>',
                 '  <button type="button" class="back-btn" onclick="history.back()">←</button>',
                 '  <div class="entry-container">',
-                '    <h1>' + getDateTitle() + '</h1>',
+                '    <h1>' + title + '</h1>',
                 '    <div class="entry-content">',
                 '      <p>' + body + '</p>',
                 '    </div>',
@@ -173,6 +195,7 @@
                     btn.textContent = 'posted!';
                     textarea.value = '';
                     textarea.style.height = '';
+                    dateLabel.textContent = 'new entry';
                     setTimeout(() => btn.textContent = 'post', 2000);
                 } else {
                     const err = await res.json();

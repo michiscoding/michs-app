@@ -111,6 +111,12 @@ a:hover { text-decoration: none; }
     opacity: 0.6;
 }
 
+/* editable date label */
+#date-label {
+    outline: none;
+    cursor: text;
+}
+
 /* entry page */
 .entry-container {
     max-width: 67vw;
