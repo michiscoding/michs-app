@@ -34,43 +34,146 @@
         </svg>
       </button>
     </div>
-    <nav class="nav-menu">
+        <nav class="nav-menu">
         <ul>
-            <li><a href="entry.html">new entry</a></li>
-            <li><a href="edit.html">edit</a></li>
+            <li><a href="entry.html">entry</a></li>
             <li><a href="visuals.html">visuals</a></li>
             <li><span class="nav-toggle" id="work-toggle">work</span>
                 <ul class="nav-sub" id="work-sub">
                     <li><a href="powerapps-new.html">powerapps</a></li>
                     <li><a href="research.html">research</a></li>
-                    <li><a href="resume-edit.html">resume</a></li>
                 </ul>
             </li>
+            <li><a href="edit.html">edit</a></li>
             <li><button type="button" id="dark-toggle" aria-label="toggle dark mode">☾</button></li>
         </ul>
     </nav>
 
-    <button type="button" id="back-btn" class="back-btn" aria-label="back">←</button>
 
     <div class="entry-container" id="list-view">
-        <h1>edit</h1>
-        <div id="entries-list"></div>
+        <button type="button" id="list-back-btn" class="list-back-btn" aria-label="back">←</button>
+        <div class="edit-tabs">
+            <button type="button" class="edit-tab active" data-tab="entries">entries</button>
+            <button type="button" class="edit-tab" data-tab="photos">visuals</button>
+            <button type="button" class="edit-tab" data-tab="work">work</button>
+        </div>
+
+        <div id="tab-entries">
+            <div id="entry-filters">
+                <select id="entry-year-filter" aria-label="filter by year"></select>
+                <select id="entry-month-filter" aria-label="filter by month"></select>
+                <button type="button" id="entry-filter-clear">×</button>
+            </div>
+            <div id="entries-list"></div>
+            <div id="entry-editor-view">
+                <div class="field-group">
+                    <span class="field-label">date</span>
+                    <span id="editor-title"></span>
+                </div>
+                <div class="field-group">
+                    <label class="field-label" for="editor-textarea">entry</label>
+                    <textarea id="editor-textarea"></textarea>
+                </div>
+                <div id="photo-strip">
+                    <div id="photo-previews"></div>
+                    <label id="photo-add-btn" for="photo-input">+ add photos</label>
+                    <input type="file" id="photo-input" accept="image/*,video/*" multiple>
+                </div>
+                <div class="editor-actions">
+                    <button type="button" id="save-btn" class="btn-app">save</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-photos">
+            <div class="retag-header">
+                <button type="button" id="retag-save-btn" class="btn-app">save tags</button>
+            </div>
+            <div id="retag-grid"></div>
+        </div>
+
+        <div id="tab-work">
+            <div class="edit-tabs edit-subtabs">
+                <button type="button" class="edit-tab active" data-subtab="powerapps">powerapps</button>
+                <button type="button" class="edit-tab" data-subtab="research">research</button>
+                <button type="button" class="edit-tab" data-subtab="resume">resume</button>
+            </div>
+
+            <div id="subtab-powerapps">
+                <div id="pa-list-view">
+                    <div id="pa-records-list"></div>
+                </div>
+                <div id="pa-editor-view">
+                    <div class="field-group">
+                        <label class="field-label">title</label>
+                        <input type="text" id="pa-title" placeholder="e.g. approval flow" autocomplete="off">
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">type</label>
+                        <div class="tag-pills">
+                            <button type="button" class="tag-pill" data-tag="flows">flows</button>
+                            <button type="button" class="tag-pill" data-tag="pages">pages</button>
+                            <button type="button" class="tag-pill" data-tag="apps">apps</button>
+                        </div>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">media</label>
+                        <input type="file" id="pa-media-input" accept="image/*,video/*" multiple aria-label="media files">
+                        <button type="button" class="btn-app" onclick="document.getElementById('pa-media-input').click()">choose files</button>
+                        <div id="pa-media-previews"></div>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">what it does</label>
+                        <textarea id="pa-what" placeholder="describe what this does..."></textarea>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">how it works</label>
+                        <textarea id="pa-how" placeholder="describe the technical build..."></textarea>
+                    </div>
+                    <div class="editor-actions">
+                        <button type="button" id="pa-delete-btn" class="danger-btn">delete</button>
+                        <button type="button" id="pa-save-btn" class="btn-app">save</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="subtab-research">
+                <div id="r-list-view">
+                    <div id="r-records-list"></div>
+                </div>
+                <div id="r-editor-view">
+                    <div class="field-group">
+                        <label class="field-label">title</label>
+                        <input type="text" id="r-title" placeholder="title" autocomplete="off">
+                    </div>
+                    <div class="field-group">
+                        <textarea id="r-body" placeholder="write here..."></textarea>
+                    </div>
+                    <button type="button" id="r-save-btn" class="btn-app">save</button>
+                </div>
+            </div>
+
+            <div id="subtab-resume">
+                <div class="field-group">
+                    <label class="field-label">experience</label>
+                    <textarea id="exp-blurb" placeholder="e.g. creating power platform solutions for RSM since 2023..."></textarea>
+                </div>
+                <div class="field-group">
+                    <label class="field-label">education</label>
+                    <div id="edu-blocks"></div>
+                    <button type="button" id="add-edu-btn" aria-label="add school">+ add school</button>
+                </div>
+                <div class="field-group">
+                    <label class="field-label">certifications</label>
+                    <textarea id="certs" placeholder="Microsoft Certified: Power Platform Developer Associate"></textarea>
+                </div>
+                <button type="button" id="resume-save-btn" class="btn-app">save</button>
+            </div>
+        </div>
     </div>
 
-    <div class="entry-container" id="editor-view">
-        <h1 id="editor-title"></h1>
-        <textarea id="editor-textarea"></textarea>
-        <div id="photo-strip">
-            <div id="photo-previews"></div>
-            <label id="photo-add-btn" for="photo-input">+ add photos</label>
-            <input type="file" id="photo-input" accept="image/*,video/*" multiple>
-        </div>
-        <div class="editor-actions">
-            <button type="button" id="save-btn" class="btn-app">save</button>
-        </div>
-    </div>
 
-    <script src="js/app.js"></script>
+<script src="js/app.js"></script>
     <script>
         const OWNER = 'michiscoding';
         const REPO = 'michiscoding.github.io';
@@ -85,16 +188,27 @@
             return token;
         }
 
-        const listView = document.getElementById('list-view');
-        const editorView = document.getElementById('editor-view');
+        function decodeContent(b64) {
+            const bytes = Uint8Array.from(atob(b64.replace(/\n/g, '')), c => c.charCodeAt(0));
+            return new TextDecoder().decode(bytes);
+        }
+
+        const siteLink = document.getElementById('site-link');
+        function setBackVisible(visible) {
+            backBtn.style.visibility = visible ? 'visible' : 'hidden';
+            siteLink.style.visibility = visible ? 'hidden' : 'visible';
+        }
+
         const editorTitle = document.getElementById('editor-title');
+        const entryEditorView = document.getElementById('entry-editor-view');
         const editorTextarea = document.getElementById('editor-textarea');
         const entriesList = document.getElementById('entries-list');
-        const backBtn = document.getElementById('back-btn');
+        const backBtn = document.getElementById('list-back-btn');
         const saveBtn = document.getElementById('save-btn');
 
         let currentFile = null;
         let currentSha = null;
+        let backContext = 'entry'; // 'entry' | 'pa' | 'r'
 
         // photos: { type: 'existing', path, src } | { type: 'new', file, base64, name }
         let photos = [];
@@ -167,40 +281,80 @@
             }
         });
 
-        async function loadEntries() {
-            const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/entries`);
-            const files = await res.json();
+        const months = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+        let allEntryFiles = [];
+        const yearFilter = document.getElementById('entry-year-filter');
+        const monthFilter = document.getElementById('entry-month-filter');
 
-            const sorted = files
-                .filter(f => f.name.endsWith('.html'))
-                .sort((a, b) => b.name.localeCompare(a.name));
-
+        function renderEntryList() {
             entriesList.innerHTML = '';
-
-            for (const file of sorted) {
+            const yr = yearFilter.value;
+            const mo = monthFilter.value;
+            const filtered = allEntryFiles.filter(f => {
+                const [yyyy, mm] = f.name.split('-');
+                return (yr === 'all' || yyyy === yr) && (mo === 'all' || mm === mo);
+            });
+            for (const file of filtered) {
                 const [yyyy, mm, dd] = file.name.replace('.html', '').split('-');
                 const label = `${mm}${dd}${yyyy.slice(2)}`;
-
                 const record = document.createElement('div');
                 record.className = 'blog-record';
-                record.style.cursor = 'pointer';
-                record.innerHTML = `<div class="blog-details-1"><span class="blog-link">${label}</span></div>`;
+                record.innerHTML = `<span class="blog-link">${label}</span>`;
                 record.addEventListener('click', () => openEntry(file));
                 entriesList.appendChild(record);
             }
         }
 
-        function fadeOut(el, cb) {
-            el.style.opacity = '0';
-            setTimeout(() => { el.style.display = 'none'; cb(); }, 300);
+        function rebuildMonthFilter() {
+            const yr = yearFilter.value;
+            const seenMo = new Set();
+            monthFilter.innerHTML = '<option value="all">month</option>';
+            allEntryFiles.forEach(f => {
+                const [yyyy, mm] = f.name.split('-');
+                if ((yr === 'all' || yyyy === yr) && !seenMo.has(mm)) {
+                    seenMo.add(mm);
+                    const opt = document.createElement('option');
+                    opt.value = mm;
+                    opt.textContent = months[parseInt(mm) - 1];
+                    monthFilter.appendChild(opt);
+                }
+            });
         }
 
-        function fadeIn(el) {
-            el.style.display = 'block';
-            requestAnimationFrame(() => el.style.opacity = '1');
+        yearFilter.addEventListener('change', () => { rebuildMonthFilter(); renderEntryList(); });
+        monthFilter.addEventListener('change', renderEntryList);
+        document.getElementById('entry-filter-clear').addEventListener('click', () => {
+            yearFilter.value = 'all';
+            rebuildMonthFilter();
+            renderEntryList();
+        });
+
+        async function loadEntries() {
+            const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/entries`);
+            const files = await res.json();
+
+            allEntryFiles = files
+                .filter(f => f.name.endsWith('.html'))
+                .sort((a, b) => b.name.localeCompare(a.name));
+
+            const seenYr = new Set();
+            yearFilter.innerHTML = '<option value="all">year</option>';
+            allEntryFiles.forEach(f => {
+                const [yyyy] = f.name.split('-');
+                if (!seenYr.has(yyyy)) {
+                    seenYr.add(yyyy);
+                    const opt = document.createElement('option');
+                    opt.value = yyyy;
+                    opt.textContent = yyyy;
+                    yearFilter.appendChild(opt);
+                }
+            });
+
+            rebuildMonthFilter();
+            renderEntryList();
         }
 
-        async function openEntry(file) {
+async function openEntry(file) {
             const token = getToken();
             const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${file.path}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -209,12 +363,10 @@
             currentFile = file;
             currentSha = data.sha;
 
-            // decode content and strip html wrapper to get raw text
-            const html = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
-            const match = html.match(/<p>([\s\S]*?)<\/p>/);
-            const rawText = match
-                ? match[1].replace(/<br>\n?/g, '\n').replace(/<br>/g, '\n')
-                : '';
+            const html = decodeContent(data.content);
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const p = doc.querySelector('.entry-content p');
+            const rawText = p ? p.innerHTML.replace(/<br>\n?/g, '\n').replace(/<br>/g, '\n') : '';
 
             // parse existing gallery images
             photos = [];
@@ -223,32 +375,50 @@
             imgMatches.forEach(m => addExistingPhoto(m[1]));
 
             const [yyyy, mm, dd] = file.name.replace('.html', '').split('-');
-            const months = ['january','february','march','april','may','june','july','august','september','october','november','december'];
             editorTitle.textContent = `${months[parseInt(mm)-1]} ${parseInt(dd)} ${yyyy}`;
 
             editorTextarea.value = rawText;
 
-            fadeOut(listView, () => {
-                fadeIn(editorView);
-                backBtn.style.opacity = '1';
-                backBtn.style.pointerEvents = 'auto';
-                requestAnimationFrame(() => {
-                    editorTextarea.style.height = 'auto';
-                    editorTextarea.style.height = editorTextarea.scrollHeight + 'px';
-                });
+            backContext = 'entry';
+            entriesList.style.display = 'none';
+            entryEditorView.style.display = 'block';
+            revealTab(entryEditorView);
+            setBackVisible(true);
+            requestAnimationFrame(() => {
+                editorTextarea.style.height = 'auto';
+                editorTextarea.style.height = editorTextarea.scrollHeight + 'px';
             });
         }
 
+        // unified back button handler
         backBtn.addEventListener('click', () => {
-            backBtn.style.opacity = '0';
-            backBtn.style.pointerEvents = 'none';
-            fadeOut(editorView, () => {
+            setBackVisible(false);
+
+            if (backContext === 'entry') {
+                entryEditorView.style.display = 'none';
+                entriesList.style.display = 'block';
+                revealTab(entriesList);
                 currentFile = null;
                 currentSha = null;
                 photos = [];
                 photoPreviews.innerHTML = '';
-                fadeIn(listView);
-            });
+                return;
+            }
+
+            if (backContext === 'pa') {
+                paEditorView.style.display = 'none';
+                paListView.style.display = 'block';
+                revealTab(paListView);
+                paCurrentPath = null;
+                return;
+            }
+
+            if (backContext === 'r') {
+                rEditorView.style.display = 'none';
+                rListView.style.display = 'block';
+                revealTab(rListView);
+                rCurrentPath = null;
+            }
         });
 
         saveBtn.addEventListener('click', async () => {
@@ -276,7 +446,6 @@
                 .map(line => line.trimEnd())
                 .join('<br>\n');
 
-            const months = ['january','february','march','april','may','june','july','august','september','october','november','december'];
             const dateTitle = `${months[parseInt(mm)-1]} ${parseInt(dd)} ${yyyy}`;
             const dateLabel = `${mm}${dd}${yyyy.slice(2)}`;
 
@@ -306,7 +475,7 @@
                 '    <link rel="stylesheet" href="/css/blog.css">',
                 '    <link rel="stylesheet" href="/css/entry.css">',
                 '    <style>:root { --maxWidth: 67vw; }</style>',
-                '    <title>' + dateLabel + '</title>',
+                '    <title>' + dateTitle + '</title>',
                 '</head>',
                 '<body>',
                 '  <button type="button" class="back-btn" onclick="history.back()">←</button>',
@@ -351,6 +520,744 @@
         });
 
         loadEntries();
+
+        // --- tabs ---
+        const tabEntries = document.getElementById('tab-entries');
+        const tabPhotos = document.getElementById('tab-photos');
+        const tabWork = document.getElementById('tab-work');
+        const tabs = document.querySelectorAll('.edit-tab:not(.edit-subtabs .edit-tab)');
+        let photosTabLoaded = false;
+        let paListLoaded = false, rListLoaded = false;
+
+        function revealTab(el) {
+            el.style.opacity = '0';
+            requestAnimationFrame(() => requestAnimationFrame(() => { el.style.opacity = '1'; }));
+        }
+
+        function showTab(name) {
+            tabEntries.style.display = name === 'entries' ? '' : 'none';
+            tabPhotos.style.display = name === 'photos' ? 'block' : 'none';
+            tabWork.style.display = name === 'work' ? 'block' : 'none';
+            const active = name === 'entries' ? tabEntries : name === 'photos' ? tabPhotos : tabWork;
+            revealTab(active);
+            if (name === 'photos' && !photosTabLoaded) { photosTabLoaded = true; loadRetag(); }
+            if (name === 'work') {
+                if (!paListLoaded) { paListLoaded = true; loadPaList(); }
+                loadResume();
+            }
+        }
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                showTab(tab.dataset.tab);
+            });
+        });
+
+        // --- subtabs ---
+        const subtabEls = {
+            powerapps: document.getElementById('subtab-powerapps'),
+            research: document.getElementById('subtab-research'),
+            resume: document.getElementById('subtab-resume'),
+        };
+        const subtabs = document.querySelectorAll('.edit-subtabs .edit-tab');
+
+        subtabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                subtabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                Object.entries(subtabEls).forEach(([k, el]) => {
+                    const show = k === tab.dataset.subtab;
+                    el.style.display = show ? 'block' : 'none';
+                    if (show) revealTab(el);
+                });
+                // collapse any open editor back to its list
+                if (paEditorView.style.display === 'block') {
+                    paEditorView.style.display = 'none';
+                    paListView.style.display = 'block';
+                    paCurrentPath = null;
+                }
+                if (rEditorView.style.display === 'block') {
+                    rEditorView.style.display = 'none';
+                    rListView.style.display = 'block';
+                    rCurrentPath = null;
+                }
+                setBackVisible(false);
+                if (tab.dataset.subtab === 'powerapps' && !paListLoaded) { paListLoaded = true; loadPaList(); }
+                if (tab.dataset.subtab === 'research' && !rListLoaded) { rListLoaded = true; loadRList(); }
+                if (tab.dataset.subtab === 'resume') {
+                    requestAnimationFrame(() => requestAnimationFrame(() => {
+                        ['exp-blurb', 'certs'].forEach(id => {
+                            const ta = document.getElementById(id);
+                            ta.style.height = 'auto';
+                            ta.style.height = ta.scrollHeight + 'px';
+                        });
+                    }));
+                }
+            });
+        });
+
+        // --- retag ---
+        const ALL_TAGS = ['home', 'nature', 'jiu-jitsu', 'vsco', 'random'];
+        const retagGrid = document.getElementById('retag-grid');
+        const retagSaveBtn = document.getElementById('retag-save-btn');
+        let retagPhotos = [];
+
+        async function loadRetag() {
+            const token = getToken();
+            if (!token) return;
+            retagGrid.innerHTML = '<p style="opacity:0.4;font-size:0.85rem">loading...</p>';
+            const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/photos.json`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            retagPhotos = JSON.parse(atob(data.content.replace(/\n/g, '')));
+            retagGrid.innerHTML = '';
+            retagPhotos.forEach((photo, idx) => {
+                const card = document.createElement('div');
+                card.className = 'retag-card';
+
+                const imgSrc = photo.src.startsWith('/') ? `https://michiscoding.github.io${photo.src}` : photo.src;
+                const img = document.createElement('img');
+                img.src = imgSrc;
+
+                // delete button
+                const delBtn = document.createElement('button');
+                delBtn.type = 'button';
+                delBtn.className = 'remove-btn';
+                delBtn.textContent = '×';
+                delBtn.addEventListener('click', () => {
+                    retagPhotos.splice(idx, 1);
+                    card.remove();
+                });
+
+                // tag picker — shown on hover via CSS
+                const picker = document.createElement('div');
+                picker.className = 'tag-picker';
+                const currentTags = new Set(photo.tags || []);
+                ALL_TAGS.forEach(tag => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'tag-btn' + (currentTags.has(tag) ? ' active' : '');
+                    btn.textContent = tag;
+                    btn.addEventListener('click', () => {
+                        if (currentTags.has(tag)) { currentTags.delete(tag); btn.classList.remove('active'); }
+                        else { currentTags.add(tag); btn.classList.add('active'); }
+                        retagPhotos[idx].tags = [...currentTags];
+                    });
+                    picker.appendChild(btn);
+                });
+
+                card.appendChild(img);
+                card.appendChild(delBtn);
+                card.appendChild(picker);
+                retagGrid.appendChild(card);
+            });
+        }
+
+        retagSaveBtn.addEventListener('click', async () => {
+            const token = getToken();
+            if (!token) return;
+            retagSaveBtn.textContent = 'saving...';
+            retagSaveBtn.disabled = true;
+            const jsonRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/photos.json`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const jsonData = await jsonRes.json();
+            const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(retagPhotos, null, 2))));
+            const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/photos.json`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: 'update photo tags', content: encoded, sha: jsonData.sha, branch: BRANCH })
+            });
+            if (res.ok) {
+                retagSaveBtn.textContent = 'saved!';
+                setTimeout(() => { retagSaveBtn.textContent = 'save tags'; retagSaveBtn.disabled = false; }, 2000);
+            } else {
+                retagSaveBtn.textContent = 'error';
+                retagSaveBtn.disabled = false;
+            }
+        });
+
+        // --- shared helpers ---
+        function slugify(title) {
+            return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        }
+
+        function getDateLabel() {
+            const d = new Date();
+            return `${months[d.getMonth()]} ${d.getDate()} ${d.getFullYear()}`;
+        }
+
+        async function ghUpload(token, path, base64) {
+            let sha;
+            const check = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (check.ok) sha = (await check.json()).sha;
+            return fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: path, content: base64, branch: BRANCH, ...(sha && { sha }) })
+            });
+        }
+
+        // --- powerapps ---
+        let paMediaFiles = [], paSelectedTags = new Set(), paCurrentPath = null;
+
+        document.querySelectorAll('.tag-pill').forEach(pill => {
+            pill.addEventListener('click', () => {
+                if (paSelectedTags.has(pill.dataset.tag)) {
+                    paSelectedTags.delete(pill.dataset.tag);
+                    pill.classList.remove('selected');
+                } else {
+                    paSelectedTags.add(pill.dataset.tag);
+                    pill.classList.add('selected');
+                }
+            });
+        });
+
+        document.getElementById('pa-media-input').addEventListener('change', e => {
+            paMediaFiles = Array.from(e.target.files);
+            const previews = document.getElementById('pa-media-previews');
+            previews.innerHTML = '';
+            paMediaFiles.forEach(file => {
+                const url = URL.createObjectURL(file);
+                let el;
+                if (file.type === 'video/mp4') {
+                    el = document.createElement('video');
+                    el.src = url; el.muted = true; el.autoplay = true; el.loop = true; el.playsInline = true;
+                } else {
+                    el = document.createElement('img');
+                    el.src = url; el.alt = file.name;
+                }
+                el.style.cssText = 'width:100%;border-radius:8px;margin-top:0.5rem;display:block;';
+                previews.appendChild(el);
+            });
+        });
+
+        const paListView = document.getElementById('pa-list-view');
+        const paEditorView = document.getElementById('pa-editor-view');
+        paEditorView.style.display = 'none';
+
+        async function loadPaList() {
+            const token = getToken(); if (!token) return;
+            const list = document.getElementById('pa-records-list');
+            list.innerHTML = '<p style="opacity:0.4;font-size:0.85rem">loading...</p>';
+
+            // read from powerapps.json index for fast title lookup
+            const jsonRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/powerapps.json`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (jsonRes.ok) {
+                const jsonData = await jsonRes.json();
+                const entries = JSON.parse(atob(jsonData.content.replace(/\n/g, '')));
+                entries.slice().reverse().forEach(entry => {
+                    const record = document.createElement('div');
+                    record.className = 'blog-record';
+                    record.innerHTML = `<span class="blog-link">${entry.title}</span>`;
+                    const file = { name: entry.slug + '.html', path: 'powerapps/' + entry.slug + '.html' };
+                    record.addEventListener('click', () => openPaEditor(file, token));
+                    list.appendChild(record);
+                });
+                list.querySelector('p')?.remove();
+            } else {
+                // fallback: fetch directory then each file for its title
+                const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/powerapps`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const files = await res.json();
+                const htmlFiles = files.filter(f => f.name.endsWith('.html') && f.name !== 'index.html')
+                    .sort((a, b) => b.name.localeCompare(a.name));
+                list.innerHTML = '';
+                await Promise.all(htmlFiles.map(async file => {
+                    let title = file.name.replace('.html', '');
+                    try {
+                        const fr = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${file.path}`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (fr.ok) {
+                            const fd = await fr.json();
+                            const html = decodeContent(fd.content);
+                            const m = html.match(/<h1>([^<]+)<\/h1>/);
+                            if (m) title = m[1].trim();
+                        }
+                    } catch(e) {}
+                    file._title = title;
+                }));
+                htmlFiles.forEach(file => {
+                    const record = document.createElement('div');
+                    record.className = 'blog-record';
+                    record.innerHTML = `<span class="blog-link">${file._title}</span>`;
+                    record.addEventListener('click', () => openPaEditor(file, token));
+                    list.appendChild(record);
+                });
+            }
+        }
+
+        async function openPaEditor(file, token) {
+            const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${file.path}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            const html = decodeContent(data.content);
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+
+            paCurrentPath = file.path;
+            paMediaFiles = [];
+            document.getElementById('pa-media-input').value = '';
+
+            // show existing media from index
+            const previews = document.getElementById('pa-media-previews');
+            previews.innerHTML = '';
+            const idxRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/powerapps.json`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (idxRes.ok) {
+                const idxData = await idxRes.json();
+                const entries = JSON.parse(atob(idxData.content.replace(/\n/g, '')));
+                const slug = file.name.replace('.html', '');
+                const existing = entries.find(e => e.slug === slug);
+                const mediaSrcs = existing?.media ? (Array.isArray(existing.media) ? existing.media : [existing.media]) : [];
+                mediaSrcs.forEach(src => {
+                    const fullSrc = src.startsWith('/') ? `https://michiscoding.github.io${src}` : src;
+                    let el;
+                    if (src.endsWith('.mp4')) {
+                        el = document.createElement('video');
+                        el.src = fullSrc; el.muted = true; el.autoplay = true; el.loop = true; el.playsInline = true;
+                    } else {
+                        el = document.createElement('img');
+                        el.src = fullSrc; el.alt = '';
+                    }
+                    el.style.cssText = 'width:100%;border-radius:8px;margin-top:0.5rem;display:block;';
+                    previews.appendChild(el);
+                });
+            }
+            document.getElementById('pa-title').value = doc.querySelector('h1')?.textContent.trim() || '';
+
+            const paWhat = document.getElementById('pa-what');
+            const paHow = document.getElementById('pa-how');
+            paWhat.value = doc.querySelector('.pa-section:nth-child(1) p')?.textContent.trim() || '';
+            paHow.value = doc.querySelector('.pa-section:nth-child(2) p')?.textContent.trim() || '';
+            requestAnimationFrame(() => {
+                [paWhat, paHow].forEach(ta => {
+                    ta.style.height = 'auto';
+                    ta.style.height = ta.scrollHeight + 'px';
+                });
+            });
+
+            // restore tags
+            const meta = doc.querySelector('.pa-meta')?.textContent || '';
+            const tagStr = meta.split('—')[0].trim();
+            paSelectedTags = new Set(tagStr.split(',').map(t => t.trim()).filter(Boolean));
+            document.querySelectorAll('.tag-pill').forEach(p => {
+                p.classList.toggle('selected', paSelectedTags.has(p.dataset.tag));
+            });
+
+            backContext = 'pa';
+            paListView.style.display = 'none';
+            paEditorView.style.display = 'block';
+            revealTab(paEditorView);
+            setBackVisible(true);
+        }
+
+        document.getElementById('pa-save-btn').addEventListener('click', async () => {
+            const title = document.getElementById('pa-title').value.trim();
+            if (!title || !paCurrentPath) return;
+            const token = getToken(); if (!token) return;
+            const btn = document.getElementById('pa-save-btn');
+            btn.textContent = 'saving...'; btn.disabled = true;
+
+            // upload new media files if selected
+            let mediaSrcs = [];
+            if (paMediaFiles.length > 0) {
+                const slug = slugify(title);
+                for (let i = 0; i < paMediaFiles.length; i++) {
+                    const file = paMediaFiles[i];
+                    const ext = file.type === 'video/mp4' ? 'mp4' : (file.name.split('.').pop() || 'jpg');
+                    const filename = paMediaFiles.length === 1 ? `${slug}.${ext}` : `${slug}-${i+1}.${ext}`;
+                    const b64 = await new Promise(resolve => {
+                        const r = new FileReader();
+                        r.onload = e => resolve(e.target.result.split(',')[1]);
+                        r.readAsDataURL(file);
+                    });
+                    await ghUpload(token, `powerapps/${filename}`, b64);
+                    mediaSrcs.push(`/powerapps/${filename}`);
+                }
+            } else {
+                // read existing media from index
+                const idxRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/powerapps.json`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (idxRes.ok) {
+                    const idxData = await idxRes.json();
+                    const entries = JSON.parse(atob(idxData.content.replace(/\n/g, '')));
+                    const slug = paCurrentPath.replace('powerapps/', '').replace('.html', '');
+                    const existing = entries.find(e => e.slug === slug);
+                    if (existing?.media) mediaSrcs = Array.isArray(existing.media) ? existing.media : [existing.media];
+                }
+            }
+
+            const what = document.getElementById('pa-what').value;
+            const how = document.getElementById('pa-how').value;
+
+            let mediaEl = '';
+            if (mediaSrcs.length === 1) {
+                const src = mediaSrcs[0];
+                mediaEl = src.endsWith('.mp4')
+                    ? `<video class="pa-media" muted autoplay loop playsinline><source src="${src}" type="video/mp4"></video>`
+                    : `<img class="pa-media" alt="${title}" src="${src}">`;
+            } else if (mediaSrcs.length > 1) {
+                const slides = mediaSrcs.map((src, i) => {
+                    const el = src.endsWith('.mp4')
+                        ? `<video class="pa-slide" ${i===0?'style="opacity:1"':''} muted autoplay loop playsinline><source src="${src}" type="video/mp4"></video>`
+                        : `<img class="pa-slide" ${i===0?'style="opacity:1"':''} alt="${title}" src="${src}">`;
+                    return el;
+                }).join('\n        ');
+                mediaEl = `<div class="pa-slideshow">\n        ${slides}\n      </div>`;
+            }
+
+            const html = [
+                '<!doctype html><html lang="en"><head>',
+                '    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">',
+                '    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&display=swap" rel="stylesheet">',
+                '    <link rel="stylesheet" href="/css/bootstrap.min.css">',
+                '    <link rel="stylesheet" href="/css/home.css"><link rel="stylesheet" href="/css/entry.css">',
+                '    <style>:root{--maxWidth:67vw;}.pa-meta{font-size:.8rem;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2rem;}.pa-section{margin-bottom:2rem;}.pa-section h2{font-size:1rem;font-weight:700;margin-bottom:.5rem;}</style>',
+                `    <title>${title}</title></head><body>`,
+                '  <button type="button" class="back-btn" onclick="history.back()">←</button>',
+                `  <div class="entry-container"><h1>${title}</h1>`,
+                `  <p class="pa-meta">${[...paSelectedTags].join(', ')} — ${getDateLabel()}</p>`,
+                `  ${mediaEl ? mediaEl : ''}`,
+                '  <div class="entry-content">',
+                `    <div class="pa-section"><h2>what it does</h2><p>${what}</p></div>`,
+                `    <div class="pa-section"><h2>how it works</h2><p>${how}</p></div>`,
+                '  </div></div><\/body><script src="/js/home.js"><\/script><\/html>',
+            ].join('\n');
+            const encoded = btoa(unescape(encodeURIComponent(html)));
+            const oldSlug = paCurrentPath.replace('powerapps/', '').replace('.html', '');
+            const newSlug = slugify(title);
+            const newPath = `powerapps/${newSlug}.html`;
+            const isRename = newSlug !== oldSlug;
+
+            // upload to new path
+            const res = await ghUpload(token, newPath, encoded);
+            if (res.ok) {
+                // if renamed, delete the old file
+                if (isRename) {
+                    const oldCheck = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${paCurrentPath}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (oldCheck.ok) {
+                        const oldData = await oldCheck.json();
+                        await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${paCurrentPath}`, {
+                            method: 'DELETE',
+                            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ message: `rename ${oldSlug} to ${newSlug}`, sha: oldData.sha, branch: BRANCH })
+                        });
+                    }
+                    paCurrentPath = newPath;
+                }
+                const mediaVal = mediaSrcs.length === 1 ? mediaSrcs[0] : mediaSrcs.length > 1 ? mediaSrcs : '';
+                await patchPaIndex(token, newSlug, title, [...paSelectedTags].join(', '), mediaVal, isRename ? oldSlug : null);
+                btn.textContent = 'saved!';
+            } else { btn.textContent = 'error'; }
+            setTimeout(() => { btn.textContent = 'save'; btn.disabled = false; }, 2000);
+        });
+
+        async function patchPaIndex(token, slug, title, tag, media, oldSlug = null) {
+            const path = 'powerapps.json';
+            const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            let entries = [], sha;
+            if (res.ok) {
+                const data = await res.json();
+                sha = data.sha;
+                entries = JSON.parse(atob(data.content.replace(/\n/g, '')));
+            }
+            // remove old slug entry on rename
+            if (oldSlug) entries = entries.filter(e => e.slug !== oldSlug);
+            const idx = entries.findIndex(e => e.slug === slug);
+            const entry = { slug, title, tag, media };
+            if (idx >= 0) entries[idx] = entry;
+            else entries.push(entry);
+            const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(entries, null, 2))));
+            await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: `update powerapps index`, content: encoded, branch: BRANCH, ...(sha && { sha }) })
+            });
+        }
+
+        async function deletePaEntry(token, slug) {
+            // delete html file
+            const path = `powerapps/${slug}.html`;
+            const check = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (check.ok) {
+                const data = await check.json();
+                await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: `delete ${slug}`, sha: data.sha, branch: BRANCH })
+                });
+            }
+            // remove from index
+            const idxRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/powerapps.json`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (idxRes.ok) {
+                const idxData = await idxRes.json();
+                const entries = JSON.parse(atob(idxData.content.replace(/\n/g, ''))).filter(e => e.slug !== slug);
+                const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(entries, null, 2))));
+                await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/powerapps.json`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: `delete ${slug} from index`, content: encoded, sha: idxData.sha, branch: BRANCH })
+                });
+            }
+        }
+
+        document.getElementById('pa-delete-btn').addEventListener('click', async () => {
+            if (!paCurrentPath) return;
+            const token = getToken(); if (!token) return;
+            const slug = paCurrentPath.replace('powerapps/', '').replace('.html', '');
+            const btn = document.getElementById('pa-delete-btn');
+            btn.textContent = 'deleting...';
+            await deletePaEntry(token, slug);
+            paCurrentPath = null;
+            paEditorView.style.display = 'none';
+            paListView.style.display = 'block';
+            setBackVisible(false);
+            paListLoaded = false;
+            loadPaList();
+        });
+
+        // --- research ---
+        let rCurrentPath = null;
+        const rListView = document.getElementById('r-list-view');
+        const rEditorView = document.getElementById('r-editor-view');
+        rEditorView.style.display = 'none';
+
+        ['pa-what', 'pa-how', 'r-body'].forEach(id => {
+            document.getElementById(id).addEventListener('input', function() {
+                if (this.scrollHeight > this.clientHeight) this.style.height = this.scrollHeight + 'px';
+            });
+        });
+
+        async function loadRList() {
+            const token = getToken(); if (!token) return;
+            document.getElementById('r-records-list').innerHTML = '<p style="opacity:0.4;font-size:0.85rem">loading...</p>';
+            const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/r-entry`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) { document.getElementById('r-records-list').innerHTML = '<p style="opacity:0.4;font-size:0.85rem">none yet</p>'; return; }
+            const files = await res.json();
+            const htmlFiles = files.filter(f => f.name.endsWith('.html')).sort((a, b) => b.name.localeCompare(a.name));
+            const list = document.getElementById('r-records-list');
+            list.innerHTML = '';
+            htmlFiles.forEach(file => {
+                const record = document.createElement('div');
+                record.className = 'blog-record';
+                record.innerHTML = `<span class="blog-link">${file.name.replace('.html','')}</span>`;
+                record.addEventListener('click', () => openREditor(file, token));
+                list.appendChild(record);
+            });
+        }
+
+        async function openREditor(file, token) {
+            const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${file.path}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            const html = decodeContent(data.content);
+            const match = html.match(/<p>([\s\S]*?)<\/p>/);
+            const rawText = match ? match[1].replace(/<br>\n?/g, '\n') : '';
+            const titleMatch = html.match(/<h1>([\s\S]*?)<\/h1>/);
+
+            rCurrentPath = file.path;
+            document.getElementById('r-title').value = titleMatch ? titleMatch[1].trim() : '';
+            document.getElementById('r-body').value = rawText;
+            requestAnimationFrame(() => {
+                const ta = document.getElementById('r-body');
+                ta.style.height = 'auto';
+                ta.style.height = ta.scrollHeight + 'px';
+            });
+
+            backContext = 'r';
+            rListView.style.display = 'none';
+            rEditorView.style.display = 'block';
+            revealTab(rEditorView);
+            setBackVisible(true);
+        }
+
+        document.getElementById('r-save-btn').addEventListener('click', async () => {
+            const title = document.getElementById('r-title').value.trim();
+            if (!title || !rCurrentPath) return;
+            const token = getToken(); if (!token) return;
+            const btn = document.getElementById('r-save-btn');
+            btn.textContent = 'saving...'; btn.disabled = true;
+            const body = document.getElementById('r-body').value.split('\n').map(l => l.trimEnd()).join('<br>\n');
+            const html = [
+                '<!doctype html><html lang="en"><head>',
+                '    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">',
+                '    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&display=swap" rel="stylesheet">',
+                '    <link rel="stylesheet" href="/css/bootstrap.min.css">',
+                '    <link rel="stylesheet" href="/css/home.css"><link rel="stylesheet" href="/css/blog.css"><link rel="stylesheet" href="/css/entry.css">',
+                `    <style>:root{--maxWidth:67vw;}</style><title>${title}</title></head><body>`,
+                '  <button type="button" class="back-btn" onclick="history.back()">←</button>',
+                `  <div class="entry-container"><h1>${title}</h1>`,
+                `  <div class="entry-content"><p>${body}</p></div></div>`,
+                '<\/body><script src="/js/home.js"><\/script><\/html>',
+            ].join('\n');
+            const encoded = btoa(unescape(encodeURIComponent(html)));
+            const res = await ghUpload(token, rCurrentPath, encoded);
+            if (res.ok) { btn.textContent = 'saved!'; }
+            else { btn.textContent = 'error'; }
+            setTimeout(() => { btn.textContent = 'save'; btn.disabled = false; }, 2000);
+        });
+
+        // --- resume ---
+        const RESUME_PATH = 'work/resume.html';
+        let resumeLoaded = false;
+
+        function addEduBlock(data = {}) {
+            const container = document.getElementById('edu-blocks');
+            const block = document.createElement('div');
+            block.className = 'edu-block-form';
+            block.innerHTML = `
+                <input type="text" class="edu-school" placeholder="school name" autocomplete="off" value="${data.school || ''}">
+                <div class="field-row">
+                    <input type="text" class="edu-program" placeholder="degree / program" autocomplete="off" value="${data.program || ''}">
+                    <input type="text" class="edu-location-input" placeholder="city, state" autocomplete="off" value="${data.location || ''}">
+                    <input type="text" class="edu-date-input" placeholder="may 2023" autocomplete="off" value="${data.date || ''}">
+                </div>
+                <textarea class="edu-courses" placeholder="relevant coursework...">${data.courses || ''}</textarea>
+                <button type="button" class="remove-edu-btn">remove</button>
+            `;
+            block.querySelector('.remove-edu-btn').addEventListener('click', () => block.remove());
+            block.querySelector('.edu-courses').addEventListener('input', function() {
+                if (this.scrollHeight > this.clientHeight) this.style.height = this.scrollHeight + 'px';
+            });
+            container.appendChild(block);
+        }
+
+        document.getElementById('add-edu-btn').addEventListener('click', () => addEduBlock());
+
+        async function loadResume() {
+            if (resumeLoaded) return;
+            const token = getToken(); if (!token) return;
+            const btn = document.getElementById('resume-save-btn');
+            btn.textContent = 'loading...';
+            try {
+                const apiRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${RESUME_PATH}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!apiRes.ok) { btn.textContent = 'save'; return; }
+                const apiData = await apiRes.json();
+                const rawRes = await fetch(apiData.download_url);
+                const html = await rawRes.text();
+                btn.textContent = 'save';
+                resumeLoaded = true;
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                doc.querySelectorAll('.resume-section').forEach(section => {
+                    const label = section.querySelector('h2')?.textContent.trim().toLowerCase();
+                    if (label === 'experience') {
+                        const blurb = Array.from(section.querySelectorAll('.entry-content p')).find(p => !p.querySelector('a'));
+                        const ta = document.getElementById('exp-blurb');
+                        ta.value = blurb ? blurb.textContent.trim() : '';
+                    }
+                    if (label === 'education') {
+                        document.getElementById('edu-blocks').innerHTML = '';
+                        section.querySelectorAll('.edu-block').forEach(block => {
+                            const meta = block.querySelector('.edu-meta')?.textContent || '';
+                            const locParts = meta.split('·');
+                            addEduBlock({
+                                school: block.querySelector('.edu-school')?.textContent.trim() || '',
+                                program: block.querySelector('.edu-degree')?.textContent.trim() || '',
+                                location: locParts[0]?.trim() || '',
+                                date: locParts[1]?.trim() || '',
+                                courses: block.querySelector('.edu-courses')?.textContent.trim() || '',
+                            });
+                        });
+                    }
+                    if (label === 'certifications') {
+                        const ta = document.getElementById('certs');
+                        const items = section.querySelectorAll('.cert-list li, .entry-content i');
+                        ta.value = Array.from(items).map(el => el.textContent.trim()).join('\n');
+                    }
+                });
+
+                // resize after subtab becomes visible
+                requestAnimationFrame(() => requestAnimationFrame(() => {
+                    ['exp-blurb', 'certs'].forEach(id => {
+                        const ta = document.getElementById(id);
+                        ta.style.height = 'auto';
+                        ta.style.height = ta.scrollHeight + 'px';
+                    });
+                }));
+            } catch(e) { console.error(e); document.getElementById('resume-save-btn').textContent = 'save'; }
+        }
+
+        document.getElementById('exp-blurb').addEventListener('input', function() {
+            if (this.scrollHeight > this.clientHeight) this.style.height = this.scrollHeight + 'px';
+        });
+        document.getElementById('certs').addEventListener('input', function() {
+            if (this.scrollHeight > this.clientHeight) this.style.height = this.scrollHeight + 'px';
+        });
+
+        document.getElementById('resume-save-btn').addEventListener('click', async () => {
+            const token = getToken(); if (!token) return;
+            const eduBlocks = document.querySelectorAll('.edu-block-form');
+            const btn = document.getElementById('resume-save-btn');
+            btn.textContent = 'saving...'; btn.disabled = true;
+            const certItems = document.getElementById('certs').value.split('\n').map(l=>l.trim()).filter(Boolean).map(l=>`          <li><i>${l}</i></li>`).join('\n');
+            const eduHTML = Array.from(eduBlocks).map(block => {
+                const school = block.querySelector('.edu-school').value.trim();
+                const program = block.querySelector('.edu-program').value.trim();
+                const location = block.querySelector('.edu-location-input').value.trim();
+                const date = block.querySelector('.edu-date-input').value.trim();
+                const courses = block.querySelector('.edu-courses').value.trim();
+                const lines = [`        <div class="edu-block"><div class="edu-header"><span class="edu-school">${school}</span><span class="edu-meta">${location} · ${date}</span></div>`];
+                if (program) lines.push(`          <div class="edu-degree">${program}</div>`);
+                if (courses) lines.push(`          <div class="edu-courses">${courses}</div>`);
+                lines.push('        </div>');
+                return lines.join('\n');
+            }).join('\n');
+            const expBlurb = document.getElementById('exp-blurb').value.trim();
+            const html = [
+                '<!doctype html><html lang="en"><head>',
+                '    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">',
+                '    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&display=swap" rel="stylesheet">',
+                '    <link rel="stylesheet" href="/css/bootstrap.min.css">',
+                '    <link rel="stylesheet" href="/css/home.css"><link rel="stylesheet" href="/css/entry.css"><link rel="stylesheet" href="/css/resume.css">',
+                '    <style>:root{--maxWidth:67vw;}</style><title>resume</title></head><body>',
+                '  <div class="entry-container"><h1>resume</h1>',
+                '    <div class="resume-section"><h2>experience</h2><div class="entry-content">',
+                `      <p>${expBlurb}</p><p>→ <a class="resume-link" href="/work/powerapps.html">see the work</a></p>`,
+                '    </div></div>',
+                '    <div class="resume-section"><h2>education</h2><div class="entry-content">',
+                eduHTML,
+                '    </div></div>',
+                '    <div class="resume-section"><h2>certifications</h2><div class="entry-content"><ul class="cert-list">',
+                certItems,
+                '    </ul></div></div>',
+                '  </div><\/body><script src="/js/home.js"><\/script><\/html>',
+            ].join('\n');
+            const encoded = btoa(unescape(encodeURIComponent(html)));
+            const check = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${RESUME_PATH}`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const existing = await check.json();
+            const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${RESUME_PATH}`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: 'update resume', content: encoded, sha: existing.sha, branch: BRANCH })
+            });
+            if (res.ok) { btn.textContent = 'saved!'; setTimeout(() => { btn.textContent = 'save'; btn.disabled = false; }, 2000); }
+            else { btn.textContent = 'error'; btn.disabled = false; }
+        });
     </script>
 </body>
 </html>
