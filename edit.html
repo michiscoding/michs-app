@@ -380,6 +380,7 @@ async function openEntry(file) {
             editorTextarea.value = rawText;
 
             backContext = 'entry';
+            document.getElementById('entry-filters').style.display = 'none';
             entriesList.style.display = 'none';
             entryEditorView.style.display = 'block';
             revealTab(entryEditorView);
@@ -396,6 +397,7 @@ async function openEntry(file) {
 
             if (backContext === 'entry') {
                 entryEditorView.style.display = 'none';
+                document.getElementById('entry-filters').style.display = '';
                 entriesList.style.display = 'block';
                 revealTab(entriesList);
                 currentFile = null;
