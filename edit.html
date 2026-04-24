@@ -511,7 +511,7 @@
                 const card = document.createElement('div');
                 card.className = 'retag-card';
                 const img = document.createElement('img');
-                img.src = MEDIA_BASE + photo.storage_path;
+                img.src = photo.storage_path.startsWith('http') ? photo.storage_path : MEDIA_BASE + photo.storage_path;
                 const delBtn = document.createElement('button');
                 delBtn.type = 'button';
                 delBtn.className = 'remove-btn';
