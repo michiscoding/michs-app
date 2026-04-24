@@ -87,7 +87,7 @@
 
         <div id="tab-photos">
             <div class="retag-header">
-                <button type="button" id="retag-save-btn" class="btn-app">save tags</button>
+                <button type="button" id="retag-save-btn" class="btn-app">save</button>
             </div>
             <div id="retag-grid"></div>
         </div>
@@ -555,7 +555,7 @@
             }
             retagSaveBtn.textContent = 'saved!';
             deletedPhotoIds = new Set();
-            setTimeout(() => { retagSaveBtn.textContent = 'save tags'; retagSaveBtn.disabled = false; }, 2000);
+            setTimeout(() => { retagSaveBtn.textContent = 'save'; retagSaveBtn.disabled = false; }, 2000);
         });
 
         // --- shared helpers ---
