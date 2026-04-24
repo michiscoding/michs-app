@@ -7,10 +7,25 @@ const cols = [
     document.getElementById('col-2'),
 ];
 const addBtn = document.getElementById('add-btn');
+const postBtn = document.getElementById('post-btn');
 
+const OWNER = 'michiscoding';
+const REPO = 'michiscoding.github.io';
+const BRANCH = 'main';
+const ALL_TAGS = ['home', 'nature', 'jiu-jitsu', 'vsco', 'random'];
+
+function getToken() {
+    let token = localStorage.getItem('gh_token');
+    if (!token) {
+        token = prompt('enter your github token:');
+        if (token) localStorage.setItem('gh_token', token);
+    }
+    return token;
+}
+
+// items: [{ file, base64, name, tags: Set, el }]
 let items = [];
 
-// drag over styling
 dropZone.addEventListener('dragover', (e) => {
     e.preventDefault();
     dropZone.classList.add('dragover');
@@ -30,84 +45,97 @@ dropZone.addEventListener('drop', (e) => {
 fileInput.addEventListener('change', () => {
     const file = fileInput.files[0];
     if (file) addPreview(file);
+    fileInput.value = '';
 });
 
 function addPreview(file) {
-    const url = URL.createObjectURL(file);
-    let el;
+    const reader = new FileReader();
+    reader.onload = e => {
+        const base64Full = e.target.result;
+        const base64 = base64Full.split(',')[1];
+        const name = sanitizeName(file.name);
+        const tags = new Set();
 
-    if (file.type.startsWith('image/')) {
-        el = document.createElement('img');
-        el.src = url;
-    } else if (file.type.startsWith('video/')) {
-        el = document.createElement('video');
-        el.src = url;
-        el.controls = true;
-    }
+        const item = document.createElement('div');
+        item.className = 'preview-item';
 
-    if (!el) return;
+        const isVideo = file.type.startsWith('video/');
+        const media = document.createElement(isVideo ? 'video' : 'img');
+        media.src = base64Full;
+        if (isVideo) { media.muted = true; media.loop = true; media.autoplay = true; media.playsInline = true; }
 
-    const item = document.createElement('div');
-    item.className = 'preview-item';
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'remove-btn';
+        removeBtn.textContent = '×';
 
-    const removeBtn = document.createElement('button');
-    removeBtn.type = 'button';
-    removeBtn.className = 'remove-btn';
-    removeBtn.textContent = '×';
-    removeBtn.addEventListener('click', () => {
-        item.classList.remove('visible');
-        setTimeout(() => {
-            items = items.filter(i => i !== item);
-            item.remove();
-            if (items.length === 0) {
-                previewContainer.style.display = 'none';
-                dropZone.style.display = 'flex';
-                fileInput.value = '';
-            } else {
-                flipColumns();
-            }
-        }, 400);
-    });
+        const tagPicker = document.createElement('div');
+        tagPicker.className = 'tag-picker';
+        ALL_TAGS.forEach(tag => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'tag-btn';
+            btn.textContent = tag;
+            btn.addEventListener('click', () => {
+                if (tags.has(tag)) { tags.delete(tag); btn.classList.remove('active'); }
+                else { tags.add(tag); btn.classList.add('active'); }
+            });
+            tagPicker.appendChild(btn);
+        });
 
-    item.appendChild(el);
-    item.appendChild(removeBtn);
+        const entry = { file, base64, name, tags, el: item };
+        items.push(entry);
 
-    // place directly in next column, no re-render
-    const col = cols[items.length % 3];
-    col.appendChild(item);
-    items.push(item);
+        removeBtn.addEventListener('click', () => {
+            item.classList.remove('visible');
+            setTimeout(() => {
+                items = items.filter(i => i !== entry);
+                item.remove();
+                if (items.length === 0) {
+                    previewContainer.style.display = 'none';
+                    dropZone.style.display = 'flex';
+                } else {
+                    flipColumns();
+                }
+            }, 400);
+        });
 
-    dropZone.style.display = 'none';
-    previewContainer.style.display = 'flex';
+        item.appendChild(media);
+        item.appendChild(removeBtn);
+        item.appendChild(tagPicker);
 
-    requestAnimationFrame(() => item.classList.add('visible'));
+        const col = cols[items.length % 3];
+        col.appendChild(item);
+
+        dropZone.style.display = 'none';
+        previewContainer.style.display = 'flex';
+
+        requestAnimationFrame(() => item.classList.add('visible'));
+    };
+    reader.readAsDataURL(file);
+}
+
+function sanitizeName(name) {
+    return name.toLowerCase().replace(/[^a-z0-9.\-_]/g, '-');
 }
 
 function flipColumns() {
-    // 1. record current positions
-    const first = items.map(item => item.getBoundingClientRect());
-
-    // 2. re-place in DOM
+    const first = items.map(item => item.el.getBoundingClientRect());
     cols.forEach(col => col.innerHTML = '');
-    items.forEach((item, i) => cols[i % 3].appendChild(item));
-
-    // 3. invert + play
+    items.forEach((item, i) => cols[i % 3].appendChild(item.el));
     items.forEach((item, i) => {
-        const last = item.getBoundingClientRect();
+        const last = item.el.getBoundingClientRect();
         const dx = first[i].left - last.left;
         const dy = first[i].top - last.top;
-
         if (dx === 0 && dy === 0) return;
-
-        item.style.transition = 'none';
-        item.style.transform = `translate(${dx}px, ${dy}px)`;
-
+        item.el.style.transition = 'none';
+        item.el.style.transform = `translate(${dx}px, ${dy}px)`;
         requestAnimationFrame(() => {
-            item.style.transition = 'transform 0.3s ease';
-            item.style.transform = '';
-            item.addEventListener('transitionend', () => {
-                item.style.transition = '';
-                item.style.transform = '';
+            item.el.style.transition = 'transform 0.3s ease';
+            item.el.style.transform = '';
+            item.el.addEventListener('transitionend', () => {
+                item.el.style.transition = '';
+                item.el.style.transform = '';
             }, { once: true });
         });
     });
@@ -122,3 +150,63 @@ addBtn.addEventListener('click', () => {
     });
     input.click();
 });
+
+postBtn.addEventListener('click', async () => {
+    if (!items.length) return;
+    const token = getToken();
+    if (!token) return;
+
+    postBtn.textContent = 'posting...';
+    postBtn.disabled = true;
+
+    const today = new Date();
+    const yyyy = String(today.getFullYear());
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const date = `${yyyy}-${mm}-${dd}`;
+
+    const newPhotos = [];
+    for (const item of items) {
+        const path = `images/${date}/${item.name}`;
+        const check = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        let sha;
+        if (check.ok) sha = (await check.json()).sha;
+
+        const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: `image ${path}`, content: item.base64, branch: BRANCH, ...(sha && { sha }) })
+        });
+
+        if (res.ok) {
+            newPhotos.push({ src: `/${path}`, tags: [...item.tags], date });
+        }
+    }
+
+    await patchPhotosJson(token, newPhotos);
+
+    postBtn.textContent = 'posted!';
+    items = [];
+    cols.forEach(col => col.innerHTML = '');
+    previewContainer.style.display = 'none';
+    dropZone.style.display = 'flex';
+    setTimeout(() => { postBtn.textContent = 'post'; postBtn.disabled = false; }, 2000);
+});
+
+async function patchPhotosJson(token, newPhotos) {
+    const jsonPath = 'photos.json';
+    const jsonRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${jsonPath}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const jsonData = await jsonRes.json();
+    const existing = JSON.parse(atob(jsonData.content.replace(/\n/g, '')));
+    const updated = [...existing, ...newPhotos];
+    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(updated, null, 2))));
+    return fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${jsonPath}`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: `add ${newPhotos.length} photo(s)`, content: encoded, sha: jsonData.sha, branch: BRANCH })
+    });
+}

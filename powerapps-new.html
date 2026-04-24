@@ -87,21 +87,21 @@
         </svg>
       </button>
     </div>
-    <nav class="nav-menu">
+        <nav class="nav-menu">
         <ul>
-            <li><a href="entry.html">new entry</a></li>
-            <li><a href="edit.html">edit</a></li>
+            <li><a href="entry.html">entry</a></li>
             <li><a href="visuals.html">visuals</a></li>
             <li><span class="nav-toggle" id="work-toggle">work</span>
                 <ul class="nav-sub" id="work-sub">
                     <li><a href="powerapps-new.html">powerapps</a></li>
                     <li><a href="research.html">research</a></li>
-                    <li><a href="resume-edit.html">resume</a></li>
                 </ul>
             </li>
+            <li><a href="edit.html">edit</a></li>
             <li><button type="button" id="dark-toggle" aria-label="toggle dark mode">☾</button></li>
         </ul>
     </nav>
+
 
     <div class="entry-container">
         <h1>new powerapps entry</h1>
@@ -121,11 +121,10 @@
         </div>
 
         <div class="field-group">
-            <label>media (gif or mp4)</label>
-            <input type="file" id="media-input" accept="image/gif,video/mp4" style="display:none">
-            <button type="button" class="btn-app" onclick="document.getElementById('media-input').click()">choose file</button>
-            <img id="media-preview-img" style="display:none; width:100%; border-radius:8px; margin-top:0.75rem;" alt="preview">
-            <video id="media-preview-vid" style="display:none; width:100%; border-radius:8px; margin-top:0.75rem;" muted autoplay loop playsinline></video>
+            <label>media</label>
+            <input type="file" id="media-input" accept="image/*,video/*" multiple style="display:none">
+            <button type="button" class="btn-app" onclick="document.getElementById('media-input').click()">choose files</button>
+            <div id="media-previews"></div>
         </div>
 
         <div class="field-group">
@@ -147,37 +146,47 @@
         const REPO = 'michiscoding.github.io';
         const BRANCH = 'main';
 
-        // tag selection
-        let selectedTag = '';
-        document.querySelectorAll('.tag-pill').forEach(pill => {
-            pill.addEventListener('click', () => {
-                document.querySelectorAll('.tag-pill').forEach(p => p.classList.remove('selected'));
-                pill.classList.add('selected');
-                selectedTag = pill.dataset.tag;
+        // auto-grow textareas
+        ['pa-what', 'pa-how'].forEach(id => {
+            document.getElementById(id).addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = this.scrollHeight + 'px';
             });
         });
 
-        // media preview
-        let mediaFile = null;
-        let mediaType = '';
+        // tag selection
+        let selectedTags = new Set();
+        document.querySelectorAll('.tag-pill').forEach(pill => {
+            pill.addEventListener('click', () => {
+                if (selectedTags.has(pill.dataset.tag)) {
+                    selectedTags.delete(pill.dataset.tag);
+                    pill.classList.remove('selected');
+                } else {
+                    selectedTags.add(pill.dataset.tag);
+                    pill.classList.add('selected');
+                }
+            });
+        });
+
+        let mediaFiles = [];
 
         document.getElementById('media-input').addEventListener('change', e => {
-            mediaFile = e.target.files[0];
-            if (!mediaFile) return;
-            const url = URL.createObjectURL(mediaFile);
-            if (mediaFile.type === 'video/mp4') {
-                mediaType = 'video';
-                document.getElementById('media-preview-img').style.display = 'none';
-                const vid = document.getElementById('media-preview-vid');
-                vid.src = url;
-                vid.style.display = 'block';
-            } else {
-                mediaType = 'image';
-                document.getElementById('media-preview-vid').style.display = 'none';
-                const img = document.getElementById('media-preview-img');
-                img.src = url;
-                img.style.display = 'block';
-            }
+            mediaFiles = Array.from(e.target.files);
+            const previews = document.getElementById('media-previews');
+            previews.innerHTML = '';
+            mediaFiles.forEach(file => {
+                const url = URL.createObjectURL(file);
+                let el;
+                if (file.type === 'video/mp4') {
+                    el = document.createElement('video');
+                    el.src = url; el.muted = true; el.autoplay = true; el.loop = true; el.playsInline = true;
+                } else {
+                    el = document.createElement('img');
+                    el.src = url; el.alt = file.name;
+                }
+                el.style.cssText = 'width:100%;border-radius:8px;margin-top:0.5rem;display:block;';
+                previews.appendChild(el);
+            });
         });
 
         function getToken() {
@@ -199,10 +208,21 @@
             return `${months[d.getMonth()]} ${d.getDate()} ${d.getFullYear()}`;
         }
 
-        function buildDetailHTML(title, tag, what, how, mediaFilename, isVideo) {
-            const mediaEl = isVideo
-                ? '<video style="width:100%;border-radius:8px;margin-bottom:2rem;" muted autoplay loop playsinline><source src="/powerapps/' + mediaFilename + '" type="video/mp4"></video>'
-                : '<img style="width:100%;border-radius:8px;margin-bottom:2rem;" alt="' + title + '" src="/powerapps/' + mediaFilename + '">';
+        function buildDetailHTML(title, tag, what, how, mediaSrcs) {
+            let mediaEl = '';
+            if (mediaSrcs.length === 1) {
+                const src = mediaSrcs[0];
+                mediaEl = src.endsWith('.mp4')
+                    ? '<video class="pa-media" muted autoplay loop playsinline><source src="' + src + '" type="video/mp4"></video>'
+                    : '<img class="pa-media" alt="' + title + '" src="' + src + '">';
+            } else if (mediaSrcs.length > 1) {
+                const slides = mediaSrcs.map((src, i) =>
+                    src.endsWith('.mp4')
+                        ? '<video class="pa-slide"' + (i===0?' style="opacity:1"':'') + ' muted autoplay loop playsinline><source src="' + src + '" type="video/mp4"></video>'
+                        : '<img class="pa-slide"' + (i===0?' style="opacity:1"':'') + ' alt="' + title + '" src="' + src + '">'
+                ).join('\n        ');
+                mediaEl = '<div class="pa-slideshow">\n        ' + slides + '\n      </div>';
+            }
 
             const parts = [
                 '<!doctype html>',
@@ -269,6 +289,29 @@
             });
         }
 
+        async function patchPaIndex(token, slug, title, tag, media) {
+            const path = 'powerapps.json';
+            const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            let entries = [], sha;
+            if (res.ok) {
+                const data = await res.json();
+                sha = data.sha;
+                entries = JSON.parse(atob(data.content.replace(/\n/g, '')));
+            }
+            const idx = entries.findIndex(e => e.slug === slug);
+            const entry = { slug, title, tag, media };
+            if (idx >= 0) entries[idx] = entry;
+            else entries.push(entry);
+            const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(entries, null, 2))));
+            await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: `update powerapps index`, content: encoded, branch: BRANCH, ...(sha && { sha }) })
+            });
+        }
+
         document.getElementById('post-btn').addEventListener('click', async () => {
             const title = document.getElementById('pa-title').value.trim();
             if (!title) { document.getElementById('pa-title').focus(); return; }
@@ -283,24 +326,30 @@
                 const slug = slugify(title);
                 const what = document.getElementById('pa-what').value;
                 const how = document.getElementById('pa-how').value;
-                const isVideo = mediaType === 'video';
-                let mediaFilename = '';
+                let mediaSrcs = [];
 
-                // upload media if provided
-                if (mediaFile) {
-                    const ext = isVideo ? 'mp4' : 'gif';
-                    mediaFilename = `${slug}.${ext}`;
-                    const reader = new FileReader();
+                // upload all media files
+                for (let i = 0; i < mediaFiles.length; i++) {
+                    const file = mediaFiles[i];
+                    const ext = file.type === 'video/mp4' ? 'mp4' : (file.name.split('.').pop() || 'jpg');
+                    const filename = mediaFiles.length === 1 ? `${slug}.${ext}` : `${slug}-${i+1}.${ext}`;
                     const b64 = await new Promise(resolve => {
-                        reader.onload = e => resolve(e.target.result.split(',')[1]);
-                        reader.readAsDataURL(mediaFile);
+                        const r = new FileReader();
+                        r.onload = e => resolve(e.target.result.split(',')[1]);
+                        r.readAsDataURL(file);
                     });
-                    await uploadToGitHub(`powerapps/${mediaFilename}`, b64, token, true);
+                    await uploadToGitHub(`powerapps/${filename}`, b64, token, true);
+                    mediaSrcs.push(`/powerapps/${filename}`);
                 }
 
                 // upload detail HTML
-                const html = buildDetailHTML(title, selectedTag, what, how, mediaFilename, isVideo);
+                const tagStr = [...selectedTags].join(', ');
+                const html = buildDetailHTML(title, tagStr, what, how, mediaSrcs);
                 await uploadToGitHub(`powerapps/${slug}.html`, html, token);
+
+                // update powerapps.json index
+                const mediaVal = mediaSrcs.length === 1 ? mediaSrcs[0] : mediaSrcs.length > 1 ? mediaSrcs : '';
+                await patchPaIndex(token, slug, title, tagStr, mediaVal);
 
                 btn.textContent = 'posted!';
                 setTimeout(() => btn.textContent = 'post', 2000);
