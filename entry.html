@@ -63,6 +63,8 @@
         <button type="button" id="post-btn" class="btn-app">post</button>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase.js"></script>
     <script src="js/app.js"></script>
     <script>
         const textarea = document.querySelector('textarea');
@@ -70,7 +72,6 @@
         const photoInput = document.getElementById('photo-input');
         const photoPreviews = document.getElementById('photo-previews');
 
-        // files array: { file, base64, name }
         const photos = [];
 
         photoInput.addEventListener('change', () => {
@@ -79,81 +80,50 @@
         });
 
         function addPhoto(file) {
-            const reader = new FileReader();
-            reader.onload = e => {
-                const base64Full = e.target.result; // data:image/...;base64,XXX
-                const base64 = base64Full.split(',')[1];
-                const entry = { file, base64, name: sanitizeName(file.name) };
-                photos.push(entry);
+            const url = URL.createObjectURL(file);
+            const entry = { file, name: sanitizeName(file.name) };
+            photos.push(entry);
 
-                const thumb = document.createElement('div');
-                thumb.className = 'photo-thumb';
+            const thumb = document.createElement('div');
+            thumb.className = 'photo-thumb';
+            const isVideo = file.type.startsWith('video/');
+            const media = document.createElement(isVideo ? 'video' : 'img');
+            media.src = url;
+            if (isVideo) { media.muted = true; media.loop = true; media.autoplay = true; media.playsInline = true; }
 
-                const isVideo = file.type.startsWith('video/');
-                const media = document.createElement(isVideo ? 'video' : 'img');
-                media.src = base64Full;
-                if (isVideo) { media.muted = true; media.loop = true; media.autoplay = true; media.playsInline = true; }
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'remove-btn';
+            removeBtn.textContent = '×';
+            removeBtn.addEventListener('click', () => {
+                photos.splice(photos.indexOf(entry), 1);
+                thumb.remove();
+            });
 
-                const removeBtn = document.createElement('button');
-                removeBtn.type = 'button';
-                removeBtn.className = 'remove-btn';
-                removeBtn.textContent = '×';
-                removeBtn.addEventListener('click', () => {
-                    photos.splice(photos.indexOf(entry), 1);
-                    thumb.remove();
-                });
-
-                thumb.appendChild(media);
-                thumb.appendChild(removeBtn);
-                photoPreviews.appendChild(thumb);
-            };
-            reader.readAsDataURL(file);
+            thumb.appendChild(media);
+            thumb.appendChild(removeBtn);
+            photoPreviews.appendChild(thumb);
         }
 
         function sanitizeName(name) {
             return name.toLowerCase().replace(/[^a-z0-9.\-_]/g, '-');
         }
 
-        // clear "new entry" placeholder on first click
         dateLabel.addEventListener('focus', () => {
-            if (dateLabel.textContent.trim() === 'new entry') {
-                dateLabel.textContent = '';
-            }
+            if (dateLabel.textContent.trim() === 'new entry') dateLabel.textContent = '';
         });
         dateLabel.addEventListener('blur', () => {
-            if (dateLabel.textContent.trim() === '') {
-                dateLabel.textContent = 'new entry';
-            }
+            if (dateLabel.textContent.trim() === '') dateLabel.textContent = 'new entry';
         });
 
         textarea.addEventListener('input', () => {
-            if (textarea.scrollHeight > textarea.clientHeight) {
-                textarea.style.height = textarea.scrollHeight + 'px';
-            }
+            if (textarea.scrollHeight > textarea.clientHeight) textarea.style.height = textarea.scrollHeight + 'px';
         });
 
-        const OWNER = 'michiscoding';
-        const REPO = 'michiscoding.github.io';
-        const BRANCH = 'main';
-
-        function getToken() {
-            let token = localStorage.getItem('gh_token');
-            if (!token) {
-                token = prompt('enter your github token:');
-                if (token) localStorage.setItem('gh_token', token);
-            }
-            return token;
-        }
-
-        // parse MMDDYY → { yyyy, mm, dd }, fallback to today
         function parseDate() {
             const raw = dateLabel.textContent.trim();
             if (/^\d{6}$/.test(raw)) {
-                const mm = raw.slice(0, 2);
-                const dd = raw.slice(2, 4);
-                const yy = raw.slice(4, 6);
-                const yyyy = '20' + yy;
-                return { yyyy, mm, dd };
+                return { yyyy: '20' + raw.slice(4, 6), mm: raw.slice(0, 2), dd: raw.slice(2, 4) };
             }
             const d = new Date();
             return {
@@ -163,149 +133,46 @@
             };
         }
 
-        function getDatePath() {
-            const { yyyy, mm, dd } = parseDate();
-            return `entries/${yyyy}-${mm}-${dd}.html`;
-        }
-
-        function getDateTitle() {
-            const months = ['january','february','march','april','may','june','july','august','september','october','november','december'];
-            const { yyyy, mm, dd } = parseDate();
-            const monthName = months[parseInt(mm, 10) - 1];
-            return `${monthName} ${parseInt(dd, 10)} ${yyyy}`;
-        }
-
-        function buildHTML(text, imagePaths) {
-            const body = text
-                .split('\n')
-                .map(line => line.trimEnd())
-                .join('<br>\n');
-
-            const title = getDateTitle();
-
-            let galleryHTML = '';
-            if (imagePaths.length) {
-                const thumbs = imagePaths.map(p =>
-                    `      <div class="entry-gallery-item"><img src="/${p}" loading="lazy"></div>`
-                ).join('\n');
-                galleryHTML = [
-                    '    <div class="entry-gallery">',
-                    '      <button class="gallery-arrow gallery-prev" aria-label="previous">&#8592;</button>',
-                    '      <div class="gallery-track">',
-                    thumbs,
-                    '      </div>',
-                    '      <button class="gallery-arrow gallery-next" aria-label="next">&#8594;</button>',
-                    '    </div>',
-                ].join('\n');
-            }
-
-            const parts = [
-                '<!doctype html>',
-                '<html lang="en">',
-                '<head>',
-                '    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&display=swap" rel="stylesheet">',
-                '    <link rel="stylesheet" href="/css/bootstrap.min.css">',
-                '    <link rel="stylesheet" href="/css/home.css">',
-                '    <link rel="stylesheet" href="/css/blog.css">',
-                '    <link rel="stylesheet" href="/css/entry.css">',
-                '    <style>:root { --maxWidth: 67vw; }</style>',
-                '    <title>' + title + '</title>',
-                '</head>',
-                '<body>',
-                '  <button type="button" class="back-btn" onclick="history.back()">←</button>',
-                '  <div class="entry-container">',
-                '    <h1>' + title + '</h1>',
-                '    <div class="entry-content">',
-                '      <p>' + body + '</p>',
-                '    </div>',
-                galleryHTML,
-                '  </div>',
-                '<' + '/body>',
-                '<script src="/js/home.js"><' + '/script>',
-                '<' + '/html>',
-            ];
-            return parts.join('\n');
-        }
-
-        async function uploadFile(token, path, base64) {
-            let sha;
-            const check = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (check.ok) sha = (await check.json()).sha;
-
-            return fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
-                method: 'PUT',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: `image ${path}`, content: base64, branch: BRANCH, ...(sha && { sha }) })
-            });
-        }
-
         document.getElementById('post-btn').addEventListener('click', async () => {
-            const token = getToken();
-            if (!token) return;
+            const adminDb = getAdminClient();
+            if (!adminDb) return;
 
             const btn = document.getElementById('post-btn');
             btn.textContent = 'posting...';
 
-            // upload images first
             const { yyyy, mm, dd } = parseDate();
-            const imagePaths = [];
+            const date = `${yyyy}-${mm}-${dd}`;
+
+            // upload photos to supabase storage
+            const photoPaths = [];
             for (const photo of photos) {
-                const imgPath = `entries/images/${yyyy}-${mm}-${dd}/${photo.name}`;
-                const res = await uploadFile(token, imgPath, photo.base64);
-                if (res.ok) imagePaths.push(imgPath);
+                const path = `entry-photos/${date}/${photo.name}`;
+                const { error } = await adminDb.storage.from('media').upload(path, photo.file, { upsert: true });
+                if (!error) photoPaths.push(path);
             }
 
-            const path = getDatePath();
-            const html = buildHTML(textarea.value, imagePaths);
-            const encoded = btoa(unescape(encodeURIComponent(html)));
+            // upsert entry row
+            const { error } = await adminDb.from('entries').upsert({ date, content: textarea.value }, { onConflict: 'date' });
 
-
-            try {
-                // check if file already exists to get sha
-                let sha;
-                const check = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (check.ok) {
-                    const existing = await check.json();
-                    sha = existing.sha;
-                }
-
-                const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        message: `entry ${path}`,
-                        content: encoded,
-                        branch: BRANCH,
-                        ...(sha && { sha }),
-                    })
-                });
-
-                if (res.ok) {
-                    btn.textContent = 'posted!';
-                    textarea.value = '';
-                    textarea.style.height = '';
-                    dateLabel.textContent = 'new entry';
-                    photos.length = 0;
-                    photoPreviews.innerHTML = '';
-                    setTimeout(() => btn.textContent = 'post', 2000);
-                } else {
-                    const err = await res.json();
-                    console.error(err);
-                    btn.textContent = 'error — check console';
-                    setTimeout(() => btn.textContent = 'post', 3000);
-                }
-            } catch (e) {
-                console.error(e);
+            if (error) {
                 btn.textContent = 'error — check console';
+                console.error(error);
                 setTimeout(() => btn.textContent = 'post', 3000);
+                return;
             }
+
+            // insert entry_photos rows
+            if (photoPaths.length) {
+                await adminDb.from('entry_photos').insert(photoPaths.map(p => ({ entry_date: date, storage_path: p })));
+            }
+
+            btn.textContent = 'posted!';
+            textarea.value = '';
+            textarea.style.height = '';
+            dateLabel.textContent = 'new entry';
+            photos.length = 0;
+            photoPreviews.innerHTML = '';
+            setTimeout(() => btn.textContent = 'post', 2000);
         });
     </script>
 </body>

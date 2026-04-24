@@ -173,25 +173,11 @@
     </div>
 
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
 <script src="js/app.js"></script>
     <script>
-        const OWNER = 'michiscoding';
-        const REPO = 'michiscoding.github.io';
-        const BRANCH = 'main';
-
-        function getToken() {
-            let token = localStorage.getItem('gh_token');
-            if (!token) {
-                token = prompt('enter your github token:');
-                if (token) localStorage.setItem('gh_token', token);
-            }
-            return token;
-        }
-
-        function decodeContent(b64) {
-            const bytes = Uint8Array.from(atob(b64.replace(/\n/g, '')), c => c.charCodeAt(0));
-            return new TextDecoder().decode(bytes);
-        }
+        const MEDIA_BASE = SUPABASE_URL + '/storage/v1/object/public/media/';
 
         const siteLink = document.getElementById('site-link');
         function setBackVisible(visible) {
@@ -206,11 +192,10 @@
         const backBtn = document.getElementById('list-back-btn');
         const saveBtn = document.getElementById('save-btn');
 
-        let currentFile = null;
-        let currentSha = null;
-        let backContext = 'entry'; // 'entry' | 'pa' | 'r'
+        let currentDate = null;
+        let backContext = 'entry';
 
-        // photos: { type: 'existing', path, src } | { type: 'new', file, base64, name }
+        // photos: { type: 'existing', storage_path, src } | { type: 'new', file, name }
         let photos = [];
 
         const photoInput = document.getElementById('photo-input');
@@ -222,20 +207,16 @@
         });
 
         function addNewPhoto(file) {
-            const reader = new FileReader();
-            reader.onload = e => {
-                const base64Full = e.target.result;
-                const entry = { type: 'new', file, base64: base64Full.split(',')[1], name: sanitizeName(file.name) };
-                photos.push(entry);
-                renderThumb(base64Full, entry, file.type.startsWith('video/'));
-            };
-            reader.readAsDataURL(file);
+            const entry = { type: 'new', file, name: sanitizeName(file.name) };
+            photos.push(entry);
+            renderThumb(URL.createObjectURL(file), entry, file.type.startsWith('video/'));
         }
 
-        function addExistingPhoto(path) {
-            const entry = { type: 'existing', path, src: 'https://michiscoding.github.io/' + path };
+        function addExistingPhoto(storagePath) {
+            const isVideo = /\.(mp4|webm|mov)$/i.test(storagePath);
+            const entry = { type: 'existing', storage_path: storagePath, src: MEDIA_BASE + storagePath };
             photos.push(entry);
-            renderThumb(entry.src, entry, false);
+            renderThumb(entry.src, entry, isVideo);
         }
 
         function renderThumb(src, entry, isVideo) {
@@ -259,19 +240,6 @@
 
         function sanitizeName(name) {
             return name.toLowerCase().replace(/[^a-z0-9.\-_]/g, '-');
-        }
-
-        async function uploadFile(token, path, base64) {
-            let sha;
-            const check = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (check.ok) sha = (await check.json()).sha;
-            return fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
-                method: 'PUT',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: `image ${path}`, content: base64, branch: BRANCH, ...(sha && { sha }) })
-            });
         }
 
         // auto grow textarea
@@ -330,13 +298,9 @@
         });
 
         async function loadEntries() {
-            const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/entries`);
-            const files = await res.json();
-
-            allEntryFiles = files
-                .filter(f => f.name.endsWith('.html'))
-                .sort((a, b) => b.name.localeCompare(a.name));
-
+            const { data } = await db.from('entries').select('date').order('date', { ascending: false });
+            if (!data) return;
+            allEntryFiles = data.map(row => ({ name: row.date }));
             const seenYr = new Set();
             yearFilter.innerHTML = '<option value="all">year</option>';
             allEntryFiles.forEach(f => {
@@ -349,36 +313,23 @@
                     yearFilter.appendChild(opt);
                 }
             });
-
             rebuildMonthFilter();
             renderEntryList();
         }
 
-async function openEntry(file) {
-            const token = getToken();
-            const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${file.path}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await res.json();
-            currentFile = file;
-            currentSha = data.sha;
-
-            const html = decodeContent(data.content);
-            const doc = new DOMParser().parseFromString(html, 'text/html');
-            const p = doc.querySelector('.entry-content p');
-            const rawText = p ? p.innerHTML.replace(/<br>\n?/g, '\n').replace(/<br>/g, '\n') : '';
-
-            // parse existing gallery images
+        async function openEntry(file) {
+            const date = file.name;
+            const [{ data: entryData }, { data: photoData }] = await Promise.all([
+                db.from('entries').select('content').eq('date', date).single(),
+                db.from('entry_photos').select('storage_path').eq('entry_date', date)
+            ]);
+            currentDate = date;
             photos = [];
             photoPreviews.innerHTML = '';
-            const imgMatches = [...html.matchAll(/src="\/([^"]+\.(?:jpg|jpeg|png|gif|webp|mp4|webm|mov))"/gi)];
-            imgMatches.forEach(m => addExistingPhoto(m[1]));
-
-            const [yyyy, mm, dd] = file.name.replace('.html', '').split('-');
+            if (photoData) photoData.forEach(p => addExistingPhoto(p.storage_path));
+            const [yyyy, mm, dd] = date.split('-');
             editorTitle.textContent = `${months[parseInt(mm)-1]} ${parseInt(dd)} ${yyyy}`;
-
-            editorTextarea.value = rawText;
-
+            editorTextarea.value = entryData?.content || '';
             backContext = 'entry';
             document.getElementById('entry-filters').style.display = 'none';
             entriesList.style.display = 'none';
@@ -400,8 +351,7 @@ async function openEntry(file) {
                 document.getElementById('entry-filters').style.display = '';
                 entriesList.style.display = 'block';
                 revealTab(entriesList);
-                currentFile = null;
-                currentSha = null;
+                currentDate = null;
                 photos = [];
                 photoPreviews.innerHTML = '';
                 return;
@@ -411,7 +361,7 @@ async function openEntry(file) {
                 paEditorView.style.display = 'none';
                 paListView.style.display = 'block';
                 revealTab(paListView);
-                paCurrentPath = null;
+                paCurrentSlug = null;
                 return;
             }
 
@@ -419,106 +369,49 @@ async function openEntry(file) {
                 rEditorView.style.display = 'none';
                 rListView.style.display = 'block';
                 revealTab(rListView);
-                rCurrentPath = null;
+                rCurrentSlug = null;
             }
         });
 
         saveBtn.addEventListener('click', async () => {
-            const token = getToken();
-            if (!token || !currentFile) return;
-
+            if (!currentDate) return;
+            const adminDb = getAdminClient();
+            if (!adminDb) return;
             saveBtn.textContent = 'saving...';
 
-            const [yyyy, mm, dd] = currentFile.name.replace('.html', '').split('-');
+            const existingPaths = photos.filter(p => p.type === 'existing').map(p => p.storage_path);
+            const newPhotos = photos.filter(p => p.type === 'new');
 
-            // upload any new photos
-            const imagePaths = [];
-            for (const photo of photos) {
-                if (photo.type === 'existing') {
-                    imagePaths.push(photo.path);
-                } else {
-                    const imgPath = `entries/images/${yyyy}-${mm}-${dd}/${photo.name}`;
-                    const res = await uploadFile(token, imgPath, photo.base64);
-                    if (res.ok) imagePaths.push(imgPath);
+            const { data: currentPhotos } = await db.from('entry_photos').select('id, storage_path').eq('entry_date', currentDate);
+            if (currentPhotos) {
+                for (const cp of currentPhotos.filter(cp => !existingPaths.includes(cp.storage_path))) {
+                    await adminDb.from('entry_photos').delete().eq('id', cp.id);
                 }
             }
 
-            const body = editorTextarea.value
-                .split('\n')
-                .map(line => line.trimEnd())
-                .join('<br>\n');
-
-            const dateTitle = `${months[parseInt(mm)-1]} ${parseInt(dd)} ${yyyy}`;
-            const dateLabel = `${mm}${dd}${yyyy.slice(2)}`;
-
-            let galleryHTML = '';
-            if (imagePaths.length) {
-                const thumbs = imagePaths.map(p =>
-                    `      <div class="entry-gallery-item"><img src="/${p}" loading="lazy"></div>`
-                ).join('\n');
-                galleryHTML = [
-                    '    <div class="entry-gallery">',
-                    '      <button class="gallery-arrow gallery-prev" aria-label="previous">&#8592;</button>',
-                    '      <div class="gallery-track">',
-                    thumbs,
-                    '      </div>',
-                    '      <button class="gallery-arrow gallery-next" aria-label="next">&#8594;</button>',
-                    '    </div>',
-                ].join('\n');
+            const newPaths = [];
+            for (const photo of newPhotos) {
+                const path = `entry-photos/${currentDate}/${photo.name}`;
+                const { error } = await adminDb.storage.from('media').upload(path, photo.file, { upsert: true });
+                if (!error) newPaths.push(path);
             }
 
-            const parts = [
-                '<!doctype html>',
-                '<html lang="en">',
-                '<head>',
-                '    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&display=swap" rel="stylesheet">',
-                '    <link rel="stylesheet" href="/css/bootstrap.min.css">',
-                '    <link rel="stylesheet" href="/css/home.css">',
-                '    <link rel="stylesheet" href="/css/blog.css">',
-                '    <link rel="stylesheet" href="/css/entry.css">',
-                '    <style>:root { --maxWidth: 67vw; }</style>',
-                '    <title>' + dateTitle + '</title>',
-                '</head>',
-                '<body>',
-                '  <button type="button" class="back-btn" onclick="history.back()">←</button>',
-                '  <div class="entry-container">',
-                '    <h1>' + dateTitle + '</h1>',
-                '    <div class="entry-content">',
-                '      <p>' + body + '</p>',
-                '    </div>',
-                galleryHTML,
-                '  </div>',
-                '<' + '/body>',
-                '<script src="/js/home.js"><' + '/script>',
-                '<' + '/html>',
-            ];
-            const html = parts.join('\n');
+            const { error } = await adminDb.from('entries').upsert(
+                { date: currentDate, content: editorTextarea.value },
+                { onConflict: 'date' }
+            );
+            if (newPaths.length) {
+                await adminDb.from('entry_photos').insert(newPaths.map(p => ({ entry_date: currentDate, storage_path: p })));
+            }
 
-            const encoded = btoa(unescape(encodeURIComponent(html)));
-
-            const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${currentFile.path}`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    message: `edit ${currentFile.path}`,
-                    content: encoded,
-                    sha: currentSha,
-                    branch: BRANCH,
-                })
-            });
-
-            if (res.ok) {
-                saveBtn.textContent = 'saved!';
-                const data = await res.json();
-                currentSha = data.content.sha;
-                setTimeout(() => saveBtn.textContent = 'save', 2000);
-            } else {
+            if (error) {
                 saveBtn.textContent = 'error — check console';
+                console.error(error);
                 setTimeout(() => saveBtn.textContent = 'save', 3000);
+                return;
             }
+            saveBtn.textContent = 'saved!';
+            setTimeout(() => saveBtn.textContent = 'save', 2000);
         });
 
         loadEntries();
@@ -578,12 +471,12 @@ async function openEntry(file) {
                 if (paEditorView.style.display === 'block') {
                     paEditorView.style.display = 'none';
                     paListView.style.display = 'block';
-                    paCurrentPath = null;
+                    paCurrentSlug = null;
                 }
                 if (rEditorView.style.display === 'block') {
                     rEditorView.style.display = 'none';
                     rListView.style.display = 'block';
-                    rCurrentPath = null;
+                    rCurrentSlug = null;
                 }
                 setBackVisible(false);
                 if (tab.dataset.subtab === 'powerapps' && !paListLoaded) { paListLoaded = true; loadPaList(); }
@@ -605,39 +498,31 @@ async function openEntry(file) {
         const retagGrid = document.getElementById('retag-grid');
         const retagSaveBtn = document.getElementById('retag-save-btn');
         let retagPhotos = [];
+        let deletedPhotoIds = new Set();
 
         async function loadRetag() {
-            const token = getToken();
-            if (!token) return;
             retagGrid.innerHTML = '<p style="opacity:0.4;font-size:0.85rem">loading...</p>';
-            const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/photos.json`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await res.json();
-            retagPhotos = JSON.parse(atob(data.content.replace(/\n/g, '')));
+            const { data, error } = await db.from('photos').select('*').order('date', { ascending: false });
+            if (error || !data) { retagGrid.innerHTML = '<p style="opacity:0.4;font-size:0.85rem">none yet</p>'; return; }
+            retagPhotos = data.map(p => ({ ...p, tags: p.tags || [] }));
+            deletedPhotoIds = new Set();
             retagGrid.innerHTML = '';
             retagPhotos.forEach((photo, idx) => {
                 const card = document.createElement('div');
                 card.className = 'retag-card';
-
-                const imgSrc = photo.src.startsWith('/') ? `https://michiscoding.github.io${photo.src}` : photo.src;
                 const img = document.createElement('img');
-                img.src = imgSrc;
-
-                // delete button
+                img.src = MEDIA_BASE + photo.storage_path;
                 const delBtn = document.createElement('button');
                 delBtn.type = 'button';
                 delBtn.className = 'remove-btn';
                 delBtn.textContent = '×';
                 delBtn.addEventListener('click', () => {
-                    retagPhotos.splice(idx, 1);
+                    deletedPhotoIds.add(photo.id);
                     card.remove();
                 });
-
-                // tag picker — shown on hover via CSS
                 const picker = document.createElement('div');
                 picker.className = 'tag-picker';
-                const currentTags = new Set(photo.tags || []);
+                const currentTags = new Set(photo.tags);
                 ALL_TAGS.forEach(tag => {
                     const btn = document.createElement('button');
                     btn.type = 'button';
@@ -650,7 +535,6 @@ async function openEntry(file) {
                     });
                     picker.appendChild(btn);
                 });
-
                 card.appendChild(img);
                 card.appendChild(delBtn);
                 card.appendChild(picker);
@@ -659,27 +543,19 @@ async function openEntry(file) {
         }
 
         retagSaveBtn.addEventListener('click', async () => {
-            const token = getToken();
-            if (!token) return;
+            const adminDb = getAdminClient();
+            if (!adminDb) return;
             retagSaveBtn.textContent = 'saving...';
             retagSaveBtn.disabled = true;
-            const jsonRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/photos.json`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const jsonData = await jsonRes.json();
-            const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(retagPhotos, null, 2))));
-            const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/photos.json`, {
-                method: 'PUT',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: 'update photo tags', content: encoded, sha: jsonData.sha, branch: BRANCH })
-            });
-            if (res.ok) {
-                retagSaveBtn.textContent = 'saved!';
-                setTimeout(() => { retagSaveBtn.textContent = 'save tags'; retagSaveBtn.disabled = false; }, 2000);
-            } else {
-                retagSaveBtn.textContent = 'error';
-                retagSaveBtn.disabled = false;
+            for (const id of deletedPhotoIds) {
+                await adminDb.from('photos').delete().eq('id', id);
             }
+            for (const photo of retagPhotos.filter(p => !deletedPhotoIds.has(p.id))) {
+                await adminDb.from('photos').update({ tags: photo.tags }).eq('id', photo.id);
+            }
+            retagSaveBtn.textContent = 'saved!';
+            deletedPhotoIds = new Set();
+            setTimeout(() => { retagSaveBtn.textContent = 'save tags'; retagSaveBtn.disabled = false; }, 2000);
         });
 
         // --- shared helpers ---
@@ -687,26 +563,8 @@ async function openEntry(file) {
             return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
         }
 
-        function getDateLabel() {
-            const d = new Date();
-            return `${months[d.getMonth()]} ${d.getDate()} ${d.getFullYear()}`;
-        }
-
-        async function ghUpload(token, path, base64) {
-            let sha;
-            const check = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (check.ok) sha = (await check.json()).sha;
-            return fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
-                method: 'PUT',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: path, content: base64, branch: BRANCH, ...(sha && { sha }) })
-            });
-        }
-
         // --- powerapps ---
-        let paMediaFiles = [], paSelectedTags = new Set(), paCurrentPath = null;
+        let paMediaFiles = [], paSelectedTags = new Set(), paCurrentSlug = null, paExistingMedia = [];
 
         document.querySelectorAll('.tag-pill').forEach(pill => {
             pill.addEventListener('click', () => {
@@ -727,7 +585,7 @@ async function openEntry(file) {
             paMediaFiles.forEach(file => {
                 const url = URL.createObjectURL(file);
                 let el;
-                if (file.type === 'video/mp4') {
+                if (file.type.startsWith('video/')) {
                     el = document.createElement('video');
                     el.src = url; el.muted = true; el.autoplay = true; el.loop = true; el.playsInline = true;
                 } else {
@@ -744,119 +602,57 @@ async function openEntry(file) {
         paEditorView.style.display = 'none';
 
         async function loadPaList() {
-            const token = getToken(); if (!token) return;
             const list = document.getElementById('pa-records-list');
             list.innerHTML = '<p style="opacity:0.4;font-size:0.85rem">loading...</p>';
-
-            // read from powerapps.json index for fast title lookup
-            const jsonRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/powerapps.json`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+            const { data, error } = await db.from('powerapps').select('slug, title').order('created_at', { ascending: false });
+            list.innerHTML = '';
+            if (error || !data?.length) { list.innerHTML = '<p style="opacity:0.4;font-size:0.85rem">none yet</p>'; return; }
+            data.forEach(entry => {
+                const record = document.createElement('div');
+                record.className = 'blog-record';
+                record.innerHTML = `<span class="blog-link">${entry.title}</span>`;
+                record.addEventListener('click', () => openPaEditor(entry.slug));
+                list.appendChild(record);
             });
-            if (jsonRes.ok) {
-                const jsonData = await jsonRes.json();
-                const entries = JSON.parse(atob(jsonData.content.replace(/\n/g, '')));
-                entries.slice().reverse().forEach(entry => {
-                    const record = document.createElement('div');
-                    record.className = 'blog-record';
-                    record.innerHTML = `<span class="blog-link">${entry.title}</span>`;
-                    const file = { name: entry.slug + '.html', path: 'powerapps/' + entry.slug + '.html' };
-                    record.addEventListener('click', () => openPaEditor(file, token));
-                    list.appendChild(record);
-                });
-                list.querySelector('p')?.remove();
-            } else {
-                // fallback: fetch directory then each file for its title
-                const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/powerapps`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const files = await res.json();
-                const htmlFiles = files.filter(f => f.name.endsWith('.html') && f.name !== 'index.html')
-                    .sort((a, b) => b.name.localeCompare(a.name));
-                list.innerHTML = '';
-                await Promise.all(htmlFiles.map(async file => {
-                    let title = file.name.replace('.html', '');
-                    try {
-                        const fr = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${file.path}`, {
-                            headers: { 'Authorization': `Bearer ${token}` }
-                        });
-                        if (fr.ok) {
-                            const fd = await fr.json();
-                            const html = decodeContent(fd.content);
-                            const m = html.match(/<h1>([^<]+)<\/h1>/);
-                            if (m) title = m[1].trim();
-                        }
-                    } catch(e) {}
-                    file._title = title;
-                }));
-                htmlFiles.forEach(file => {
-                    const record = document.createElement('div');
-                    record.className = 'blog-record';
-                    record.innerHTML = `<span class="blog-link">${file._title}</span>`;
-                    record.addEventListener('click', () => openPaEditor(file, token));
-                    list.appendChild(record);
-                });
-            }
         }
 
-        async function openPaEditor(file, token) {
-            const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${file.path}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await res.json();
-            const html = decodeContent(data.content);
-            const doc = new DOMParser().parseFromString(html, 'text/html');
-
-            paCurrentPath = file.path;
+        async function openPaEditor(slug) {
+            const { data, error } = await db.from('powerapps').select('*').eq('slug', slug).single();
+            if (error || !data) return;
+            paCurrentSlug = slug;
+            paExistingMedia = data.media || [];
             paMediaFiles = [];
             document.getElementById('pa-media-input').value = '';
-
-            // show existing media from index
             const previews = document.getElementById('pa-media-previews');
             previews.innerHTML = '';
-            const idxRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/powerapps.json`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+            paExistingMedia.forEach(path => {
+                const src = MEDIA_BASE + path;
+                let el;
+                if (/\.(mp4|webm|mov)$/i.test(path)) {
+                    el = document.createElement('video');
+                    el.src = src; el.muted = true; el.autoplay = true; el.loop = true; el.playsInline = true;
+                } else {
+                    el = document.createElement('img');
+                    el.src = src; el.alt = '';
+                }
+                el.style.cssText = 'width:100%;border-radius:8px;margin-top:0.5rem;display:block;';
+                previews.appendChild(el);
             });
-            if (idxRes.ok) {
-                const idxData = await idxRes.json();
-                const entries = JSON.parse(atob(idxData.content.replace(/\n/g, '')));
-                const slug = file.name.replace('.html', '');
-                const existing = entries.find(e => e.slug === slug);
-                const mediaSrcs = existing?.media ? (Array.isArray(existing.media) ? existing.media : [existing.media]) : [];
-                mediaSrcs.forEach(src => {
-                    const fullSrc = src.startsWith('/') ? `https://michiscoding.github.io${src}` : src;
-                    let el;
-                    if (src.endsWith('.mp4')) {
-                        el = document.createElement('video');
-                        el.src = fullSrc; el.muted = true; el.autoplay = true; el.loop = true; el.playsInline = true;
-                    } else {
-                        el = document.createElement('img');
-                        el.src = fullSrc; el.alt = '';
-                    }
-                    el.style.cssText = 'width:100%;border-radius:8px;margin-top:0.5rem;display:block;';
-                    previews.appendChild(el);
-                });
-            }
-            document.getElementById('pa-title').value = doc.querySelector('h1')?.textContent.trim() || '';
-
+            document.getElementById('pa-title').value = data.title || '';
             const paWhat = document.getElementById('pa-what');
             const paHow = document.getElementById('pa-how');
-            paWhat.value = doc.querySelector('.pa-section:nth-child(1) p')?.textContent.trim() || '';
-            paHow.value = doc.querySelector('.pa-section:nth-child(2) p')?.textContent.trim() || '';
+            paWhat.value = data.what || '';
+            paHow.value = data.how || '';
             requestAnimationFrame(() => {
                 [paWhat, paHow].forEach(ta => {
                     ta.style.height = 'auto';
                     ta.style.height = ta.scrollHeight + 'px';
                 });
             });
-
-            // restore tags
-            const meta = doc.querySelector('.pa-meta')?.textContent || '';
-            const tagStr = meta.split('—')[0].trim();
-            paSelectedTags = new Set(tagStr.split(',').map(t => t.trim()).filter(Boolean));
+            paSelectedTags = new Set(data.tags || []);
             document.querySelectorAll('.tag-pill').forEach(p => {
                 p.classList.toggle('selected', paSelectedTags.has(p.dataset.tag));
             });
-
             backContext = 'pa';
             paListView.style.display = 'none';
             paEditorView.style.display = 'block';
@@ -866,171 +662,52 @@ async function openEntry(file) {
 
         document.getElementById('pa-save-btn').addEventListener('click', async () => {
             const title = document.getElementById('pa-title').value.trim();
-            if (!title || !paCurrentPath) return;
-            const token = getToken(); if (!token) return;
+            if (!title || !paCurrentSlug) return;
+            const adminDb = getAdminClient();
+            if (!adminDb) return;
             const btn = document.getElementById('pa-save-btn');
             btn.textContent = 'saving...'; btn.disabled = true;
-
-            // upload new media files if selected
-            let mediaSrcs = [];
+            const newSlug = slugify(title);
+            let mediaPaths = paMediaFiles.length > 0 ? [] : [...paExistingMedia];
             if (paMediaFiles.length > 0) {
-                const slug = slugify(title);
                 for (let i = 0; i < paMediaFiles.length; i++) {
                     const file = paMediaFiles[i];
-                    const ext = file.type === 'video/mp4' ? 'mp4' : (file.name.split('.').pop() || 'jpg');
-                    const filename = paMediaFiles.length === 1 ? `${slug}.${ext}` : `${slug}-${i+1}.${ext}`;
-                    const b64 = await new Promise(resolve => {
-                        const r = new FileReader();
-                        r.onload = e => resolve(e.target.result.split(',')[1]);
-                        r.readAsDataURL(file);
-                    });
-                    await ghUpload(token, `powerapps/${filename}`, b64);
-                    mediaSrcs.push(`/powerapps/${filename}`);
-                }
-            } else {
-                // read existing media from index
-                const idxRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/powerapps.json`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (idxRes.ok) {
-                    const idxData = await idxRes.json();
-                    const entries = JSON.parse(atob(idxData.content.replace(/\n/g, '')));
-                    const slug = paCurrentPath.replace('powerapps/', '').replace('.html', '');
-                    const existing = entries.find(e => e.slug === slug);
-                    if (existing?.media) mediaSrcs = Array.isArray(existing.media) ? existing.media : [existing.media];
+                    const ext = file.name.split('.').pop() || 'jpg';
+                    const filename = paMediaFiles.length === 1 ? `${newSlug}.${ext}` : `${newSlug}-${i+1}.${ext}`;
+                    const path = `powerapps/${filename}`;
+                    const { error } = await adminDb.storage.from('media').upload(path, file, { upsert: true });
+                    if (!error) mediaPaths.push(path);
                 }
             }
-
             const what = document.getElementById('pa-what').value;
             const how = document.getElementById('pa-how').value;
-
-            let mediaEl = '';
-            if (mediaSrcs.length === 1) {
-                const src = mediaSrcs[0];
-                mediaEl = src.endsWith('.mp4')
-                    ? `<video class="pa-media" muted autoplay loop playsinline><source src="${src}" type="video/mp4"></video>`
-                    : `<img class="pa-media" alt="${title}" src="${src}">`;
-            } else if (mediaSrcs.length > 1) {
-                const slides = mediaSrcs.map((src, i) => {
-                    const el = src.endsWith('.mp4')
-                        ? `<video class="pa-slide" ${i===0?'style="opacity:1"':''} muted autoplay loop playsinline><source src="${src}" type="video/mp4"></video>`
-                        : `<img class="pa-slide" ${i===0?'style="opacity:1"':''} alt="${title}" src="${src}">`;
-                    return el;
-                }).join('\n        ');
-                mediaEl = `<div class="pa-slideshow">\n        ${slides}\n      </div>`;
+            const tags = [...paSelectedTags];
+            if (newSlug !== paCurrentSlug) {
+                await adminDb.from('powerapps').delete().eq('slug', paCurrentSlug);
             }
-
-            const html = [
-                '<!doctype html><html lang="en"><head>',
-                '    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">',
-                '    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&display=swap" rel="stylesheet">',
-                '    <link rel="stylesheet" href="/css/bootstrap.min.css">',
-                '    <link rel="stylesheet" href="/css/home.css"><link rel="stylesheet" href="/css/entry.css">',
-                '    <style>:root{--maxWidth:67vw;}.pa-meta{font-size:.8rem;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2rem;}.pa-section{margin-bottom:2rem;}.pa-section h2{font-size:1rem;font-weight:700;margin-bottom:.5rem;}</style>',
-                `    <title>${title}</title></head><body>`,
-                '  <button type="button" class="back-btn" onclick="history.back()">←</button>',
-                `  <div class="entry-container"><h1>${title}</h1>`,
-                `  <p class="pa-meta">${[...paSelectedTags].join(', ')} — ${getDateLabel()}</p>`,
-                `  ${mediaEl ? mediaEl : ''}`,
-                '  <div class="entry-content">',
-                `    <div class="pa-section"><h2>what it does</h2><p>${what}</p></div>`,
-                `    <div class="pa-section"><h2>how it works</h2><p>${how}</p></div>`,
-                '  </div></div><\/body><script src="/js/home.js"><\/script><\/html>',
-            ].join('\n');
-            const encoded = btoa(unescape(encodeURIComponent(html)));
-            const oldSlug = paCurrentPath.replace('powerapps/', '').replace('.html', '');
-            const newSlug = slugify(title);
-            const newPath = `powerapps/${newSlug}.html`;
-            const isRename = newSlug !== oldSlug;
-
-            // upload to new path
-            const res = await ghUpload(token, newPath, encoded);
-            if (res.ok) {
-                // if renamed, delete the old file
-                if (isRename) {
-                    const oldCheck = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${paCurrentPath}`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
-                    if (oldCheck.ok) {
-                        const oldData = await oldCheck.json();
-                        await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${paCurrentPath}`, {
-                            method: 'DELETE',
-                            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ message: `rename ${oldSlug} to ${newSlug}`, sha: oldData.sha, branch: BRANCH })
-                        });
-                    }
-                    paCurrentPath = newPath;
-                }
-                const mediaVal = mediaSrcs.length === 1 ? mediaSrcs[0] : mediaSrcs.length > 1 ? mediaSrcs : '';
-                await patchPaIndex(token, newSlug, title, [...paSelectedTags].join(', '), mediaVal, isRename ? oldSlug : null);
+            const { error } = await adminDb.from('powerapps').upsert(
+                { slug: newSlug, title, tags, what, how, media: mediaPaths },
+                { onConflict: 'slug' }
+            );
+            if (error) {
+                console.error(error);
+                btn.textContent = 'error';
+            } else {
+                paCurrentSlug = newSlug;
+                paExistingMedia = mediaPaths;
                 btn.textContent = 'saved!';
-            } else { btn.textContent = 'error'; }
+            }
             setTimeout(() => { btn.textContent = 'save'; btn.disabled = false; }, 2000);
         });
 
-        async function patchPaIndex(token, slug, title, tag, media, oldSlug = null) {
-            const path = 'powerapps.json';
-            const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            let entries = [], sha;
-            if (res.ok) {
-                const data = await res.json();
-                sha = data.sha;
-                entries = JSON.parse(atob(data.content.replace(/\n/g, '')));
-            }
-            // remove old slug entry on rename
-            if (oldSlug) entries = entries.filter(e => e.slug !== oldSlug);
-            const idx = entries.findIndex(e => e.slug === slug);
-            const entry = { slug, title, tag, media };
-            if (idx >= 0) entries[idx] = entry;
-            else entries.push(entry);
-            const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(entries, null, 2))));
-            await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
-                method: 'PUT',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: `update powerapps index`, content: encoded, branch: BRANCH, ...(sha && { sha }) })
-            });
-        }
-
-        async function deletePaEntry(token, slug) {
-            // delete html file
-            const path = `powerapps/${slug}.html`;
-            const check = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (check.ok) {
-                const data = await check.json();
-                await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: `delete ${slug}`, sha: data.sha, branch: BRANCH })
-                });
-            }
-            // remove from index
-            const idxRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/powerapps.json`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (idxRes.ok) {
-                const idxData = await idxRes.json();
-                const entries = JSON.parse(atob(idxData.content.replace(/\n/g, ''))).filter(e => e.slug !== slug);
-                const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(entries, null, 2))));
-                await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/powerapps.json`, {
-                    method: 'PUT',
-                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: `delete ${slug} from index`, content: encoded, sha: idxData.sha, branch: BRANCH })
-                });
-            }
-        }
-
         document.getElementById('pa-delete-btn').addEventListener('click', async () => {
-            if (!paCurrentPath) return;
-            const token = getToken(); if (!token) return;
-            const slug = paCurrentPath.replace('powerapps/', '').replace('.html', '');
+            if (!paCurrentSlug) return;
+            const adminDb = getAdminClient();
+            if (!adminDb) return;
             const btn = document.getElementById('pa-delete-btn');
             btn.textContent = 'deleting...';
-            await deletePaEntry(token, slug);
-            paCurrentPath = null;
+            await adminDb.from('powerapps').delete().eq('slug', paCurrentSlug);
+            paCurrentSlug = null;
             paEditorView.style.display = 'none';
             paListView.style.display = 'block';
             setBackVisible(false);
@@ -1039,7 +716,7 @@ async function openEntry(file) {
         });
 
         // --- research ---
-        let rCurrentPath = null;
+        let rCurrentSlug = null;
         const rListView = document.getElementById('r-list-view');
         const rEditorView = document.getElementById('r-editor-view');
         rEditorView.style.display = 'none';
@@ -1051,44 +728,31 @@ async function openEntry(file) {
         });
 
         async function loadRList() {
-            const token = getToken(); if (!token) return;
             document.getElementById('r-records-list').innerHTML = '<p style="opacity:0.4;font-size:0.85rem">loading...</p>';
-            const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/r-entry`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (!res.ok) { document.getElementById('r-records-list').innerHTML = '<p style="opacity:0.4;font-size:0.85rem">none yet</p>'; return; }
-            const files = await res.json();
-            const htmlFiles = files.filter(f => f.name.endsWith('.html')).sort((a, b) => b.name.localeCompare(a.name));
+            const { data, error } = await db.from('research').select('slug, title').order('created_at', { ascending: false });
             const list = document.getElementById('r-records-list');
             list.innerHTML = '';
-            htmlFiles.forEach(file => {
+            if (error || !data?.length) { list.innerHTML = '<p style="opacity:0.4;font-size:0.85rem">none yet</p>'; return; }
+            data.forEach(entry => {
                 const record = document.createElement('div');
                 record.className = 'blog-record';
-                record.innerHTML = `<span class="blog-link">${file.name.replace('.html','')}</span>`;
-                record.addEventListener('click', () => openREditor(file, token));
+                record.innerHTML = `<span class="blog-link">${entry.title}</span>`;
+                record.addEventListener('click', () => openREditor(entry.slug));
                 list.appendChild(record);
             });
         }
 
-        async function openREditor(file, token) {
-            const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${file.path}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await res.json();
-            const html = decodeContent(data.content);
-            const match = html.match(/<p>([\s\S]*?)<\/p>/);
-            const rawText = match ? match[1].replace(/<br>\n?/g, '\n') : '';
-            const titleMatch = html.match(/<h1>([\s\S]*?)<\/h1>/);
-
-            rCurrentPath = file.path;
-            document.getElementById('r-title').value = titleMatch ? titleMatch[1].trim() : '';
-            document.getElementById('r-body').value = rawText;
+        async function openREditor(slug) {
+            const { data, error } = await db.from('research').select('*').eq('slug', slug).single();
+            if (error || !data) return;
+            rCurrentSlug = slug;
+            document.getElementById('r-title').value = data.title || '';
+            document.getElementById('r-body').value = data.body || '';
             requestAnimationFrame(() => {
                 const ta = document.getElementById('r-body');
                 ta.style.height = 'auto';
                 ta.style.height = ta.scrollHeight + 'px';
             });
-
             backContext = 'r';
             rListView.style.display = 'none';
             rEditorView.style.display = 'block';
@@ -1098,33 +762,44 @@ async function openEntry(file) {
 
         document.getElementById('r-save-btn').addEventListener('click', async () => {
             const title = document.getElementById('r-title').value.trim();
-            if (!title || !rCurrentPath) return;
-            const token = getToken(); if (!token) return;
+            if (!title || !rCurrentSlug) return;
+            const adminDb = getAdminClient();
+            if (!adminDb) return;
             const btn = document.getElementById('r-save-btn');
             btn.textContent = 'saving...'; btn.disabled = true;
-            const body = document.getElementById('r-body').value.split('\n').map(l => l.trimEnd()).join('<br>\n');
-            const html = [
-                '<!doctype html><html lang="en"><head>',
-                '    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">',
-                '    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&display=swap" rel="stylesheet">',
-                '    <link rel="stylesheet" href="/css/bootstrap.min.css">',
-                '    <link rel="stylesheet" href="/css/home.css"><link rel="stylesheet" href="/css/blog.css"><link rel="stylesheet" href="/css/entry.css">',
-                `    <style>:root{--maxWidth:67vw;}</style><title>${title}</title></head><body>`,
-                '  <button type="button" class="back-btn" onclick="history.back()">←</button>',
-                `  <div class="entry-container"><h1>${title}</h1>`,
-                `  <div class="entry-content"><p>${body}</p></div></div>`,
-                '<\/body><script src="/js/home.js"><\/script><\/html>',
-            ].join('\n');
-            const encoded = btoa(unescape(encodeURIComponent(html)));
-            const res = await ghUpload(token, rCurrentPath, encoded);
-            if (res.ok) { btn.textContent = 'saved!'; }
-            else { btn.textContent = 'error'; }
+            const newSlug = slugify(title);
+            if (newSlug !== rCurrentSlug) {
+                await adminDb.from('research').delete().eq('slug', rCurrentSlug);
+            }
+            const { error } = await adminDb.from('research').upsert(
+                { slug: newSlug, title, body: document.getElementById('r-body').value },
+                { onConflict: 'slug' }
+            );
+            if (error) {
+                console.error(error);
+                btn.textContent = 'error';
+            } else {
+                rCurrentSlug = newSlug;
+                btn.textContent = 'saved!';
+            }
             setTimeout(() => { btn.textContent = 'save'; btn.disabled = false; }, 2000);
         });
 
-        // --- resume ---
+        // --- resume (stays on GitHub) ---
+        const OWNER = 'michiscoding';
+        const REPO = 'michiscoding.github.io';
+        const BRANCH = 'main';
         const RESUME_PATH = 'work/resume.html';
         let resumeLoaded = false;
+
+        function getToken() {
+            let token = localStorage.getItem('gh_token');
+            if (!token) {
+                token = prompt('enter your github token (for resume):');
+                if (token) localStorage.setItem('gh_token', token);
+            }
+            return token;
+        }
 
         function addEduBlock(data = {}) {
             const container = document.getElementById('edu-blocks');

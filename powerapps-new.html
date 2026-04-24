@@ -140,12 +140,10 @@
         <button type="button" id="post-btn" class="btn-app">post</button>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase.js"></script>
     <script src="js/app.js"></script>
     <script>
-        const OWNER = 'michiscoding';
-        const REPO = 'michiscoding.github.io';
-        const BRANCH = 'main';
-
         // auto-grow textareas
         ['pa-what', 'pa-how'].forEach(id => {
             document.getElementById(id).addEventListener('input', function() {
@@ -189,15 +187,6 @@
             });
         });
 
-        function getToken() {
-            let token = localStorage.getItem('gh_token');
-            if (!token) {
-                token = prompt('enter your github token:');
-                if (token) localStorage.setItem('gh_token', token);
-            }
-            return token;
-        }
-
         function slugify(title) {
             return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
         }
@@ -208,156 +197,45 @@
             return `${months[d.getMonth()]} ${d.getDate()} ${d.getFullYear()}`;
         }
 
-        function buildDetailHTML(title, tag, what, how, mediaSrcs) {
-            let mediaEl = '';
-            if (mediaSrcs.length === 1) {
-                const src = mediaSrcs[0];
-                mediaEl = src.endsWith('.mp4')
-                    ? '<video class="pa-media" muted autoplay loop playsinline><source src="' + src + '" type="video/mp4"></video>'
-                    : '<img class="pa-media" alt="' + title + '" src="' + src + '">';
-            } else if (mediaSrcs.length > 1) {
-                const slides = mediaSrcs.map((src, i) =>
-                    src.endsWith('.mp4')
-                        ? '<video class="pa-slide"' + (i===0?' style="opacity:1"':'') + ' muted autoplay loop playsinline><source src="' + src + '" type="video/mp4"></video>'
-                        : '<img class="pa-slide"' + (i===0?' style="opacity:1"':'') + ' alt="' + title + '" src="' + src + '">'
-                ).join('\n        ');
-                mediaEl = '<div class="pa-slideshow">\n        ' + slides + '\n      </div>';
-            }
-
-            const parts = [
-                '<!doctype html>',
-                '<html lang="en">',
-                '<head>',
-                '    <meta charset="UTF-8">',
-                '    <meta name="viewport" content="width=device-width, initial-scale=1.0">',
-                '    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&display=swap" rel="stylesheet">',
-                '    <link rel="stylesheet" href="/css/bootstrap.min.css">',
-                '    <link rel="stylesheet" href="/css/home.css">',
-                '    <link rel="stylesheet" href="/css/entry.css">',
-                '    <style>',
-                '        :root { --maxWidth: 67vw; }',
-                '        .pa-meta { font-size: 0.8rem; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 2rem; }',
-                '        .pa-section { margin-bottom: 2rem; }',
-                '        .pa-section h2 { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; }',
-                '    </style>',
-                '    <title>' + title + '</title>',
-                '</head>',
-                '<body>',
-                '  <button type="button" class="back-btn" onclick="history.back()">←</button>',
-                '  <div class="entry-container">',
-                '    <h1>' + title + '</h1>',
-                '    <p class="pa-meta">' + tag + ' — ' + getDate() + '</p>',
-                '    ' + mediaEl,
-                '    <div class="entry-content">',
-                '      <div class="pa-section"><h2>what it does</h2><p>' + what + '</p></div>',
-                '      <div class="pa-section"><h2>how it works</h2><p>' + how + '</p></div>',
-                '    </div>',
-                '  </div>',
-                '<' + '/body>',
-                '<script src="/js/home.js"><' + '/script>',
-                '<' + '/html>',
-            ];
-            return parts.join('\n');
-        }
-
-        async function uploadToGitHub(path, content, token, isBinary = false) {
-            let encoded;
-            if (isBinary) {
-                encoded = content;
-            } else {
-                encoded = btoa(unescape(encodeURIComponent(content)));
-            }
-
-            let sha;
-            const check = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (check.ok) {
-                const existing = await check.json();
-                sha = existing.sha;
-            }
-
-            return fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
-                method: 'PUT',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    message: `powerapps: ${path}`,
-                    content: encoded,
-                    branch: BRANCH,
-                    ...(sha && { sha }),
-                })
-            });
-        }
-
-        async function patchPaIndex(token, slug, title, tag, media) {
-            const path = 'powerapps.json';
-            const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            let entries = [], sha;
-            if (res.ok) {
-                const data = await res.json();
-                sha = data.sha;
-                entries = JSON.parse(atob(data.content.replace(/\n/g, '')));
-            }
-            const idx = entries.findIndex(e => e.slug === slug);
-            const entry = { slug, title, tag, media };
-            if (idx >= 0) entries[idx] = entry;
-            else entries.push(entry);
-            const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(entries, null, 2))));
-            await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
-                method: 'PUT',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: `update powerapps index`, content: encoded, branch: BRANCH, ...(sha && { sha }) })
-            });
-        }
-
         document.getElementById('post-btn').addEventListener('click', async () => {
             const title = document.getElementById('pa-title').value.trim();
             if (!title) { document.getElementById('pa-title').focus(); return; }
 
-            const token = getToken();
-            if (!token) return;
+            const adminDb = getAdminClient();
+            if (!adminDb) return;
 
             const btn = document.getElementById('post-btn');
             btn.textContent = 'posting...';
 
-            try {
-                const slug = slugify(title);
-                const what = document.getElementById('pa-what').value;
-                const how = document.getElementById('pa-how').value;
-                let mediaSrcs = [];
+            const slug = slugify(title);
+            const what = document.getElementById('pa-what').value;
+            const how = document.getElementById('pa-how').value;
+            const tags = [...selectedTags];
+            const mediaPaths = [];
 
-                // upload all media files
-                for (let i = 0; i < mediaFiles.length; i++) {
-                    const file = mediaFiles[i];
-                    const ext = file.type === 'video/mp4' ? 'mp4' : (file.name.split('.').pop() || 'jpg');
-                    const filename = mediaFiles.length === 1 ? `${slug}.${ext}` : `${slug}-${i+1}.${ext}`;
-                    const b64 = await new Promise(resolve => {
-                        const r = new FileReader();
-                        r.onload = e => resolve(e.target.result.split(',')[1]);
-                        r.readAsDataURL(file);
-                    });
-                    await uploadToGitHub(`powerapps/${filename}`, b64, token, true);
-                    mediaSrcs.push(`/powerapps/${filename}`);
-                }
+            for (let i = 0; i < mediaFiles.length; i++) {
+                const file = mediaFiles[i];
+                const ext = file.name.split('.').pop() || 'jpg';
+                const filename = mediaFiles.length === 1 ? `${slug}.${ext}` : `${slug}-${i+1}.${ext}`;
+                const path = `powerapps/${filename}`;
+                const { error } = await adminDb.storage.from('media').upload(path, file, { upsert: true });
+                if (!error) mediaPaths.push(path);
+            }
 
-                // upload detail HTML
-                const tagStr = [...selectedTags].join(', ');
-                const html = buildDetailHTML(title, tagStr, what, how, mediaSrcs);
-                await uploadToGitHub(`powerapps/${slug}.html`, html, token);
+            const { error } = await adminDb.from('powerapps').upsert(
+                { slug, title, tags, what, how, media: mediaPaths },
+                { onConflict: 'slug' }
+            );
 
-                // update powerapps.json index
-                const mediaVal = mediaSrcs.length === 1 ? mediaSrcs[0] : mediaSrcs.length > 1 ? mediaSrcs : '';
-                await patchPaIndex(token, slug, title, tagStr, mediaVal);
-
-                btn.textContent = 'posted!';
-                setTimeout(() => btn.textContent = 'post', 2000);
-            } catch (e) {
-                console.error(e);
+            if (error) {
+                console.error(error);
                 btn.textContent = 'error — check console';
                 setTimeout(() => btn.textContent = 'post', 3000);
+                return;
             }
+
+            btn.textContent = 'posted!';
+            setTimeout(() => btn.textContent = 'post', 2000);
         });
     </script>
 </body>

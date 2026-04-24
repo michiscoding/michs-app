@@ -9,21 +9,9 @@ const cols = [
 const addBtn = document.getElementById('add-btn');
 const postBtn = document.getElementById('post-btn');
 
-const OWNER = 'michiscoding';
-const REPO = 'michiscoding.github.io';
-const BRANCH = 'main';
 const ALL_TAGS = ['home', 'nature', 'jiu-jitsu', 'vsco', 'random'];
 
-function getToken() {
-    let token = localStorage.getItem('gh_token');
-    if (!token) {
-        token = prompt('enter your github token:');
-        if (token) localStorage.setItem('gh_token', token);
-    }
-    return token;
-}
-
-// items: [{ file, base64, name, tags: Set, el }]
+// items: [{ file, tags: Set, el }]
 let items = [];
 
 dropZone.addEventListener('dragover', (e) => {
@@ -49,70 +37,64 @@ fileInput.addEventListener('change', () => {
 });
 
 function addPreview(file) {
-    const reader = new FileReader();
-    reader.onload = e => {
-        const base64Full = e.target.result;
-        const base64 = base64Full.split(',')[1];
-        const name = sanitizeName(file.name);
-        const tags = new Set();
+    const url = URL.createObjectURL(file);
+    const tags = new Set();
 
-        const item = document.createElement('div');
-        item.className = 'preview-item';
+    const item = document.createElement('div');
+    item.className = 'preview-item';
 
-        const isVideo = file.type.startsWith('video/');
-        const media = document.createElement(isVideo ? 'video' : 'img');
-        media.src = base64Full;
-        if (isVideo) { media.muted = true; media.loop = true; media.autoplay = true; media.playsInline = true; }
+    const isVideo = file.type.startsWith('video/');
+    const media = document.createElement(isVideo ? 'video' : 'img');
+    media.src = url;
+    if (isVideo) { media.muted = true; media.loop = true; media.autoplay = true; media.playsInline = true; }
 
-        const removeBtn = document.createElement('button');
-        removeBtn.type = 'button';
-        removeBtn.className = 'remove-btn';
-        removeBtn.textContent = '×';
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'remove-btn';
+    removeBtn.textContent = '×';
 
-        const tagPicker = document.createElement('div');
-        tagPicker.className = 'tag-picker';
-        ALL_TAGS.forEach(tag => {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'tag-btn';
-            btn.textContent = tag;
-            btn.addEventListener('click', () => {
-                if (tags.has(tag)) { tags.delete(tag); btn.classList.remove('active'); }
-                else { tags.add(tag); btn.classList.add('active'); }
-            });
-            tagPicker.appendChild(btn);
+    const tagPicker = document.createElement('div');
+    tagPicker.className = 'tag-picker';
+    ALL_TAGS.forEach(tag => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'tag-btn';
+        btn.textContent = tag;
+        btn.addEventListener('click', () => {
+            if (tags.has(tag)) { tags.delete(tag); btn.classList.remove('active'); }
+            else { tags.add(tag); btn.classList.add('active'); }
         });
+        tagPicker.appendChild(btn);
+    });
 
-        const entry = { file, base64, name, tags, el: item };
-        items.push(entry);
+    const entry = { file, tags, el: item };
+    items.push(entry);
 
-        removeBtn.addEventListener('click', () => {
-            item.classList.remove('visible');
-            setTimeout(() => {
-                items = items.filter(i => i !== entry);
-                item.remove();
-                if (items.length === 0) {
-                    previewContainer.style.display = 'none';
-                    dropZone.style.display = 'flex';
-                } else {
-                    flipColumns();
-                }
-            }, 400);
-        });
+    removeBtn.addEventListener('click', () => {
+        item.classList.remove('visible');
+        setTimeout(() => {
+            items = items.filter(i => i !== entry);
+            item.remove();
+            if (items.length === 0) {
+                previewContainer.style.display = 'none';
+                dropZone.style.display = 'flex';
+            } else {
+                flipColumns();
+            }
+        }, 400);
+    });
 
-        item.appendChild(media);
-        item.appendChild(removeBtn);
-        item.appendChild(tagPicker);
+    item.appendChild(media);
+    item.appendChild(removeBtn);
+    item.appendChild(tagPicker);
 
-        const col = cols[items.length % 3];
-        col.appendChild(item);
+    const col = cols[items.length % 3];
+    col.appendChild(item);
 
-        dropZone.style.display = 'none';
-        previewContainer.style.display = 'flex';
+    dropZone.style.display = 'none';
+    previewContainer.style.display = 'flex';
 
-        requestAnimationFrame(() => item.classList.add('visible'));
-    };
-    reader.readAsDataURL(file);
+    requestAnimationFrame(() => item.classList.add('visible'));
 }
 
 function sanitizeName(name) {
@@ -153,39 +135,28 @@ addBtn.addEventListener('click', () => {
 
 postBtn.addEventListener('click', async () => {
     if (!items.length) return;
-    const token = getToken();
-    if (!token) return;
+    const adminDb = getAdminClient();
+    if (!adminDb) return;
 
     postBtn.textContent = 'posting...';
     postBtn.disabled = true;
 
     const today = new Date();
-    const yyyy = String(today.getFullYear());
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const dd = String(today.getDate()).padStart(2, '0');
-    const date = `${yyyy}-${mm}-${dd}`;
+    const date = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
 
-    const newPhotos = [];
+    const rows = [];
     for (const item of items) {
-        const path = `images/${date}/${item.name}`;
-        const check = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        let sha;
-        if (check.ok) sha = (await check.json()).sha;
-
-        const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
-            method: 'PUT',
-            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: `image ${path}`, content: item.base64, branch: BRANCH, ...(sha && { sha }) })
-        });
-
-        if (res.ok) {
-            newPhotos.push({ src: `/${path}`, tags: [...item.tags], date });
+        const name = sanitizeName(item.file.name);
+        const path = `photos/${date}/${name}`;
+        const { error } = await adminDb.storage.from('media').upload(path, item.file, { upsert: true });
+        if (!error) {
+            rows.push({ storage_path: path, tags: [...item.tags], date });
         }
     }
 
-    await patchPhotosJson(token, newPhotos);
+    if (rows.length) {
+        await adminDb.from('photos').insert(rows);
+    }
 
     postBtn.textContent = 'posted!';
     items = [];
@@ -194,19 +165,3 @@ postBtn.addEventListener('click', async () => {
     dropZone.style.display = 'flex';
     setTimeout(() => { postBtn.textContent = 'post'; postBtn.disabled = false; }, 2000);
 });
-
-async function patchPhotosJson(token, newPhotos) {
-    const jsonPath = 'photos.json';
-    const jsonRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${jsonPath}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-    });
-    const jsonData = await jsonRes.json();
-    const existing = JSON.parse(atob(jsonData.content.replace(/\n/g, '')));
-    const updated = [...existing, ...newPhotos];
-    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(updated, null, 2))));
-    return fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${jsonPath}`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: `add ${newPhotos.length} photo(s)`, content: encoded, sha: jsonData.sha, branch: BRANCH })
-    });
-}
