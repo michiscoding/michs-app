@@ -201,7 +201,7 @@
             const title = document.getElementById('pa-title').value.trim();
             if (!title) { document.getElementById('pa-title').focus(); return; }
 
-            const adminDb = getAdminClient();
+            const adminDb = await getAdminClient();
             if (!adminDb) return;
 
             const btn = document.getElementById('post-btn');

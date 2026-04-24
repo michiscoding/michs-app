@@ -375,7 +375,7 @@
 
         saveBtn.addEventListener('click', async () => {
             if (!currentDate) return;
-            const adminDb = getAdminClient();
+            const adminDb = await getAdminClient();
             if (!adminDb) return;
             saveBtn.textContent = 'saving...';
 
@@ -543,7 +543,7 @@
         }
 
         retagSaveBtn.addEventListener('click', async () => {
-            const adminDb = getAdminClient();
+            const adminDb = await getAdminClient();
             if (!adminDb) return;
             retagSaveBtn.textContent = 'saving...';
             retagSaveBtn.disabled = true;
@@ -663,7 +663,7 @@
         document.getElementById('pa-save-btn').addEventListener('click', async () => {
             const title = document.getElementById('pa-title').value.trim();
             if (!title || !paCurrentSlug) return;
-            const adminDb = getAdminClient();
+            const adminDb = await getAdminClient();
             if (!adminDb) return;
             const btn = document.getElementById('pa-save-btn');
             btn.textContent = 'saving...'; btn.disabled = true;
@@ -702,7 +702,7 @@
 
         document.getElementById('pa-delete-btn').addEventListener('click', async () => {
             if (!paCurrentSlug) return;
-            const adminDb = getAdminClient();
+            const adminDb = await getAdminClient();
             if (!adminDb) return;
             const btn = document.getElementById('pa-delete-btn');
             btn.textContent = 'deleting...';
@@ -763,7 +763,7 @@
         document.getElementById('r-save-btn').addEventListener('click', async () => {
             const title = document.getElementById('r-title').value.trim();
             if (!title || !rCurrentSlug) return;
-            const adminDb = getAdminClient();
+            const adminDb = await getAdminClient();
             if (!adminDb) return;
             const btn = document.getElementById('r-save-btn');
             btn.textContent = 'saving...'; btn.disabled = true;

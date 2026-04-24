@@ -134,7 +134,7 @@
         }
 
         document.getElementById('post-btn').addEventListener('click', async () => {
-            const adminDb = getAdminClient();
+            const adminDb = await getAdminClient();
             if (!adminDb) return;
 
             const btn = document.getElementById('post-btn');

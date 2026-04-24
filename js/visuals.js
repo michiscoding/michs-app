@@ -135,7 +135,7 @@ addBtn.addEventListener('click', () => {
 
 postBtn.addEventListener('click', async () => {
     if (!items.length) return;
-    const adminDb = getAdminClient();
+    const adminDb = await getAdminClient();
     if (!adminDb) return;
 
     postBtn.textContent = 'posting...';
