@@ -336,6 +336,20 @@ body.dark #drop-zone span {
 body.dark .tag-btn { border-color: #444; color: #666; }
 body.dark .tag-btn.active { border-color: #ccc; color: #ccc; }
 
+.date-input {
+    background: none;
+    border: none;
+    border-top: 1px solid #e8e8e8;
+    font-family: inherit;
+    font-size: 0.72rem;
+    color: #aaa;
+    padding: 0.5rem 0 0.1rem;
+    width: 100%;
+    outline: none;
+    cursor: pointer;
+}
+body.dark .date-input { border-top-color: #2a2a2a; color-scheme: dark; color: #555; }
+
 .remove-btn {
     position: absolute;
     top: 0.5rem;
@@ -671,6 +685,7 @@ body.dark .danger-btn:hover { color: #e05; }
     padding: 0;
     text-decoration: underline;
 }
+body.dark #add-btn { color: #ccc; }
 
 
 #site-link {

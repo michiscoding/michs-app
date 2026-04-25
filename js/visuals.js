@@ -9,7 +9,7 @@ const cols = [
 const addBtn = document.getElementById('add-btn');
 const postBtn = document.getElementById('post-btn');
 
-const ALL_TAGS = ['home', 'nature', 'jiu-jitsu', 'vsco', 'random'];
+const ALL_TAGS = ['home', 'nature', 'jiu-jitsu', 'vsco', 'friends', 'me', 'tattoos'];
 
 // items: [{ file, tags: Set, el }]
 let items = [];
@@ -34,7 +34,12 @@ fileInput.addEventListener('change', () => {
     fileInput.value = '';
 });
 
-function addPreview(file) {
+function todayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+async function addPreview(file) {
     const url = URL.createObjectURL(file);
     const tags = new Set();
 
@@ -65,7 +70,12 @@ function addPreview(file) {
         tagPicker.appendChild(btn);
     });
 
-    const entry = { file, tags, el: item };
+    const dateInput = document.createElement('input');
+    dateInput.type = 'date';
+    dateInput.className = 'date-input';
+    dateInput.value = todayStr();
+
+    const entry = { file, tags, el: item, dateInput };
     items.push(entry);
 
     removeBtn.addEventListener('click', () => {
@@ -85,6 +95,7 @@ function addPreview(file) {
     item.appendChild(media);
     item.appendChild(removeBtn);
     item.appendChild(tagPicker);
+    item.appendChild(dateInput);
 
     const col = cols[items.length % 3];
     col.appendChild(item);
@@ -93,6 +104,16 @@ function addPreview(file) {
     previewContainer.style.display = 'flex';
 
     requestAnimationFrame(() => item.classList.add('visible'));
+
+    if (!isVideo) {
+        try {
+            const exif = await exifr.parse(file, ['DateTimeOriginal']);
+            if (exif?.DateTimeOriginal) {
+                const d = new Date(exif.DateTimeOriginal);
+                dateInput.value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            }
+        } catch(e) {}
+    }
 }
 
 function sanitizeName(name) {
@@ -139,11 +160,9 @@ postBtn.addEventListener('click', async () => {
     postBtn.textContent = 'posting...';
     postBtn.disabled = true;
 
-    const today = new Date();
-    const date = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-
     const rows = [];
     for (const item of items) {
+        const date = item.dateInput.value || todayStr();
         const name = sanitizeName(item.file.name);
         const path = `photos/${date}/${name}`;
         const { error } = await adminDb.storage.from('media').upload(path, item.file, { upsert: true });
