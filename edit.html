@@ -494,7 +494,7 @@
         });
 
         // --- retag ---
-        const ALL_TAGS = ['home', 'nature', 'jiu-jitsu', 'vsco', 'random'];
+        const ALL_TAGS = ['home', 'nature', 'jiu-jitsu', 'vsco', 'friends', 'me', 'tattoos'];
         const retagGrid = document.getElementById('retag-grid');
         const retagSaveBtn = document.getElementById('retag-save-btn');
         let retagPhotos = [];
@@ -535,9 +535,15 @@
                     });
                     picker.appendChild(btn);
                 });
+                const dateInput = document.createElement('input');
+                dateInput.type = 'date';
+                dateInput.className = 'date-input';
+                dateInput.value = photo.date || '';
+                dateInput.addEventListener('change', () => { retagPhotos[idx].date = dateInput.value; });
                 card.appendChild(img);
                 card.appendChild(delBtn);
                 card.appendChild(picker);
+                card.appendChild(dateInput);
                 retagGrid.appendChild(card);
             });
         }
@@ -551,7 +557,7 @@
                 await adminDb.from('photos').delete().eq('id', id);
             }
             for (const photo of retagPhotos.filter(p => !deletedPhotoIds.has(p.id))) {
-                await adminDb.from('photos').update({ tags: photo.tags }).eq('id', photo.id);
+                await adminDb.from('photos').update({ tags: photo.tags, date: photo.date }).eq('id', photo.id);
             }
             retagSaveBtn.textContent = 'saved!';
             deletedPhotoIds = new Set();
