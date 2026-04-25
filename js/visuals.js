@@ -26,13 +26,11 @@ dropZone.addEventListener('dragleave', () => {
 dropZone.addEventListener('drop', (e) => {
     e.preventDefault();
     dropZone.classList.remove('dragover');
-    const file = e.dataTransfer.files[0];
-    if (file) addPreview(file);
+    Array.from(e.dataTransfer.files).forEach(addPreview);
 });
 
 fileInput.addEventListener('change', () => {
-    const file = fileInput.files[0];
-    if (file) addPreview(file);
+    Array.from(fileInput.files).forEach(addPreview);
     fileInput.value = '';
 });
 
@@ -149,13 +147,18 @@ postBtn.addEventListener('click', async () => {
         const name = sanitizeName(item.file.name);
         const path = `photos/${date}/${name}`;
         const { error } = await adminDb.storage.from('media').upload(path, item.file, { upsert: true });
-        if (!error) {
-            rows.push({ storage_path: path, tags: [...item.tags], date });
-        }
+        if (error) { console.error('storage error:', error); }
+        else { rows.push({ storage_path: path, tags: [...item.tags], date }); }
     }
 
     if (rows.length) {
-        await adminDb.from('photos').insert(rows);
+        const { error } = await adminDb.from('photos').insert(rows);
+        if (error) {
+            console.error('db error:', error);
+            postBtn.textContent = 'error — check console';
+            postBtn.disabled = false;
+            return;
+        }
     }
 
     postBtn.textContent = 'posted!';
