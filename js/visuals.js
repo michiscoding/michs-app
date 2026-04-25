@@ -183,7 +183,10 @@ postBtn.addEventListener('click', async () => {
     postBtn.textContent = 'posted!';
     items = [];
     cols.forEach(col => col.innerHTML = '');
-    previewContainer.style.display = 'none';
-    dropZone.style.display = 'flex';
-    setTimeout(() => { postBtn.textContent = 'post'; postBtn.disabled = false; }, 2000);
+    setTimeout(() => {
+        previewContainer.style.display = 'none';
+        dropZone.style.display = 'flex';
+        postBtn.textContent = 'post';
+        postBtn.disabled = false;
+    }, 1500);
 });
