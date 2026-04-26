@@ -500,7 +500,7 @@ body.dark .edit-tab.active { color: #eee; }
 body.dark .edit-tab:hover { color: #aaa; }
 
 #tab-entries, #tab-photos, #tab-work,
-#subtab-powerapps, #subtab-research, #subtab-resume,
+#subtab-powerapps, #subtab-writings, #subtab-resume,
 #pa-list-view, #r-list-view, #entries-list,
 #pa-editor-view, #r-editor-view, #entry-editor-view {
     transition: opacity 0.5s ease;
@@ -512,7 +512,7 @@ body.dark #editor-title { color: #aaa; }
 
 #tab-photos { display: none; }
 #tab-work { display: none; }
-#subtab-research, #subtab-resume { display: none; }
+#subtab-writings, #subtab-resume { display: none; }
 
 .edit-subtabs {
     margin-bottom: 1.25rem;

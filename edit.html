@@ -41,7 +41,7 @@
             <li><span class="nav-toggle" id="work-toggle">work</span>
                 <ul class="nav-sub" id="work-sub">
                     <li><a href="powerapps-new.html">powerapps</a></li>
-                    <li><a href="research.html">research</a></li>
+                    <li><a href="writings.html">writings</a></li>
                 </ul>
             </li>
             <li><a href="edit.html">edit</a></li>
@@ -103,7 +103,7 @@
         <div id="tab-work">
             <div class="edit-tabs edit-subtabs">
                 <button type="button" class="edit-tab active" data-subtab="powerapps">powerapps</button>
-                <button type="button" class="edit-tab" data-subtab="research">research</button>
+                <button type="button" class="edit-tab" data-subtab="writings">writings</button>
                 <button type="button" class="edit-tab" data-subtab="resume">resume</button>
             </div>
 
@@ -145,7 +145,7 @@
                 </div>
             </div>
 
-            <div id="subtab-research">
+            <div id="subtab-writings">
                 <div id="r-list-view">
                     <div id="r-records-list"></div>
                 </div>
@@ -461,7 +461,7 @@
         // --- subtabs ---
         const subtabEls = {
             powerapps: document.getElementById('subtab-powerapps'),
-            research: document.getElementById('subtab-research'),
+            writings: document.getElementById('subtab-writings'),
             resume: document.getElementById('subtab-resume'),
         };
         const subtabs = document.querySelectorAll('.edit-subtabs .edit-tab');
@@ -488,7 +488,7 @@
                 }
                 setBackVisible(false);
                 if (tab.dataset.subtab === 'powerapps' && !paListLoaded) { paListLoaded = true; loadPaList(); }
-                if (tab.dataset.subtab === 'research' && !rListLoaded) { rListLoaded = true; loadRList(); }
+                if (tab.dataset.subtab === 'writings' && !rListLoaded) { rListLoaded = true; loadRList(); }
                 if (tab.dataset.subtab === 'resume') {
                     requestAnimationFrame(() => requestAnimationFrame(() => {
                         ['exp-blurb', 'certs'].forEach(id => {
@@ -780,7 +780,7 @@
             loadPaList();
         });
 
-        // --- research ---
+        // --- writings ---
         let rCurrentSlug = null;
         const rListView = document.getElementById('r-list-view');
         const rEditorView = document.getElementById('r-editor-view');
