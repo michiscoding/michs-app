@@ -540,9 +540,12 @@
                 dateInput.className = 'date-input';
                 dateInput.value = photo.date || '';
                 dateInput.addEventListener('change', () => { retagPhotos[idx].date = dateInput.value; });
-                card.appendChild(img);
-                card.appendChild(delBtn);
-                card.appendChild(picker);
+                const imgWrap = document.createElement('div');
+                imgWrap.className = 'retag-img-wrap';
+                imgWrap.appendChild(img);
+                imgWrap.appendChild(delBtn);
+                imgWrap.appendChild(picker);
+                card.appendChild(imgWrap);
                 card.appendChild(dateInput);
                 retagGrid.appendChild(card);
             });

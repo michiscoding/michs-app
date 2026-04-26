@@ -570,6 +570,10 @@ body.dark .edu-block-form { background: #1e1e1e; }
 }
 
 .retag-card {
+    position: static;
+}
+
+.retag-img-wrap {
     position: relative;
 }
 
