@@ -163,11 +163,24 @@ postBtn.addEventListener('click', async () => {
     const rows = [];
     for (const item of items) {
         const date = item.dateInput.value || todayStr();
-        const name = sanitizeName(item.file.name);
-        const path = `photos/${date}/${name}`;
-        const { error } = await adminDb.storage.from('media').upload(path, item.file, { upsert: true, contentType: item.file.type });
-        if (error) { console.error('storage error:', error); }
-        else { rows.push({ storage_path: path, tags: [...item.tags], date }); }
+        const isVideo = item.file.type.startsWith('video/');
+        if (isVideo) {
+            const form = new FormData();
+            form.append('file', item.file);
+            form.append('upload_preset', CLOUDINARY_PRESET);
+            try {
+                const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/video/upload`, { method: 'POST', body: form });
+                const json = await res.json();
+                if (json.secure_url) { rows.push({ storage_path: json.secure_url, tags: [...item.tags], date }); }
+                else { console.error('cloudinary error:', json); }
+            } catch(e) { console.error('cloudinary error:', e); }
+        } else {
+            const name = sanitizeName(item.file.name);
+            const path = `photos/${date}/${name}`;
+            const { error } = await adminDb.storage.from('media').upload(path, item.file, { upsert: true, contentType: item.file.type });
+            if (error) { console.error('storage error:', error); }
+            else { rows.push({ storage_path: path, tags: [...item.tags], date }); }
+        }
     }
 
     if (!rows.length) {

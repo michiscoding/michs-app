@@ -1,3 +1,5 @@
+const CLOUDINARY_CLOUD = 'dmradwevd';
+const CLOUDINARY_PRESET = 'michs preset';
 const SUPABASE_URL = 'https://wtezfaxtpwjpqdmnmsny.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_rYRPB_AT_n9lwAcaMJkuDA_o7b_Zx1E';
 
