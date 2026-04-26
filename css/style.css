@@ -347,7 +347,7 @@ body.dark .tag-btn.active { border-color: #ccc; color: #ccc; }
     transition: opacity 0.2s ease;
 }
 .preview-item:hover .preview-hover { opacity: 1; pointer-events: auto; }
-.preview-hover .tag-btn { border-color: rgba(255,255,255,0.25); color: rgba(255,255,255,0.45); }
+.preview-hover .tag-btn { border-color: rgba(255,255,255,0.4); color: rgba(255,255,255,0.7); }
 .preview-hover .tag-btn.active { border-color: white; color: white; }
 .preview-hover .date-input { color: rgba(255,255,255,0.55); border-top-color: rgba(255,255,255,0.15); color-scheme: dark; }
 
@@ -687,8 +687,8 @@ body.dark .edu-block-form { background: #1e1e1e; }
 }
 
 .retag-card .tag-btn {
-    border-color: rgba(255,255,255,0.3);
-    color: rgba(255,255,255,0.5);
+    border-color: rgba(255,255,255,0.4);
+    color: rgba(255,255,255,0.7);
 }
 
 .retag-card .tag-btn.active {
