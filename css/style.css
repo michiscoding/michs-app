@@ -109,12 +109,20 @@ a:hover { text-decoration: none; }
     overflow: hidden;
     max-height: 0;
     opacity: 0;
-    transition: max-height 0.35s ease, opacity 0.35s ease;
+    transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s ease;
 }
 
 .nav-sub.open {
     max-height: 200px;
     opacity: 1;
+}
+
+@media (hover: hover) {
+    .nav-menu li:has(#work-sub):hover #work-sub {
+        max-height: 200px;
+        opacity: 1;
+        transition-delay: 0.08s;
+    }
 }
 
 .nav-sub li {
