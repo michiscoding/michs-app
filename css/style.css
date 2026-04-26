@@ -379,6 +379,7 @@ body.dark .retag-subtab.active { color: #eee; }
 body.dark .retag-subtab:hover { color: #aaa; }
 
 #retag-grid { transition: opacity 0.25s ease; }
+#retag-save-btn { margin-left: auto; }
 
 .date-input {
     background: none;
