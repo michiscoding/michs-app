@@ -73,17 +73,32 @@
         const photoPreviews = document.getElementById('photo-previews');
         const MEDIA_BASE = SUPABASE_URL + '/storage/v1/object/public/media/';
 
-        // Date is frozen to the moment the page is opened — writing past midnight won't flip the date
-        const d = new Date();
-        const PAGE_DATE = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-        const PAGE_CODE = `${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}${String(d.getFullYear()).slice(2)}`;
-        dateLabel.textContent = PAGE_CODE;
+        // Date defaults to when the page was opened — writing past midnight won't flip the date
+        const _d = new Date();
+        const DEFAULT_CODE = `${String(_d.getMonth()+1).padStart(2,'0')}${String(_d.getDate()).padStart(2,'0')}${String(_d.getFullYear()).slice(2)}`;
+        dateLabel.textContent = DEFAULT_CODE;
 
-        // Auto-load any existing entry for today so you always see what's already saved
-        (async () => {
+        function codeToIso(code) {
+            if (!/^\d{6}$/.test(code)) return null;
+            return `20${code.slice(4,6)}-${code.slice(0,2)}-${code.slice(2,4)}`;
+        }
+
+        function currentDate() {
+            return codeToIso(dateLabel.textContent.trim()) || codeToIso(DEFAULT_CODE);
+        }
+
+        // Load existing entry for a given date, or clear if none
+        async function loadEntryForDate(date) {
+            textarea.value = '';
+            textarea.style.height = '';
+            // remove only existing (read-only) thumbs, keep any new-photo thumbs
+            photoPreviews.querySelectorAll('.photo-thumb:not(.new-thumb)').forEach(t => t.remove());
+            newPhotos.length = 0;
+            photoPreviews.querySelectorAll('.photo-thumb.new-thumb').forEach(t => t.remove());
+
             const [{ data: entryData }, { data: photoData }] = await Promise.all([
-                db.from('entries').select('content').eq('date', PAGE_DATE).single(),
-                db.from('entry_photos').select('storage_path').eq('entry_date', PAGE_DATE)
+                db.from('entries').select('content').eq('date', date).single(),
+                db.from('entry_photos').select('storage_path').eq('entry_date', date)
             ]);
             if (entryData?.content) {
                 textarea.value = entryData.content;
@@ -102,7 +117,15 @@
                     photoPreviews.appendChild(thumb);
                 });
             }
-        })();
+        }
+
+        loadEntryForDate(currentDate());
+
+        dateLabel.addEventListener('blur', () => {
+            const date = currentDate();
+            if (!date) { dateLabel.textContent = DEFAULT_CODE; return; }
+            loadEntryForDate(date);
+        });
 
         // Only new photos added this session — existing ones are shown above and left untouched
         const newPhotos = [];
@@ -118,7 +141,7 @@
             newPhotos.push(entry);
 
             const thumb = document.createElement('div');
-            thumb.className = 'photo-thumb';
+            thumb.className = 'photo-thumb new-thumb';
             const isVideo = file.type.startsWith('video/');
             const media = document.createElement(isVideo ? 'video' : 'img');
             media.src = url;
@@ -153,17 +176,19 @@
             const btn = document.getElementById('post-btn');
             btn.textContent = 'saving...';
 
+            const date = currentDate();
+
             // Upload only new photos — never removes existing ones
             const photoPaths = [];
             for (const photo of newPhotos) {
-                const path = `entry-photos/${PAGE_DATE}/${photo.name}`;
+                const path = `entry-photos/${date}/${photo.name}`;
                 const { error: uploadError } = await adminDb.storage.from('media').upload(path, photo.file, { upsert: true, contentType: photo.file.type });
                 if (uploadError) { console.error('photo upload error:', uploadError); }
                 else { photoPaths.push(path); }
             }
 
             // Upsert entry text (creates if new, updates content if existing)
-            const { error } = await adminDb.from('entries').upsert({ date: PAGE_DATE, content: textarea.value }, { onConflict: 'date' });
+            const { error } = await adminDb.from('entries').upsert({ date, content: textarea.value }, { onConflict: 'date' });
             if (error) {
                 btn.textContent = 'error — check console';
                 console.error(error);
@@ -173,7 +198,7 @@
 
             // Append new photo rows only
             if (photoPaths.length) {
-                const { error: photoInsertError } = await adminDb.from('entry_photos').insert(photoPaths.map(p => ({ entry_date: PAGE_DATE, storage_path: p })));
+                const { error: photoInsertError } = await adminDb.from('entry_photos').insert(photoPaths.map(p => ({ entry_date: date, storage_path: p })));
                 if (photoInsertError) {
                     console.error('entry_photos insert error:', photoInsertError);
                     btn.textContent = 'error — check console';
