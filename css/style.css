@@ -577,11 +577,30 @@ body.dark .edu-block-form { background: #1e1e1e; }
     position: relative;
 }
 
-.retag-card img {
+.retag-card img,
+.retag-card video {
     width: 100%;
     aspect-ratio: 1;
     object-fit: cover;
     display: block;
+}
+
+.retag-card .sound-btn {
+    position: absolute;
+    bottom: 0.3rem;
+    right: 0.3rem;
+    background: rgba(0,0,0,0.45);
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    color: white;
+    z-index: 3;
 }
 
 .retag-card .tag-picker {
