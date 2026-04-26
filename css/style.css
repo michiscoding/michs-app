@@ -346,8 +346,8 @@ body.dark .tag-btn.active { border-color: #ccc; color: #ccc; }
     transition: opacity 0.2s ease;
 }
 .preview-item:hover .preview-hover { opacity: 1; pointer-events: auto; }
-.preview-hover .tag-btn { background: rgba(0,0,0,0.55); border-color: transparent; color: rgba(255,255,255,0.85); }
-.preview-hover .tag-btn.active { background: rgba(255,255,255,0.92); border-color: transparent; color: #111; }
+body .preview-hover .tag-btn { background: rgba(0,0,0,0.55); border-color: transparent; color: rgba(255,255,255,0.9); }
+body .preview-hover .tag-btn.active { background: rgba(255,255,255,0.92); border-color: transparent; color: #111; }
 .preview-hover .date-input { background: rgba(0,0,0,0.55); color: rgba(255,255,255,0.75); border-top-color: transparent; color-scheme: dark; }
 
 .retag-card .tag-picker .date-input { background: rgba(0,0,0,0.55); color: rgba(255,255,255,0.75); border-top-color: transparent; color-scheme: dark; }
@@ -684,13 +684,13 @@ body.dark .edu-block-form { background: #1e1e1e; }
     pointer-events: auto;
 }
 
-.retag-card .tag-btn {
+body .retag-card .tag-btn {
     background: rgba(0,0,0,0.55);
     border-color: transparent;
-    color: rgba(255,255,255,0.85);
+    color: rgba(255,255,255,0.9);
 }
 
-.retag-card .tag-btn.active {
+body .retag-card .tag-btn.active {
     background: rgba(255,255,255,0.92);
     border-color: transparent;
     color: #111;
