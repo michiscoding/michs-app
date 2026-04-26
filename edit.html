@@ -512,10 +512,14 @@
         let retagActiveFilter = 'all';
 
         function applyRetagFilter() {
-            retagGrid.querySelectorAll('.retag-card').forEach(card => {
-                const tags = JSON.parse(card.dataset.tags || '[]');
-                card.style.display = retagActiveFilter === 'all' || tags.includes(retagActiveFilter) ? '' : 'none';
-            });
+            retagGrid.style.opacity = '0';
+            setTimeout(() => {
+                retagGrid.querySelectorAll('.retag-card').forEach(card => {
+                    const tags = JSON.parse(card.dataset.tags || '[]');
+                    card.style.display = retagActiveFilter === 'all' || tags.includes(retagActiveFilter) ? '' : 'none';
+                });
+                requestAnimationFrame(() => requestAnimationFrame(() => { retagGrid.style.opacity = '1'; }));
+            }, 250);
         }
 
         document.querySelectorAll('.retag-subtab').forEach(btn => {
