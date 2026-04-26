@@ -40,12 +40,26 @@ function todayStr() {
 }
 
 async function addPreview(file) {
-    if (file.type === 'image/heic' || file.type === 'image/heif' || /\.(heic|heif)$/i.test(file.name)) {
+    const isHeic = file.type === 'image/heic' || file.type === 'image/heif' || /\.(heic|heif)$/i.test(file.name);
+    if (isHeic) {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'preview-item visible';
+        placeholder.style.cssText = 'display:flex;align-items:center;justify-content:center;aspect-ratio:1;background:#f0f0f0;font-size:0.75rem;color:#aaa;';
+        placeholder.textContent = 'converting...';
+        const col = cols[items.length % 3];
+        col.appendChild(placeholder);
+        dropZone.style.display = 'none';
+        previewContainer.style.display = 'flex';
         try {
             const blob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
             const result = Array.isArray(blob) ? blob[0] : blob;
             file = new File([result], file.name.replace(/\.(heic|heif)$/i, '.jpg'), { type: 'image/jpeg' });
-        } catch(e) { console.error('heic conversion failed:', e); }
+        } catch(e) {
+            console.error('heic conversion failed:', e);
+            placeholder.textContent = 'conversion failed';
+            return;
+        }
+        placeholder.remove();
     }
     const url = URL.createObjectURL(file);
     const tags = new Set();
