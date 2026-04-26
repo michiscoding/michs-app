@@ -165,19 +165,23 @@ postBtn.addEventListener('click', async () => {
         const date = item.dateInput.value || todayStr();
         const name = sanitizeName(item.file.name);
         const path = `photos/${date}/${name}`;
-        const { error } = await adminDb.storage.from('media').upload(path, item.file, { upsert: true });
+        const { error } = await adminDb.storage.from('media').upload(path, item.file, { upsert: true, contentType: item.file.type });
         if (error) { console.error('storage error:', error); }
         else { rows.push({ storage_path: path, tags: [...item.tags], date }); }
     }
 
-    if (rows.length) {
-        const { error } = await adminDb.from('photos').insert(rows);
-        if (error) {
-            console.error('db error:', error);
-            postBtn.textContent = 'error — check console';
-            postBtn.disabled = false;
-            return;
-        }
+    if (!rows.length) {
+        postBtn.textContent = 'error — check console';
+        postBtn.disabled = false;
+        return;
+    }
+
+    const { error: dbError } = await adminDb.from('photos').insert(rows);
+    if (dbError) {
+        console.error('db error:', dbError);
+        postBtn.textContent = 'error — check console';
+        postBtn.disabled = false;
+        return;
     }
 
     postBtn.textContent = 'posted!';
