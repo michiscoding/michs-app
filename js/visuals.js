@@ -113,10 +113,13 @@ async function addPreview(file) {
         }, 400);
     });
 
+    const hoverOverlay = document.createElement('div');
+    hoverOverlay.className = 'preview-hover';
+    hoverOverlay.appendChild(tagPicker);
+    hoverOverlay.appendChild(dateInput);
     item.appendChild(media);
     item.appendChild(removeBtn);
-    item.appendChild(tagPicker);
-    item.appendChild(dateInput);
+    item.appendChild(hoverOverlay);
 
     const col = cols[items.length % 3];
     col.appendChild(item);

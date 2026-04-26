@@ -336,6 +336,47 @@ body.dark #drop-zone span {
 body.dark .tag-btn { border-color: #444; color: #666; }
 body.dark .tag-btn.active { border-color: #ccc; color: #ccc; }
 
+.preview-hover {
+    position: absolute;
+    bottom: 0;
+    left: 0; right: 0;
+    background: rgba(0,0,0,0.62);
+    padding: 0.4rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+.preview-item:hover .preview-hover { opacity: 1; pointer-events: auto; }
+.preview-hover .tag-btn { border-color: rgba(255,255,255,0.25); color: rgba(255,255,255,0.45); }
+.preview-hover .tag-btn.active { border-color: white; color: white; }
+.preview-hover .date-input { color: rgba(255,255,255,0.55); border-top-color: rgba(255,255,255,0.15); color-scheme: dark; }
+
+.retag-card .tag-picker .date-input { color: rgba(255,255,255,0.55); border-top-color: rgba(255,255,255,0.15); color-scheme: dark; }
+
+#retag-subtabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+.retag-subtab {
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #bbb;
+    cursor: pointer;
+    outline: none;
+    padding: 0.2rem 0;
+    transition: color 0.2s;
+    letter-spacing: 0.05em;
+}
+.retag-subtab:focus, .retag-subtab:focus-visible { outline: none; }
+.retag-subtab.active { color: #444; }
+body.dark .retag-subtab { color: #555; }
+body.dark .retag-subtab.active { color: #aaa; }
+
 .date-input {
     background: none;
     border: none;
