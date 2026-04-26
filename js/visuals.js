@@ -40,6 +40,13 @@ function todayStr() {
 }
 
 async function addPreview(file) {
+    if (file.type === 'image/heic' || file.type === 'image/heif' || /\.(heic|heif)$/i.test(file.name)) {
+        try {
+            const blob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+            const result = Array.isArray(blob) ? blob[0] : blob;
+            file = new File([result], file.name.replace(/\.(heic|heif)$/i, '.jpg'), { type: 'image/jpeg' });
+        } catch(e) { console.error('heic conversion failed:', e); }
+    }
     const url = URL.createObjectURL(file);
     const tags = new Set();
 
