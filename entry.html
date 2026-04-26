@@ -119,6 +119,9 @@
             }
         }
 
+        // Only new photos added this session — existing ones are shown above and left untouched
+        const newPhotos = [];
+
         loadEntryForDate(currentDate());
 
         dateLabel.addEventListener('blur', () => {
@@ -126,9 +129,6 @@
             if (!date) { dateLabel.textContent = DEFAULT_CODE; return; }
             loadEntryForDate(date);
         });
-
-        // Only new photos added this session — existing ones are shown above and left untouched
-        const newPhotos = [];
 
         photoInput.addEventListener('change', () => {
             Array.from(photoInput.files).forEach(addPhoto);
