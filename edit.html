@@ -578,6 +578,12 @@
                 card.dataset.tags = JSON.stringify(photo.tags);
                 const imgWrap = document.createElement('div');
                 imgWrap.className = 'retag-img-wrap';
+                if (isVid) {
+                    img.addEventListener('loadeddata', () => imgWrap.classList.add('loaded'), { once: true });
+                } else {
+                    if (img.complete && img.naturalWidth) { imgWrap.classList.add('loaded'); }
+                    else { img.addEventListener('load', () => imgWrap.classList.add('loaded'), { once: true }); }
+                }
                 imgWrap.appendChild(img);
                 imgWrap.appendChild(delBtn);
                 imgWrap.appendChild(picker);
