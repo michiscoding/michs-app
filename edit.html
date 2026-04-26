@@ -510,8 +510,11 @@
             retagPhotos.forEach((photo, idx) => {
                 const card = document.createElement('div');
                 card.className = 'retag-card';
-                const img = document.createElement('img');
-                img.src = photo.storage_path.startsWith('http') ? photo.storage_path : MEDIA_BASE + photo.storage_path;
+                const src = photo.storage_path.startsWith('http') ? photo.storage_path : MEDIA_BASE + photo.storage_path;
+                const isVid = /\.(mp4|webm|mov)$/i.test(photo.storage_path);
+                const img = document.createElement(isVid ? 'video' : 'img');
+                img.src = src;
+                if (isVid) { img.muted = true; img.autoplay = true; img.loop = true; img.playsInline = true; }
                 const delBtn = document.createElement('button');
                 delBtn.type = 'button';
                 delBtn.className = 'remove-btn';
