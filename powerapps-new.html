@@ -169,23 +169,37 @@
         let mediaFiles = [];
 
         document.getElementById('media-input').addEventListener('change', e => {
-            mediaFiles = Array.from(e.target.files);
-            const previews = document.getElementById('media-previews');
-            previews.innerHTML = '';
-            mediaFiles.forEach(file => {
-                const url = URL.createObjectURL(file);
-                let el;
-                if (file.type === 'video/mp4') {
-                    el = document.createElement('video');
-                    el.src = url; el.muted = true; el.autoplay = true; el.loop = true; el.playsInline = true;
-                } else {
-                    el = document.createElement('img');
-                    el.src = url; el.alt = file.name;
-                }
-                el.style.cssText = 'width:100%;border-radius:8px;margin-top:0.5rem;display:block;';
-                previews.appendChild(el);
-            });
+            Array.from(e.target.files).forEach(addMediaFile);
+            e.target.value = '';
         });
+
+        function addMediaFile(file) {
+            mediaFiles.push(file);
+            const previews = document.getElementById('media-previews');
+            const url = URL.createObjectURL(file);
+            const wrap = document.createElement('div');
+            wrap.style.cssText = 'position:relative;margin-top:0.5rem;';
+            let el;
+            if (file.type.startsWith('video/')) {
+                el = document.createElement('video');
+                el.src = url; el.muted = true; el.autoplay = true; el.loop = true; el.playsInline = true;
+            } else {
+                el = document.createElement('img');
+                el.src = url; el.alt = file.name;
+            }
+            el.style.cssText = 'width:100%;border-radius:8px;display:block;';
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'remove-btn';
+            removeBtn.textContent = '×';
+            removeBtn.addEventListener('click', () => {
+                mediaFiles = mediaFiles.filter(f => f !== file);
+                wrap.remove();
+            });
+            wrap.appendChild(el);
+            wrap.appendChild(removeBtn);
+            previews.appendChild(wrap);
+        }
 
         function slugify(title) {
             return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');

@@ -157,6 +157,10 @@
                     <div class="field-group">
                         <textarea id="r-body" placeholder="write here..."></textarea>
                     </div>
+                    <div class="field-group">
+                        <label class="field-label">attachment url</label>
+                        <input type="text" id="r-attachment" placeholder="e.g. /reports/trading-2025/results.html" autocomplete="off">
+                    </div>
                     <button type="button" id="r-save-btn" class="btn-app">save</button>
                 </div>
             </div>
@@ -644,23 +648,37 @@
         });
 
         document.getElementById('pa-media-input').addEventListener('change', e => {
-            paMediaFiles = Array.from(e.target.files);
-            const previews = document.getElementById('pa-media-previews');
-            previews.innerHTML = '';
-            paMediaFiles.forEach(file => {
-                const url = URL.createObjectURL(file);
-                let el;
-                if (file.type.startsWith('video/')) {
-                    el = document.createElement('video');
-                    el.src = url; el.muted = true; el.autoplay = true; el.loop = true; el.playsInline = true;
-                } else {
-                    el = document.createElement('img');
-                    el.src = url; el.alt = file.name;
-                }
-                el.style.cssText = 'width:100%;border-radius:8px;margin-top:0.5rem;display:block;';
-                previews.appendChild(el);
-            });
+            Array.from(e.target.files).forEach(addPaNewFile);
+            e.target.value = '';
         });
+
+        function addPaNewFile(file) {
+            paMediaFiles.push(file);
+            const previews = document.getElementById('pa-media-previews');
+            const url = URL.createObjectURL(file);
+            const wrap = document.createElement('div');
+            wrap.style.cssText = 'position:relative;margin-top:0.5rem;';
+            let el;
+            if (file.type.startsWith('video/')) {
+                el = document.createElement('video');
+                el.src = url; el.muted = true; el.autoplay = true; el.loop = true; el.playsInline = true;
+            } else {
+                el = document.createElement('img');
+                el.src = url; el.alt = '';
+            }
+            el.style.cssText = 'width:100%;border-radius:8px;display:block;';
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'remove-btn';
+            removeBtn.textContent = '×';
+            removeBtn.addEventListener('click', () => {
+                paMediaFiles = paMediaFiles.filter(f => f !== file);
+                wrap.remove();
+            });
+            wrap.appendChild(el);
+            wrap.appendChild(removeBtn);
+            previews.appendChild(wrap);
+        }
 
         const paListView = document.getElementById('pa-list-view');
         const paEditorView = document.getElementById('pa-editor-view');
@@ -813,6 +831,7 @@
             rCurrentSlug = slug;
             document.getElementById('r-title').value = data.title || '';
             document.getElementById('r-body').value = data.body || '';
+            document.getElementById('r-attachment').value = data.attachment_url || '';
             requestAnimationFrame(() => {
                 const ta = document.getElementById('r-body');
                 ta.style.height = 'auto';
@@ -836,8 +855,9 @@
             if (newSlug !== rCurrentSlug) {
                 await adminDb.from('research').delete().eq('slug', rCurrentSlug);
             }
+            const attachmentUrl = document.getElementById('r-attachment').value.trim() || null;
             const { error } = await adminDb.from('research').upsert(
-                { slug: newSlug, title, body: document.getElementById('r-body').value },
+                { slug: newSlug, title, body: document.getElementById('r-body').value, attachment_url: attachmentUrl },
                 { onConflict: 'slug' }
             );
             if (error) {
