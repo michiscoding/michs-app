@@ -11,6 +11,47 @@
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="mishi">
+    <style>
+        .text-toolbar { display: flex; gap: 0.4rem; margin-bottom: 0.4rem; }
+        .toolbar-btn {
+            background: none; border: 1px solid #ddd; border-radius: 4px;
+            padding: 0.2rem 0.65rem; font-size: 0.72rem; font-family: inherit;
+            font-weight: 600; letter-spacing: 0.03em; color: #999; cursor: pointer;
+            transition: color 0.15s, border-color 0.15s;
+        }
+        .toolbar-btn:hover { color: #333; border-color: #aaa; }
+        body.dark .toolbar-btn { border-color: #333; color: #555; }
+        body.dark .toolbar-btn:hover { color: #ccc; border-color: #666; }
+
+        .link-popup { display: none; align-items: center; gap: 0.5rem; margin-bottom: 0.6rem; flex-wrap: wrap; }
+        .link-popup input {
+            border: none; border-bottom: 1px solid #ddd; background: none;
+            outline: none; font-family: inherit; font-size: 0.85rem;
+            padding: 0.2rem 0; color: #333; flex: 1; min-width: 80px;
+        }
+        body.dark .link-popup input { border-bottom-color: #444; color: #ccc; }
+        .lp-insert {
+            background: #222; color: #fff; border: none; border-radius: 4px;
+            padding: 0.25rem 0.7rem; font-family: inherit; font-size: 0.75rem;
+            font-weight: 600; cursor: pointer;
+        }
+        .lp-cancel { background: none; border: none; color: #bbb; cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 0; }
+        .lp-cancel:hover { color: #555; }
+
+        .attach-section { margin-top: 0.75rem; }
+        #r-attach-input { display: none; }
+        .attach-current { font-size: 0.78rem; color: #888; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.5rem; }
+        .attach-clear-btn { background: none; border: none; color: #bbb; cursor: pointer; font-size: 0.75rem; font-family: inherit; padding: 0; }
+        .attach-clear-btn:hover { color: #555; }
+        .attach-file-row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: #666; margin-top: 0.4rem; }
+        .attach-file-name { flex: 1; }
+        .attach-main-badge { font-size: 0.68rem; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; }
+        .attach-set-main { background: none; border: none; color: #bbb; font-size: 0.72rem; cursor: pointer; padding: 0; font-family: inherit; }
+        .attach-set-main:hover { color: #555; }
+        .attach-remove-btn { background: none; border: none; color: #ccc; cursor: pointer; font-size: 1rem; line-height: 1; padding: 0; }
+        .attach-remove-btn:hover { color: #555; }
+        #r-attach-current { display: none; }
+    </style>
 </head>
 
 <body>
@@ -155,11 +196,28 @@
                         <input type="text" id="r-title" placeholder="title" autocomplete="off">
                     </div>
                     <div class="field-group">
+                        <div class="text-toolbar">
+                            <button type="button" class="toolbar-btn" id="r-link-btn">link ↗</button>
+                        </div>
+                        <div class="link-popup" id="r-link-popup">
+                            <input type="text" id="r-lp-text" placeholder="link text">
+                            <input type="text" id="r-lp-url" placeholder="url or /path">
+                            <button type="button" class="lp-insert" id="r-lp-insert">insert</button>
+                            <button type="button" class="lp-cancel" id="r-lp-cancel">×</button>
+                        </div>
                         <textarea id="r-body" placeholder="write here..."></textarea>
                     </div>
                     <div class="field-group">
-                        <label class="field-label">attachment url</label>
-                        <input type="text" id="r-attachment" placeholder="e.g. /reports/trading-2025/results.html" autocomplete="off">
+                        <label class="field-label">attachment</label>
+                        <div class="attach-current" id="r-attach-current">
+                            <span id="r-attach-url-display"></span>
+                            <button type="button" class="attach-clear-btn" id="r-attach-clear-btn">remove</button>
+                        </div>
+                        <div class="attach-section">
+                            <input type="file" id="r-attach-input" multiple>
+                            <div id="r-attach-list"></div>
+                            <button type="button" class="toolbar-btn" id="r-attach-pick-btn">+ attach files</button>
+                        </div>
                     </div>
                     <button type="button" id="r-save-btn" class="btn-app">save</button>
                 </div>
@@ -800,14 +858,94 @@
 
         // --- writings ---
         let rCurrentSlug = null;
+        let rAttachFiles = [];
+        let rAttachMain = null;
+        let rCurrentAttachUrl = null;
         const rListView = document.getElementById('r-list-view');
         const rEditorView = document.getElementById('r-editor-view');
         rEditorView.style.display = 'none';
 
-        ['pa-what', 'pa-how', 'r-body'].forEach(id => {
+        // link helper
+        const rLinkPopup = document.getElementById('r-link-popup');
+        const rLpText = document.getElementById('r-lp-text');
+        const rLpUrl = document.getElementById('r-lp-url');
+        const rBody = document.getElementById('r-body');
+
+        document.getElementById('r-link-btn').addEventListener('click', () => {
+            const sel = rBody.value.substring(rBody.selectionStart, rBody.selectionEnd);
+            rLpText.value = sel;
+            rLpUrl.value = '';
+            rLinkPopup.style.display = rLinkPopup.style.display === 'flex' ? 'none' : 'flex';
+            if (rLinkPopup.style.display === 'flex') (sel ? rLpUrl : rLpText).focus();
+        });
+
+        document.getElementById('r-lp-cancel').addEventListener('click', () => { rLinkPopup.style.display = 'none'; });
+
+        function rInsertLink() {
+            const text = rLpText.value || 'link';
+            const url = rLpUrl.value.trim();
+            if (!url) { rLpUrl.focus(); return; }
+            const md = `[${text}](${url})`;
+            const start = rBody.selectionStart;
+            const end = rBody.selectionEnd;
+            rBody.value = rBody.value.substring(0, start) + md + rBody.value.substring(end);
+            rBody.selectionStart = rBody.selectionEnd = start + md.length;
+            rLinkPopup.style.display = 'none';
+            rBody.focus();
+        }
+
+        document.getElementById('r-lp-insert').addEventListener('click', rInsertLink);
+        rLpUrl.addEventListener('keydown', e => { if (e.key === 'Enter') rInsertLink(); if (e.key === 'Escape') rLinkPopup.style.display = 'none'; });
+        rLpText.addEventListener('keydown', e => { if (e.key === 'Escape') rLinkPopup.style.display = 'none'; });
+
+        // attachment upload
+        document.getElementById('r-attach-pick-btn').addEventListener('click', () => document.getElementById('r-attach-input').click());
+
+        document.getElementById('r-attach-input').addEventListener('change', e => {
+            Array.from(e.target.files).forEach(f => {
+                rAttachFiles.push(f);
+                if (!rAttachMain && /\.(html|htm|pdf)$/i.test(f.name)) rAttachMain = f;
+            });
+            e.target.value = '';
+            renderRAttachList();
+        });
+
+        document.getElementById('r-attach-clear-btn').addEventListener('click', () => {
+            rCurrentAttachUrl = null;
+            document.getElementById('r-attach-current').style.display = 'none';
+        });
+
+        function renderRAttachList() {
+            const list = document.getElementById('r-attach-list');
+            list.innerHTML = '';
+            rAttachFiles.forEach((f, i) => {
+                const row = document.createElement('div');
+                row.className = 'attach-file-row';
+                const isMain = f === rAttachMain;
+                row.innerHTML = `
+                    <span class="attach-file-name">${f.name}</span>
+                    ${isMain
+                        ? `<span class="attach-main-badge">main</span>`
+                        : `<button type="button" class="attach-set-main">set main</button>`}
+                    <button type="button" class="attach-remove-btn">×</button>
+                `;
+                if (!isMain) row.querySelector('.attach-set-main').addEventListener('click', () => { rAttachMain = f; renderRAttachList(); });
+                row.querySelector('.attach-remove-btn').addEventListener('click', () => {
+                    rAttachFiles.splice(i, 1);
+                    if (rAttachMain === f) rAttachMain = rAttachFiles.find(x => /\.(html|htm|pdf)$/i.test(x.name)) || rAttachFiles[0] || null;
+                    renderRAttachList();
+                });
+                list.appendChild(row);
+            });
+        }
+
+        ['pa-what', 'pa-how'].forEach(id => {
             document.getElementById(id).addEventListener('input', function() {
                 if (this.scrollHeight > this.clientHeight) this.style.height = this.scrollHeight + 'px';
             });
+        });
+        rBody.addEventListener('input', function() {
+            if (this.scrollHeight > this.clientHeight) this.style.height = this.scrollHeight + 'px';
         });
 
         async function loadRList() {
@@ -829,13 +967,23 @@
             const { data, error } = await db.from('research').select('*').eq('slug', slug).single();
             if (error || !data) return;
             rCurrentSlug = slug;
+            rAttachFiles = [];
+            rAttachMain = null;
+            rCurrentAttachUrl = data.attachment_url || null;
             document.getElementById('r-title').value = data.title || '';
-            document.getElementById('r-body').value = data.body || '';
-            document.getElementById('r-attachment').value = data.attachment_url || '';
+            rBody.value = data.body || '';
+            rLinkPopup.style.display = 'none';
+            renderRAttachList();
+            const attachCurrent = document.getElementById('r-attach-current');
+            if (rCurrentAttachUrl) {
+                document.getElementById('r-attach-url-display').textContent = rCurrentAttachUrl.split('/').pop();
+                attachCurrent.style.display = 'flex';
+            } else {
+                attachCurrent.style.display = 'none';
+            }
             requestAnimationFrame(() => {
-                const ta = document.getElementById('r-body');
-                ta.style.height = 'auto';
-                ta.style.height = ta.scrollHeight + 'px';
+                rBody.style.height = 'auto';
+                rBody.style.height = rBody.scrollHeight + 'px';
             });
             backContext = 'r';
             rListView.style.display = 'none';
@@ -855,9 +1003,18 @@
             if (newSlug !== rCurrentSlug) {
                 await adminDb.from('research').delete().eq('slug', rCurrentSlug);
             }
-            const attachmentUrl = document.getElementById('r-attachment').value.trim() || null;
+            let attachmentUrl = rCurrentAttachUrl;
+            if (rAttachFiles.length > 0) {
+                btn.textContent = 'uploading...';
+                const main = rAttachMain || rAttachFiles[0];
+                for (const f of rAttachFiles) {
+                    const path = `attachments/${newSlug}/${f.name}`;
+                    await adminDb.storage.from('media').upload(path, f, { upsert: true });
+                }
+                attachmentUrl = `${SUPABASE_URL}/storage/v1/object/public/media/attachments/${newSlug}/${main.name}`;
+            }
             const { error } = await adminDb.from('research').upsert(
-                { slug: newSlug, title, body: document.getElementById('r-body').value, attachment_url: attachmentUrl },
+                { slug: newSlug, title, body: rBody.value, attachment_url: attachmentUrl },
                 { onConflict: 'slug' }
             );
             if (error) {
@@ -865,6 +1022,10 @@
                 btn.textContent = 'error';
             } else {
                 rCurrentSlug = newSlug;
+                rCurrentAttachUrl = attachmentUrl;
+                rAttachFiles = [];
+                rAttachMain = null;
+                renderRAttachList();
                 btn.textContent = 'saved!';
             }
             setTimeout(() => { btn.textContent = 'save'; btn.disabled = false; }, 2000);

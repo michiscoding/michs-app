@@ -25,16 +25,114 @@
             padding: 0 0 0.4rem 0;
             margin-bottom: 1.5rem;
         }
-
-        #title-input::placeholder {
-            color: #ccc;
-            font-weight: 400;
-        }
-        body.dark #title-input {
-            color: #eee;
-            border-bottom-color: #444;
-        }
+        #title-input::placeholder { color: #ccc; font-weight: 400; }
+        body.dark #title-input { color: #eee; border-bottom-color: #444; }
         body.dark #title-input::placeholder { color: #555; }
+
+        .text-toolbar {
+            display: flex;
+            gap: 0.4rem;
+            margin-bottom: 0.4rem;
+        }
+        .toolbar-btn {
+            background: none;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 0.2rem 0.65rem;
+            font-size: 0.72rem;
+            font-family: inherit;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            color: #999;
+            cursor: pointer;
+            transition: color 0.15s, border-color 0.15s;
+        }
+        .toolbar-btn:hover { color: #333; border-color: #aaa; }
+        body.dark .toolbar-btn { border-color: #333; color: #666; }
+        body.dark .toolbar-btn:hover { color: #ccc; border-color: #666; }
+
+        .link-popup {
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.6rem;
+            flex-wrap: wrap;
+        }
+        .link-popup input {
+            border: none;
+            border-bottom: 1px solid #ddd;
+            background: none;
+            outline: none;
+            font-family: inherit;
+            font-size: 0.85rem;
+            padding: 0.2rem 0;
+            color: #333;
+            flex: 1;
+            min-width: 80px;
+        }
+        body.dark .link-popup input { border-bottom-color: #444; color: #ccc; }
+        .link-popup-insert {
+            background: #222;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 0.25rem 0.7rem;
+            font-family: inherit;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .link-popup-cancel {
+            background: none;
+            border: none;
+            color: #bbb;
+            cursor: pointer;
+            font-size: 1.1rem;
+            line-height: 1;
+            padding: 0;
+        }
+        .link-popup-cancel:hover { color: #555; }
+
+        .attach-section { margin-top: 1rem; }
+        .attach-file-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 0.4rem;
+        }
+        .attach-file-name { flex: 1; }
+        .attach-main-badge {
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .attach-set-main {
+            background: none;
+            border: none;
+            color: #bbb;
+            font-size: 0.72rem;
+            cursor: pointer;
+            padding: 0;
+            font-family: inherit;
+        }
+        .attach-set-main:hover { color: #555; }
+        .attach-remove-btn {
+            background: none;
+            border: none;
+            color: #ccc;
+            cursor: pointer;
+            font-size: 1rem;
+            line-height: 1;
+            padding: 0;
+        }
+        .attach-remove-btn:hover { color: #555; }
+        #attach-input { display: none; }
+        #attach-pick-btn { margin-top: 0.5rem; }
+        #post-btn { margin-top: 1.5rem; }
     </style>
 </head>
 
@@ -59,7 +157,7 @@
         </svg>
       </button>
     </div>
-        <nav class="nav-menu">
+    <nav class="nav-menu">
         <ul>
             <li><a href="entry.html">entry</a></li>
             <li><a href="visuals.html">visuals</a></li>
@@ -74,10 +172,26 @@
         </ul>
     </nav>
 
-
     <div class="entry-container">
         <input type="text" id="title-input" placeholder="title" autocomplete="off">
-        <textarea placeholder="write here..."></textarea>
+
+        <div class="text-toolbar">
+            <button type="button" class="toolbar-btn" id="link-btn">link ↗</button>
+        </div>
+        <div class="link-popup" id="link-popup">
+            <input type="text" id="lp-text" placeholder="link text">
+            <input type="text" id="lp-url" placeholder="url or /path">
+            <button type="button" class="link-popup-insert" id="lp-insert">insert</button>
+            <button type="button" class="link-popup-cancel" id="lp-cancel">×</button>
+        </div>
+        <textarea id="main-textarea" placeholder="write here..."></textarea>
+
+        <div class="attach-section">
+            <input type="file" id="attach-input" multiple>
+            <div id="attach-list"></div>
+            <button type="button" class="toolbar-btn" id="attach-pick-btn">+ attach files</button>
+        </div>
+
         <button type="button" id="post-btn" class="btn-app">post</button>
     </div>
 
@@ -85,11 +199,82 @@
     <script src="js/supabase.js"></script>
     <script src="js/app.js"></script>
     <script>
-        const textarea = document.querySelector('textarea');
+        const textarea = document.getElementById('main-textarea');
 
         textarea.addEventListener('input', () => {
             if (textarea.scrollHeight > textarea.clientHeight) textarea.style.height = textarea.scrollHeight + 'px';
         });
+
+        // link helper
+        const linkPopup = document.getElementById('link-popup');
+        const lpText = document.getElementById('lp-text');
+        const lpUrl = document.getElementById('lp-url');
+
+        document.getElementById('link-btn').addEventListener('click', () => {
+            const sel = textarea.value.substring(textarea.selectionStart, textarea.selectionEnd);
+            lpText.value = sel;
+            lpUrl.value = '';
+            linkPopup.style.display = linkPopup.style.display === 'flex' ? 'none' : 'flex';
+            if (linkPopup.style.display === 'flex') (sel ? lpUrl : lpText).focus();
+        });
+
+        document.getElementById('lp-cancel').addEventListener('click', () => { linkPopup.style.display = 'none'; });
+
+        function insertLink() {
+            const text = lpText.value || 'link';
+            const url = lpUrl.value.trim();
+            if (!url) { lpUrl.focus(); return; }
+            const md = `[${text}](${url})`;
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            textarea.value = textarea.value.substring(0, start) + md + textarea.value.substring(end);
+            textarea.selectionStart = textarea.selectionEnd = start + md.length;
+            linkPopup.style.display = 'none';
+            textarea.focus();
+        }
+
+        document.getElementById('lp-insert').addEventListener('click', insertLink);
+        lpUrl.addEventListener('keydown', e => { if (e.key === 'Enter') insertLink(); if (e.key === 'Escape') linkPopup.style.display = 'none'; });
+        lpText.addEventListener('keydown', e => { if (e.key === 'Escape') linkPopup.style.display = 'none'; });
+
+        // attachment upload
+        let attachFiles = [];
+        let attachMain = null;
+
+        document.getElementById('attach-pick-btn').addEventListener('click', () => document.getElementById('attach-input').click());
+
+        document.getElementById('attach-input').addEventListener('change', e => {
+            Array.from(e.target.files).forEach(f => {
+                attachFiles.push(f);
+                if (!attachMain && /\.(html|htm|pdf)$/i.test(f.name)) attachMain = f;
+            });
+            e.target.value = '';
+            renderAttachList();
+        });
+
+        function renderAttachList() {
+            const list = document.getElementById('attach-list');
+            list.innerHTML = '';
+            attachFiles.forEach((f, i) => {
+                const row = document.createElement('div');
+                row.className = 'attach-file-row';
+                const isMain = f === attachMain;
+                row.innerHTML = `
+                    <span class="attach-file-name">${f.name}</span>
+                    ${isMain
+                        ? `<span class="attach-main-badge">main</span>`
+                        : `<button type="button" class="attach-set-main">set main</button>`}
+                    <button type="button" class="attach-remove-btn">×</button>
+                `;
+                if (!isMain) row.querySelector('.attach-set-main').addEventListener('click', () => { attachMain = f; renderAttachList(); });
+                row.querySelector('.attach-remove-btn').addEventListener('click', () => {
+                    attachFiles.splice(i, 1);
+                    if (attachMain === f) attachMain = attachFiles.find(x => /\.(html|htm|pdf)$/i.test(x.name)) || attachFiles[0] || null;
+                    renderAttachList();
+                });
+                list.appendChild(row);
+            });
+        }
 
         function slugify(str) {
             return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -106,8 +291,20 @@
             btn.textContent = 'posting...';
 
             const slug = slugify(title);
+            let attachmentUrl = null;
+
+            if (attachFiles.length > 0) {
+                btn.textContent = 'uploading...';
+                const main = attachMain || attachFiles[0];
+                for (const f of attachFiles) {
+                    const path = `attachments/${slug}/${f.name}`;
+                    await adminDb.storage.from('media').upload(path, f, { upsert: true });
+                }
+                attachmentUrl = `${SUPABASE_URL}/storage/v1/object/public/media/attachments/${slug}/${main.name}`;
+            }
+
             const { error } = await adminDb.from('research').upsert(
-                { slug, title, body: textarea.value },
+                { slug, title, body: textarea.value, attachment_url: attachmentUrl },
                 { onConflict: 'slug' }
             );
 
@@ -122,6 +319,9 @@
             textarea.value = '';
             textarea.style.height = '';
             document.getElementById('title-input').value = '';
+            attachFiles = [];
+            attachMain = null;
+            renderAttachList();
             setTimeout(() => btn.textContent = 'post', 2000);
         });
     </script>
