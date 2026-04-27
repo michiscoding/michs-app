@@ -218,15 +218,12 @@
                         <textarea id="r-body" placeholder="write here..."></textarea>
                     </div>
                     <div class="field-group">
-                        <label class="field-label">attachment</label>
-                        <div class="attach-current" id="r-attach-current">
-                            <span id="r-attach-url-display"></span>
-                            <button type="button" class="attach-clear-btn" id="r-attach-clear-btn">remove</button>
-                        </div>
+                        <label class="field-label">attachment url</label>
+                        <input type="text" id="r-attachment-url" placeholder="/reports/... or supabase url" autocomplete="off">
                         <div class="attach-section">
                             <input type="file" id="r-attach-input" multiple>
                             <div id="r-attach-list"></div>
-                            <button type="button" class="toolbar-btn" id="r-attach-pick-btn">+ attach files</button>
+                            <button type="button" class="toolbar-btn" id="r-attach-pick-btn">+ upload files</button>
                         </div>
                     </div>
                     <button type="button" id="r-save-btn" class="btn-app">save</button>
@@ -933,17 +930,15 @@
                 if (!error) {
                     const url = `${SUPABASE_URL}/storage/v1/object/public/media/${path}`;
                     rUploadedFiles.push({ file: f, url });
-                    if (!rCurrentAttachUrl && /\.(html|htm|pdf)$/i.test(f.name)) rCurrentAttachUrl = url;
+                    if (!document.getElementById('r-attachment-url').value) {
+                        document.getElementById('r-attachment-url').value = url;
+                    }
                 }
             }
             btn.textContent = '+ attach files'; btn.disabled = false;
             renderRAttachList();
         });
 
-        document.getElementById('r-attach-clear-btn').addEventListener('click', () => {
-            rCurrentAttachUrl = null;
-            document.getElementById('r-attach-current').style.display = 'none';
-        });
 
         function rInsertAttachLink(item) {
             const name = item.file.name.replace(/\.[^.]+$/, '');
@@ -999,16 +994,10 @@
             rUploadedFiles = [];
             rCurrentAttachUrl = data.attachment_url || null;
             document.getElementById('r-title').value = data.title || '';
+            document.getElementById('r-attachment-url').value = data.attachment_url || '';
             rBody.value = data.body || '';
             rLinkPopup.style.display = 'none';
             renderRAttachList();
-            const attachCurrent = document.getElementById('r-attach-current');
-            if (rCurrentAttachUrl) {
-                document.getElementById('r-attach-url-display').textContent = rCurrentAttachUrl.split('/').pop();
-                attachCurrent.style.display = 'flex';
-            } else {
-                attachCurrent.style.display = 'none';
-            }
             requestAnimationFrame(() => {
                 rBody.style.height = 'auto';
                 rBody.style.height = rBody.scrollHeight + 'px';
@@ -1031,7 +1020,7 @@
             if (newSlug !== rCurrentSlug) {
                 await adminDb.from('research').delete().eq('slug', rCurrentSlug);
             }
-            const attachmentUrl = rCurrentAttachUrl || null;
+            const attachmentUrl = document.getElementById('r-attachment-url').value.trim() || null;
             const { error } = await adminDb.from('research').upsert(
                 { slug: newSlug, title, body: rBody.value, attachment_url: attachmentUrl },
                 { onConflict: 'slug' }
@@ -1041,7 +1030,6 @@
                 btn.textContent = 'error';
             } else {
                 rCurrentSlug = newSlug;
-                rCurrentAttachUrl = attachmentUrl;
                 btn.textContent = 'saved!';
             }
             setTimeout(() => { btn.textContent = 'save'; btn.disabled = false; }, 2000);
