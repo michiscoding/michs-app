@@ -1022,6 +1022,14 @@
             rUploadedFiles = data.attachment_url
                 ? [{ file: { name: data.attachment_url.split('/').pop() }, url: data.attachment_url }]
                 : [];
+            const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+            let m;
+            while ((m = linkRegex.exec(data.body || '')) !== null) {
+                const url = m[2];
+                if (!rUploadedFiles.some(f => f.url === url)) {
+                    rUploadedFiles.push({ file: { name: url.split('/').pop() }, url });
+                }
+            }
             document.getElementById('r-title').value = data.title || '';
             document.getElementById('r-attachment-url').value = data.attachment_url || '';
             rBody.value = data.body || '';
