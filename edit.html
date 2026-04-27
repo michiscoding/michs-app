@@ -121,7 +121,7 @@
             <li><span class="nav-toggle" id="work-toggle">work</span>
                 <ul class="nav-sub" id="work-sub">
                     <li><a href="powerapps-new.html">powerapps</a></li>
-                    <li><a href="writings.html">writings</a></li>
+                    <li><a href="writings.html">projects</a></li>
                 </ul>
             </li>
             <li><a href="edit.html">edit</a></li>
@@ -183,7 +183,7 @@
         <div id="tab-work">
             <div class="edit-tabs edit-subtabs">
                 <button type="button" class="edit-tab active" data-subtab="powerapps">powerapps</button>
-                <button type="button" class="edit-tab" data-subtab="writings">writings</button>
+                <button type="button" class="edit-tab" data-subtab="writings">projects</button>
                 <button type="button" class="edit-tab" data-subtab="resume">resume</button>
             </div>
 
@@ -256,7 +256,10 @@
                             <button type="button" class="toolbar-btn" id="r-create-attach-btn">+ create attachment</button>
                         </div>
                     </div>
-                    <button type="button" id="r-save-btn" class="btn-app">save</button>
+                    <div class="editor-actions">
+                        <button type="button" id="r-delete-btn" class="danger-btn">delete</button>
+                        <button type="button" id="r-save-btn" class="btn-app">save</button>
+                    </div>
                 </div>
             </div>
 
@@ -1192,6 +1195,26 @@ pre { white-space: pre-wrap; word-break: break-word; font-family: inherit; font-
                 btn.textContent = 'saved!';
             }
             setTimeout(() => { btn.textContent = 'save'; btn.disabled = false; }, 2000);
+        });
+
+        document.getElementById('r-delete-btn').addEventListener('click', async () => {
+            if (!rCurrentSlug) return;
+            const adminDb = await getAdminClient();
+            if (!adminDb) return;
+            const btn = document.getElementById('r-delete-btn');
+            btn.textContent = 'deleting...';
+            for (const item of rUploadedFiles) {
+                if (item.url.startsWith('/reports/') || item.url.startsWith('/attachments/')) {
+                    await deleteFromGitHub(item.url);
+                }
+            }
+            await adminDb.from('research').delete().eq('slug', rCurrentSlug);
+            rCurrentSlug = null;
+            rEditorView.style.display = 'none';
+            rListView.style.display = 'block';
+            setBackVisible(false);
+            rListLoaded = false;
+            loadRList();
         });
 
         // --- resume (stays on GitHub) ---
