@@ -703,6 +703,29 @@
             return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
         }
 
+        async function uploadToGitHub(file, slug) {
+            const token = getToken();
+            if (!token) return null;
+            const path = `reports/${slug}/${file.name}`;
+            const content = await new Promise(resolve => {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result.split(',')[1]);
+                reader.readAsDataURL(file);
+            });
+            const checkRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const existing = checkRes.ok ? await checkRes.json() : null;
+            const body = { message: `upload ${file.name}`, content, branch: BRANCH };
+            if (existing?.sha) body.sha = existing.sha;
+            const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            return res.ok ? `/${path}` : null;
+        }
+
         // --- powerapps ---
         let paMediaFiles = [], paSelectedTags = new Set(), paCurrentSlug = null, paExistingMedia = [];
 
@@ -920,19 +943,24 @@
             const files = Array.from(e.target.files);
             e.target.value = '';
             if (!files.length) return;
-            const adminDb = await getAdminClient();
-            if (!adminDb) return;
             const btn = document.getElementById('r-attach-pick-btn');
             btn.textContent = 'uploading...'; btn.disabled = true;
             for (const f of files) {
-                const path = `attachments/${rCurrentSlug}/${f.name}`;
-                const { error } = await adminDb.storage.from('media').upload(path, f, { upsert: true, contentType: mimeType(f) });
-                if (!error) {
-                    const url = `${SUPABASE_URL}/storage/v1/object/public/media/${path}`;
-                    rUploadedFiles.push({ file: f, url });
+                const isHtml = /\.html?$/i.test(f.name);
+                let url = null;
+                if (isHtml) {
+                    url = await uploadToGitHub(f, rCurrentSlug);
+                } else {
+                    const adminDb = await getAdminClient();
+                    if (adminDb) {
+                        const path = `attachments/${rCurrentSlug}/${f.name}`;
+                        const { error } = await adminDb.storage.from('media').upload(path, f, { upsert: true, contentType: mimeType(f) });
+                        if (!error) url = `${SUPABASE_URL}/storage/v1/object/public/media/${path}`;
+                    }
                 }
+                if (url) rUploadedFiles.push({ file: f, url });
             }
-            btn.textContent = '+ attach files'; btn.disabled = false;
+            btn.textContent = '+ upload files'; btn.disabled = false;
             renderRAttachList();
         });
 

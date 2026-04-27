@@ -236,16 +236,24 @@
             const title = document.getElementById('title-input').value.trim();
             if (!title) { document.getElementById('title-input').focus(); return; }
             if (!stagedFiles.length) return;
-            const adminDb = await getAdminClient();
-            if (!adminDb) return;
             const btn = document.getElementById('attach-upload-btn');
             btn.textContent = 'uploading...'; btn.disabled = true;
             const slug = slugify(title);
             for (const f of [...stagedFiles]) {
-                const path = `attachments/${slug}/${f.name}`;
-                const { error } = await adminDb.storage.from('media').upload(path, f, { upsert: true, contentType: mimeType(f) });
-                if (!error) {
-                    uploadedFiles.push({ file: f, url: `${SUPABASE_URL}/storage/v1/object/public/media/${path}` });
+                const isHtml = /\.html?$/i.test(f.name);
+                let url = null;
+                if (isHtml) {
+                    url = await uploadToGitHub(f, slug);
+                } else {
+                    const adminDb = await getAdminClient();
+                    if (adminDb) {
+                        const path = `attachments/${slug}/${f.name}`;
+                        const { error } = await adminDb.storage.from('media').upload(path, f, { upsert: true, contentType: mimeType(f) });
+                        if (!error) url = `${SUPABASE_URL}/storage/v1/object/public/media/${path}`;
+                    }
+                }
+                if (url) {
+                    uploadedFiles.push({ file: f, url });
                     stagedFiles = stagedFiles.filter(x => x !== f);
                 }
             }
@@ -291,6 +299,42 @@
 
         function slugify(str) {
             return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        }
+
+        const GH_OWNER = 'michiscoding';
+        const GH_REPO = 'michiscoding.github.io';
+        const GH_BRANCH = 'main';
+
+        function getGhToken() {
+            let token = localStorage.getItem('gh_token');
+            if (!token) {
+                token = prompt('enter your github token (for file uploads):');
+                if (token) localStorage.setItem('gh_token', token);
+            }
+            return token;
+        }
+
+        async function uploadToGitHub(file, slug) {
+            const token = getGhToken();
+            if (!token) return null;
+            const path = `reports/${slug}/${file.name}`;
+            const content = await new Promise(resolve => {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result.split(',')[1]);
+                reader.readAsDataURL(file);
+            });
+            const checkRes = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const existing = checkRes.ok ? await checkRes.json() : null;
+            const body = { message: `upload ${file.name}`, content, branch: GH_BRANCH };
+            if (existing?.sha) body.sha = existing.sha;
+            const res = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path}`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            return res.ok ? `/${path}` : null;
         }
 
         document.getElementById('post-btn').addEventListener('click', async () => {
