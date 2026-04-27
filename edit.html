@@ -54,25 +54,34 @@
         .attach-remove-btn { background: none; border: none; color: #ccc; cursor: pointer; font-size: 1rem; line-height: 1; padding: 0; flex-shrink: 0; }
         .attach-remove-btn:hover { color: #555; }
         #r-attach-current { display: none; }
-        #r-create-attach-form {
-            display: none;
-            margin-top: 0.75rem;
+        #r-create-attach-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+            padding: 1.5rem; opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
         }
+        #r-create-attach-overlay.open { opacity: 1; pointer-events: auto; }
+        #r-create-attach-modal {
+            background: #fff; border-radius: 12px; padding: 1.75rem;
+            width: 100%; max-width: 640px; max-height: 85vh;
+            display: flex; flex-direction: column; gap: 0.75rem;
+            box-shadow: 0 16px 48px rgba(0,0,0,0.25);
+        }
+        body.dark #r-create-attach-modal { background: #1a1a1a; }
         #r-attach-title {
             width: 100%; background: none; border: none;
             border-bottom: 1px solid #ddd; outline: none;
-            font-family: inherit; font-size: 0.9rem;
-            padding: 0.2rem 0; margin-bottom: 0.5rem; color: #111;
+            font-family: inherit; font-size: 1rem; font-weight: 600;
+            padding: 0.2rem 0; color: #111;
         }
         #r-attach-body {
-            width: 100%; min-height: 120px; background: none;
+            width: 100%; flex: 1; min-height: 280px; background: none;
             border: 1px solid #ddd; border-radius: 6px; outline: none;
-            font-family: inherit; font-size: 0.85rem;
-            padding: 0.5rem; color: #111; resize: vertical;
+            font-family: inherit; font-size: 0.85rem; line-height: 1.65;
+            padding: 0.75rem; color: #111; resize: none; overflow-y: auto;
         }
-        .r-attach-actions { display: flex; gap: 0.5rem; margin-top: 0.4rem; }
+        .r-attach-actions { display: flex; gap: 0.5rem; }
         body.dark #r-attach-title { border-bottom-color: #444; color: #ccc; }
-        body.dark #r-attach-body { border-color: #444; color: #ccc; }
+        body.dark #r-attach-body { border-color: #444; color: #ccc; background: #111; }
 
         .media-scroll-row {
             display: flex; gap: 0.5rem; overflow-x: auto;
@@ -246,14 +255,6 @@
                             <button type="button" class="toolbar-btn" id="r-attach-pick-btn">+ upload files</button>
                             <button type="button" class="toolbar-btn" id="r-create-attach-btn">+ create attachment</button>
                         </div>
-                        <div id="r-create-attach-form">
-                            <input type="text" id="r-attach-title" placeholder="attachment title" autocomplete="off">
-                            <textarea id="r-attach-body" placeholder="paste content here..."></textarea>
-                            <div class="r-attach-actions">
-                                <button type="button" class="lp-insert" id="r-attach-create-btn">create & attach</button>
-                                <button type="button" class="lp-cancel" id="r-attach-cancel-btn">×</button>
-                            </div>
-                        </div>
                     </div>
                     <button type="button" id="r-save-btn" class="btn-app">save</button>
                 </div>
@@ -278,6 +279,16 @@
         </div>
     </div>
 
+<div id="r-create-attach-overlay">
+    <div id="r-create-attach-modal">
+        <input type="text" id="r-attach-title" placeholder="title" autocomplete="off">
+        <textarea id="r-attach-body" placeholder="paste content here..."></textarea>
+        <div class="r-attach-actions">
+            <button type="button" class="lp-insert" id="r-attach-create-btn">create & attach</button>
+            <button type="button" class="lp-cancel" id="r-attach-cancel-btn">×</button>
+        </div>
+    </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase.js"></script>
@@ -993,14 +1004,15 @@
             renderRAttachList();
         });
 
-        // create attachment
-        const rCreateAttachForm = document.getElementById('r-create-attach-form');
-        document.getElementById('r-create-attach-btn').addEventListener('click', () => {
-            rCreateAttachForm.style.display = rCreateAttachForm.style.display === 'none' ? 'block' : 'none';
-        });
-        document.getElementById('r-attach-cancel-btn').addEventListener('click', () => {
-            rCreateAttachForm.style.display = 'none';
-        });
+        // create attachment overlay
+        const rCreateAttachOverlay = document.getElementById('r-create-attach-overlay');
+        function openCreateAttach() { rCreateAttachOverlay.classList.add('open'); }
+        function closeCreateAttach() { rCreateAttachOverlay.classList.remove('open'); }
+
+        document.getElementById('r-create-attach-btn').addEventListener('click', openCreateAttach);
+        document.getElementById('r-attach-cancel-btn').addEventListener('click', closeCreateAttach);
+        rCreateAttachOverlay.addEventListener('click', e => { if (e.target === rCreateAttachOverlay) closeCreateAttach(); });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape' && rCreateAttachOverlay.classList.contains('open')) closeCreateAttach(); });
 
         document.getElementById('r-attach-create-btn').addEventListener('click', async () => {
             const title = document.getElementById('r-attach-title').value.trim();
@@ -1037,7 +1049,7 @@ pre { white-space: pre-wrap; word-break: break-word; font-family: inherit; font-
                 rUploadedFiles.push({ file, url });
                 document.getElementById('r-attachment-url').value = url;
                 renderRAttachList();
-                rCreateAttachForm.style.display = 'none';
+                closeCreateAttach();
                 document.getElementById('r-attach-title').value = '';
                 document.getElementById('r-attach-body').value = '';
             }
