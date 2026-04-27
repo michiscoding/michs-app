@@ -1026,7 +1026,8 @@
             let m;
             while ((m = linkRegex.exec(data.body || '')) !== null) {
                 const url = m[2];
-                if (!rUploadedFiles.some(f => f.url === url)) {
+                const isUploaded = url.startsWith('/reports/') || url.startsWith('/attachments/') || url.includes(SUPABASE_URL);
+                if (isUploaded && !rUploadedFiles.some(f => f.url === url)) {
                     rUploadedFiles.push({ file: { name: url.split('/').pop() }, url });
                 }
             }
