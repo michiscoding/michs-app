@@ -243,7 +243,7 @@
             const slug = slugify(title);
             for (const f of [...stagedFiles]) {
                 const path = `attachments/${slug}/${f.name}`;
-                const { error } = await adminDb.storage.from('media').upload(path, f, { upsert: true });
+                const { error } = await adminDb.storage.from('media').upload(path, f, { upsert: true, contentType: mimeType(f) });
                 if (!error) {
                     uploadedFiles.push({ file: f, url: `${SUPABASE_URL}/storage/v1/object/public/media/${path}` });
                     stagedFiles = stagedFiles.filter(x => x !== f);
@@ -282,6 +282,12 @@
                 list.appendChild(row);
             });
             document.getElementById('attach-upload-btn').style.display = stagedFiles.length ? 'inline-block' : 'none';
+        }
+
+        function mimeType(file) {
+            if (file.type) return file.type;
+            const ext = file.name.split('.').pop().toLowerCase();
+            return { html: 'text/html', htm: 'text/html', pdf: 'application/pdf', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', svg: 'image/svg+xml', webp: 'image/webp' }[ext] || 'application/octet-stream';
         }
 
         function slugify(str) {

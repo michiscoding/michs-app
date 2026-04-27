@@ -472,7 +472,7 @@
             const newPaths = [];
             for (const photo of newPhotos) {
                 const path = `entry-photos/${currentDate}/${photo.name}`;
-                const { error } = await adminDb.storage.from('media').upload(path, photo.file, { upsert: true });
+                const { error } = await adminDb.storage.from('media').upload(path, photo.file, { upsert: true, contentType: mimeType(photo.file) });
                 if (!error) newPaths.push(path);
             }
 
@@ -696,6 +696,12 @@
         });
 
         // --- shared helpers ---
+        function mimeType(file) {
+            if (file.type) return file.type;
+            const ext = file.name.split('.').pop().toLowerCase();
+            return { html: 'text/html', htm: 'text/html', pdf: 'application/pdf', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', svg: 'image/svg+xml', webp: 'image/webp' }[ext] || 'application/octet-stream';
+        }
+
         function slugify(title) {
             return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
         }
@@ -829,7 +835,7 @@
                     const ext = file.name.split('.').pop() || 'jpg';
                     const filename = paMediaFiles.length === 1 ? `${newSlug}.${ext}` : `${newSlug}-${i+1}.${ext}`;
                     const path = `powerapps/${filename}`;
-                    const { error } = await adminDb.storage.from('media').upload(path, file, { upsert: true });
+                    const { error } = await adminDb.storage.from('media').upload(path, file, { upsert: true, contentType: mimeType(file) });
                     if (!error) mediaPaths.push(path);
                 }
             }
@@ -923,7 +929,7 @@
             btn.textContent = 'uploading...'; btn.disabled = true;
             for (const f of files) {
                 const path = `attachments/${rCurrentSlug}/${f.name}`;
-                const { error } = await adminDb.storage.from('media').upload(path, f, { upsert: true });
+                const { error } = await adminDb.storage.from('media').upload(path, f, { upsert: true, contentType: mimeType(f) });
                 if (!error) {
                     const url = `${SUPABASE_URL}/storage/v1/object/public/media/${path}`;
                     rUploadedFiles.push({ file: f, url });
