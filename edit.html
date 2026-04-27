@@ -930,9 +930,6 @@
                 if (!error) {
                     const url = `${SUPABASE_URL}/storage/v1/object/public/media/${path}`;
                     rUploadedFiles.push({ file: f, url });
-                    if (!document.getElementById('r-attachment-url').value) {
-                        document.getElementById('r-attachment-url').value = url;
-                    }
                 }
             }
             btn.textContent = '+ attach files'; btn.disabled = false;
@@ -956,8 +953,12 @@
             rUploadedFiles.forEach((item, i) => {
                 const row = document.createElement('div');
                 row.className = 'attach-file-row';
-                row.innerHTML = `<span class="attach-file-name">${item.file.name}</span><button type="button" class="attach-insert-btn">insert link</button><button type="button" class="attach-remove-btn">×</button>`;
-                row.querySelector('.attach-insert-btn').addEventListener('click', () => rInsertAttachLink(item));
+                row.innerHTML = `<span class="attach-file-name">${item.file.name}</span><button type="button" class="attach-insert-btn">insert link</button><button type="button" class="attach-insert-btn">set as attachment</button><button type="button" class="attach-remove-btn">×</button>`;
+                const [insertBtn, setBtn] = row.querySelectorAll('.attach-insert-btn');
+                insertBtn.addEventListener('click', () => rInsertAttachLink(item));
+                setBtn.addEventListener('click', () => {
+                    document.getElementById('r-attachment-url').value = item.url;
+                });
                 row.querySelector('.attach-remove-btn').addEventListener('click', () => { rUploadedFiles.splice(i, 1); renderRAttachList(); });
                 list.appendChild(row);
             });
