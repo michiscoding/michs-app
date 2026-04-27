@@ -939,6 +939,7 @@
         let rCurrentSlug = null;
         let rUploadedFiles = []; // { file, url }
         let rCurrentAttachUrl = null;
+        let rDeletedUrls = []; // github paths queued for deletion on save
         const rListView = document.getElementById('r-list-view');
         const rEditorView = document.getElementById('r-editor-view');
         rEditorView.style.display = 'none';
@@ -1081,7 +1082,13 @@ pre { white-space: pre-wrap; word-break: break-word; font-family: inherit; font-
                 setBtn.addEventListener('click', () => {
                     document.getElementById('r-attachment-url').value = item.url;
                 });
-                row.querySelector('.attach-remove-btn').addEventListener('click', () => { rUploadedFiles.splice(i, 1); renderRAttachList(); });
+                row.querySelector('.attach-remove-btn').addEventListener('click', () => {
+                    if (item.url.startsWith('/reports/') || item.url.startsWith('/attachments/')) {
+                        rDeletedUrls.push(item.url);
+                    }
+                    rUploadedFiles.splice(i, 1);
+                    renderRAttachList();
+                });
                 list.appendChild(row);
             });
         }
@@ -1114,6 +1121,7 @@ pre { white-space: pre-wrap; word-break: break-word; font-family: inherit; font-
             const { data, error } = await db.from('research').select('*').eq('slug', slug).single();
             if (error || !data) return;
             rCurrentSlug = slug;
+            rDeletedUrls = [];
             rUploadedFiles = data.attachment_url
                 ? [{ file: { name: data.attachment_url.split('/').pop() }, url: data.attachment_url }]
                 : [];
@@ -1142,6 +1150,22 @@ pre { white-space: pre-wrap; word-break: break-word; font-family: inherit; font-
             setBackVisible(true);
         }
 
+        async function deleteFromGitHub(url) {
+            const token = getToken();
+            if (!token) return;
+            const path = url.replace(/^\//, '');
+            const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) return;
+            const { sha } = await res.json();
+            await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: `remove ${path.split('/').pop()}`, sha, branch: BRANCH })
+            });
+        }
+
         document.getElementById('r-save-btn').addEventListener('click', async () => {
             const title = document.getElementById('r-title').value.trim();
             if (!title || !rCurrentSlug) return;
@@ -1150,6 +1174,8 @@ pre { white-space: pre-wrap; word-break: break-word; font-family: inherit; font-
             const btn = document.getElementById('r-save-btn');
             btn.textContent = 'saving...'; btn.disabled = true;
             const newSlug = slugify(title);
+            for (const url of rDeletedUrls) await deleteFromGitHub(url);
+            rDeletedUrls = [];
             if (newSlug !== rCurrentSlug) {
                 await adminDb.from('research').delete().eq('slug', rCurrentSlug);
             }
