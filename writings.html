@@ -254,8 +254,7 @@
         });
 
         function insertAttachLink(item) {
-            const name = item.file.name.replace(/\.[^.]+$/, '');
-            const md = `[${name}](${item.url})`;
+            const md = `[here](${item.url})`;
             const start = textarea.selectionStart;
             const end = textarea.selectionEnd;
             textarea.value = textarea.value.substring(0, start) + md + textarea.value.substring(end);
