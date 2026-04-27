@@ -58,11 +58,26 @@
             color: #fff;
         }
 
-        #media-preview {
-            width: 100%;
-            border-radius: 8px;
+        .media-scroll-row {
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
             margin-top: 0.75rem;
-            display: none;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .media-scroll-row::-webkit-scrollbar { display: none; }
+        .media-thumb-wrap {
+            position: relative;
+            flex: 0 0 auto;
+            width: 140px;
+        }
+        .media-thumb {
+            width: 140px;
+            height: 110px;
+            object-fit: cover;
+            border-radius: 8px;
+            display: block;
         }
     </style>
 </head>
@@ -124,7 +139,7 @@
             <label>media</label>
             <input type="file" id="media-input" accept="image/*,video/*" multiple style="display:none">
             <button type="button" class="btn-app" onclick="document.getElementById('media-input').click()">choose files</button>
-            <div id="media-previews"></div>
+            <div id="media-previews" class="media-scroll-row"></div>
         </div>
 
         <div class="field-group">
@@ -178,7 +193,7 @@
             const previews = document.getElementById('media-previews');
             const url = URL.createObjectURL(file);
             const wrap = document.createElement('div');
-            wrap.style.cssText = 'position:relative;margin-top:0.5rem;';
+            wrap.className = 'media-thumb-wrap';
             let el;
             if (file.type.startsWith('video/')) {
                 el = document.createElement('video');
@@ -187,7 +202,7 @@
                 el = document.createElement('img');
                 el.src = url; el.alt = file.name;
             }
-            el.style.cssText = 'width:100%;border-radius:8px;display:block;';
+            el.className = 'media-thumb';
             const removeBtn = document.createElement('button');
             removeBtn.type = 'button';
             removeBtn.className = 'remove-btn';

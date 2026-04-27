@@ -51,6 +51,13 @@
         .attach-remove-btn { background: none; border: none; color: #ccc; cursor: pointer; font-size: 1rem; line-height: 1; padding: 0; }
         .attach-remove-btn:hover { color: #555; }
         #r-attach-current { display: none; }
+        .media-scroll-row {
+            display: flex; gap: 0.5rem; overflow-x: auto;
+            margin-top: 0.75rem; scrollbar-width: none; -ms-overflow-style: none;
+        }
+        .media-scroll-row::-webkit-scrollbar { display: none; }
+        .media-thumb-wrap { position: relative; flex: 0 0 auto; width: 140px; }
+        .media-thumb { width: 140px; height: 110px; object-fit: cover; border-radius: 8px; display: block; }
     </style>
 </head>
 
@@ -169,7 +176,7 @@
                         <label class="field-label">media</label>
                         <input type="file" id="pa-media-input" accept="image/*,video/*" multiple aria-label="media files">
                         <button type="button" class="btn-app" onclick="document.getElementById('pa-media-input').click()">choose files</button>
-                        <div id="pa-media-previews"></div>
+                        <div id="pa-media-previews" class="media-scroll-row"></div>
                     </div>
                     <div class="field-group">
                         <label class="field-label">what it does</label>
@@ -715,7 +722,7 @@
             const previews = document.getElementById('pa-media-previews');
             const url = URL.createObjectURL(file);
             const wrap = document.createElement('div');
-            wrap.style.cssText = 'position:relative;margin-top:0.5rem;';
+            wrap.className = 'media-thumb-wrap';
             let el;
             if (file.type.startsWith('video/')) {
                 el = document.createElement('video');
@@ -724,7 +731,7 @@
                 el = document.createElement('img');
                 el.src = url; el.alt = '';
             }
-            el.style.cssText = 'width:100%;border-radius:8px;display:block;';
+            el.className = 'media-thumb';
             const removeBtn = document.createElement('button');
             removeBtn.type = 'button';
             removeBtn.className = 'remove-btn';
@@ -776,8 +783,11 @@
                     el = document.createElement('img');
                     el.src = src; el.alt = '';
                 }
-                el.style.cssText = 'width:100%;border-radius:8px;margin-top:0.5rem;display:block;';
-                previews.appendChild(el);
+                el.className = 'media-thumb';
+                const wrap = document.createElement('div');
+                wrap.className = 'media-thumb-wrap';
+                wrap.appendChild(el);
+                previews.appendChild(wrap);
             });
             document.getElementById('pa-title').value = data.title || '';
             const paWhat = document.getElementById('pa-what');
