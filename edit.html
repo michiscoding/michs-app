@@ -54,6 +54,26 @@
         .attach-remove-btn { background: none; border: none; color: #ccc; cursor: pointer; font-size: 1rem; line-height: 1; padding: 0; flex-shrink: 0; }
         .attach-remove-btn:hover { color: #555; }
         #r-attach-current { display: none; }
+        #r-create-attach-form {
+            display: none;
+            margin-top: 0.75rem;
+        }
+        #r-attach-title {
+            width: 100%; background: none; border: none;
+            border-bottom: 1px solid #ddd; outline: none;
+            font-family: inherit; font-size: 0.9rem;
+            padding: 0.2rem 0; margin-bottom: 0.5rem; color: #111;
+        }
+        #r-attach-body {
+            width: 100%; min-height: 120px; background: none;
+            border: 1px solid #ddd; border-radius: 6px; outline: none;
+            font-family: inherit; font-size: 0.85rem;
+            padding: 0.5rem; color: #111; resize: vertical;
+        }
+        .r-attach-actions { display: flex; gap: 0.5rem; margin-top: 0.4rem; }
+        body.dark #r-attach-title { border-bottom-color: #444; color: #ccc; }
+        body.dark #r-attach-body { border-color: #444; color: #ccc; }
+
         .media-scroll-row {
             display: flex; gap: 0.5rem; overflow-x: auto;
             margin-top: 0.75rem; scrollbar-width: none; -ms-overflow-style: none;
@@ -224,6 +244,15 @@
                             <input type="file" id="r-attach-input" multiple>
                             <div id="r-attach-list"></div>
                             <button type="button" class="toolbar-btn" id="r-attach-pick-btn">+ upload files</button>
+                            <button type="button" class="toolbar-btn" id="r-create-attach-btn">+ create attachment</button>
+                        </div>
+                        <div id="r-create-attach-form">
+                            <input type="text" id="r-attach-title" placeholder="attachment title" autocomplete="off">
+                            <textarea id="r-attach-body" placeholder="paste content here..."></textarea>
+                            <div class="r-attach-actions">
+                                <button type="button" class="lp-insert" id="r-attach-create-btn">create & attach</button>
+                                <button type="button" class="lp-cancel" id="r-attach-cancel-btn">×</button>
+                            </div>
                         </div>
                     </div>
                     <button type="button" id="r-save-btn" class="btn-app">save</button>
@@ -962,6 +991,57 @@
             }
             btn.textContent = '+ upload files'; btn.disabled = false;
             renderRAttachList();
+        });
+
+        // create attachment
+        const rCreateAttachForm = document.getElementById('r-create-attach-form');
+        document.getElementById('r-create-attach-btn').addEventListener('click', () => {
+            rCreateAttachForm.style.display = rCreateAttachForm.style.display === 'none' ? 'block' : 'none';
+        });
+        document.getElementById('r-attach-cancel-btn').addEventListener('click', () => {
+            rCreateAttachForm.style.display = 'none';
+        });
+
+        document.getElementById('r-attach-create-btn').addEventListener('click', async () => {
+            const title = document.getElementById('r-attach-title').value.trim();
+            const body = document.getElementById('r-attach-body').value;
+            if (!title || !body) return;
+            const btn = document.getElementById('r-attach-create-btn');
+            btn.textContent = 'creating...'; btn.disabled = true;
+
+            const attachSlug = slugify(title);
+            const escaped = body.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            const html = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: "Montserrat", sans-serif; max-width: 780px; margin: 0 auto; padding: 2.5rem 2rem; color: #111; }
+h1 { font-size: 1.4rem; font-weight: 700; margin-bottom: 1.75rem; }
+pre { white-space: pre-wrap; word-break: break-word; font-family: inherit; font-size: 0.88rem; line-height: 1.75; background: #f5f5f5; border-radius: 10px; padding: 1.5rem; }
+</style>
+<title>${title}</title>
+</head>
+<body>
+<h1>${title}</h1>
+<pre>${escaped}</pre>
+</body>
+</html>`;
+
+            const file = new File([html], `${attachSlug}.html`, { type: 'text/html' });
+            const url = await uploadToGitHub(file, rCurrentSlug);
+            if (url) {
+                rUploadedFiles.push({ file, url });
+                document.getElementById('r-attachment-url').value = url;
+                renderRAttachList();
+                rCreateAttachForm.style.display = 'none';
+                document.getElementById('r-attach-title').value = '';
+                document.getElementById('r-attach-body').value = '';
+            }
+            btn.textContent = 'create & attach'; btn.disabled = false;
         });
 
 
