@@ -95,43 +95,25 @@
 
         .attach-section { margin-top: 1rem; }
         .attach-file-row {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.8rem;
-            color: #666;
-            margin-top: 0.4rem;
+            display: flex; align-items: center; gap: 0.5rem;
+            font-size: 0.8rem; color: #666; margin-top: 0.5rem;
         }
-        .attach-file-name { flex: 1; }
-        .attach-main-badge {
-            font-size: 0.68rem;
-            font-weight: 700;
-            color: #aaa;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+        .attach-file-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .attach-status { font-size: 0.7rem; color: #bbb; white-space: nowrap; }
+        .attach-insert-btn {
+            background: none; border: 1px solid #ddd; border-radius: 4px;
+            padding: 0.15rem 0.55rem; font-size: 0.7rem; font-family: inherit;
+            font-weight: 600; color: #888; cursor: pointer; white-space: nowrap;
         }
-        .attach-set-main {
-            background: none;
-            border: none;
-            color: #bbb;
-            font-size: 0.72rem;
-            cursor: pointer;
-            padding: 0;
-            font-family: inherit;
-        }
-        .attach-set-main:hover { color: #555; }
+        .attach-insert-btn:hover { color: #111; border-color: #aaa; }
         .attach-remove-btn {
-            background: none;
-            border: none;
-            color: #ccc;
-            cursor: pointer;
-            font-size: 1rem;
-            line-height: 1;
-            padding: 0;
+            background: none; border: none; color: #ccc;
+            cursor: pointer; font-size: 1rem; line-height: 1; padding: 0; flex-shrink: 0;
         }
         .attach-remove-btn:hover { color: #555; }
         #attach-input { display: none; }
         #attach-pick-btn { margin-top: 0.5rem; }
+        #attach-upload-btn { margin-top: 0.5rem; display: none; }
         #post-btn { margin-top: 1.5rem; }
     </style>
 </head>
@@ -190,6 +172,7 @@
             <input type="file" id="attach-input" multiple>
             <div id="attach-list"></div>
             <button type="button" class="toolbar-btn" id="attach-pick-btn">+ attach files</button>
+            <button type="button" class="toolbar-btn" id="attach-upload-btn">upload</button>
         </div>
 
         <button type="button" id="post-btn" class="btn-app">post</button>
@@ -238,42 +221,67 @@
         lpText.addEventListener('keydown', e => { if (e.key === 'Escape') linkPopup.style.display = 'none'; });
 
         // attachment upload
-        let attachFiles = [];
-        let attachMain = null;
+        let stagedFiles = [];
+        let uploadedFiles = []; // { file, url }
 
         document.getElementById('attach-pick-btn').addEventListener('click', () => document.getElementById('attach-input').click());
 
         document.getElementById('attach-input').addEventListener('change', e => {
-            Array.from(e.target.files).forEach(f => {
-                attachFiles.push(f);
-                if (!attachMain && /\.(html|htm|pdf)$/i.test(f.name)) attachMain = f;
-            });
+            Array.from(e.target.files).forEach(f => stagedFiles.push(f));
             e.target.value = '';
             renderAttachList();
         });
 
+        document.getElementById('attach-upload-btn').addEventListener('click', async () => {
+            const title = document.getElementById('title-input').value.trim();
+            if (!title) { document.getElementById('title-input').focus(); return; }
+            if (!stagedFiles.length) return;
+            const adminDb = await getAdminClient();
+            if (!adminDb) return;
+            const btn = document.getElementById('attach-upload-btn');
+            btn.textContent = 'uploading...'; btn.disabled = true;
+            const slug = slugify(title);
+            for (const f of [...stagedFiles]) {
+                const path = `attachments/${slug}/${f.name}`;
+                const { error } = await adminDb.storage.from('media').upload(path, f, { upsert: true });
+                if (!error) {
+                    uploadedFiles.push({ file: f, url: `${SUPABASE_URL}/storage/v1/object/public/media/${path}` });
+                    stagedFiles = stagedFiles.filter(x => x !== f);
+                }
+            }
+            btn.textContent = 'upload'; btn.disabled = false;
+            renderAttachList();
+        });
+
+        function insertAttachLink(item) {
+            const name = item.file.name.replace(/\.[^.]+$/, '');
+            const md = `[${name}](${item.url})`;
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            textarea.value = textarea.value.substring(0, start) + md + textarea.value.substring(end);
+            textarea.selectionStart = textarea.selectionEnd = start + md.length;
+            textarea.focus();
+        }
+
         function renderAttachList() {
             const list = document.getElementById('attach-list');
             list.innerHTML = '';
-            attachFiles.forEach((f, i) => {
+            stagedFiles.forEach((f, i) => {
                 const row = document.createElement('div');
                 row.className = 'attach-file-row';
-                const isMain = f === attachMain;
-                row.innerHTML = `
-                    <span class="attach-file-name">${f.name}</span>
-                    ${isMain
-                        ? `<span class="attach-main-badge">main</span>`
-                        : `<button type="button" class="attach-set-main">set main</button>`}
-                    <button type="button" class="attach-remove-btn">×</button>
-                `;
-                if (!isMain) row.querySelector('.attach-set-main').addEventListener('click', () => { attachMain = f; renderAttachList(); });
-                row.querySelector('.attach-remove-btn').addEventListener('click', () => {
-                    attachFiles.splice(i, 1);
-                    if (attachMain === f) attachMain = attachFiles.find(x => /\.(html|htm|pdf)$/i.test(x.name)) || attachFiles[0] || null;
-                    renderAttachList();
-                });
+                row.innerHTML = `<span class="attach-file-name">${f.name}</span><span class="attach-status">pending</span><button type="button" class="attach-remove-btn">×</button>`;
+                row.querySelector('.attach-remove-btn').addEventListener('click', () => { stagedFiles.splice(i, 1); renderAttachList(); });
                 list.appendChild(row);
             });
+            uploadedFiles.forEach((item, i) => {
+                const row = document.createElement('div');
+                row.className = 'attach-file-row';
+                row.innerHTML = `<span class="attach-file-name">${item.file.name}</span><button type="button" class="attach-insert-btn">insert link</button><button type="button" class="attach-remove-btn">×</button>`;
+                row.querySelector('.attach-insert-btn').addEventListener('click', () => insertAttachLink(item));
+                row.querySelector('.attach-remove-btn').addEventListener('click', () => { uploadedFiles.splice(i, 1); renderAttachList(); });
+                list.appendChild(row);
+            });
+            document.getElementById('attach-upload-btn').style.display = stagedFiles.length ? 'inline-block' : 'none';
         }
 
         function slugify(str) {
@@ -291,17 +299,9 @@
             btn.textContent = 'posting...';
 
             const slug = slugify(title);
-            let attachmentUrl = null;
-
-            if (attachFiles.length > 0) {
-                btn.textContent = 'uploading...';
-                const main = attachMain || attachFiles[0];
-                for (const f of attachFiles) {
-                    const path = `attachments/${slug}/${f.name}`;
-                    await adminDb.storage.from('media').upload(path, f, { upsert: true });
-                }
-                attachmentUrl = `${SUPABASE_URL}/storage/v1/object/public/media/attachments/${slug}/${main.name}`;
-            }
+            const attachmentUrl = uploadedFiles.find(u => /\.(html|htm|pdf)$/i.test(u.file.name))?.url
+                || uploadedFiles[0]?.url
+                || null;
 
             const { error } = await adminDb.from('research').upsert(
                 { slug, title, body: textarea.value, attachment_url: attachmentUrl },
@@ -319,8 +319,7 @@
             textarea.value = '';
             textarea.style.height = '';
             document.getElementById('title-input').value = '';
-            attachFiles = [];
-            attachMain = null;
+            stagedFiles = []; uploadedFiles = [];
             renderAttachList();
             setTimeout(() => btn.textContent = 'post', 2000);
         });

@@ -43,12 +43,15 @@
         .attach-current { font-size: 0.78rem; color: #888; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.5rem; }
         .attach-clear-btn { background: none; border: none; color: #bbb; cursor: pointer; font-size: 0.75rem; font-family: inherit; padding: 0; }
         .attach-clear-btn:hover { color: #555; }
-        .attach-file-row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: #666; margin-top: 0.4rem; }
-        .attach-file-name { flex: 1; }
-        .attach-main-badge { font-size: 0.68rem; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; }
-        .attach-set-main { background: none; border: none; color: #bbb; font-size: 0.72rem; cursor: pointer; padding: 0; font-family: inherit; }
-        .attach-set-main:hover { color: #555; }
-        .attach-remove-btn { background: none; border: none; color: #ccc; cursor: pointer; font-size: 1rem; line-height: 1; padding: 0; }
+        .attach-file-row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: #666; margin-top: 0.5rem; }
+        .attach-file-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .attach-insert-btn {
+            background: none; border: 1px solid #ddd; border-radius: 4px;
+            padding: 0.15rem 0.55rem; font-size: 0.7rem; font-family: inherit;
+            font-weight: 600; color: #888; cursor: pointer; white-space: nowrap;
+        }
+        .attach-insert-btn:hover { color: #111; border-color: #aaa; }
+        .attach-remove-btn { background: none; border: none; color: #ccc; cursor: pointer; font-size: 1rem; line-height: 1; padding: 0; flex-shrink: 0; }
         .attach-remove-btn:hover { color: #555; }
         #r-attach-current { display: none; }
         .media-scroll-row {
@@ -868,8 +871,7 @@
 
         // --- writings ---
         let rCurrentSlug = null;
-        let rAttachFiles = [];
-        let rAttachMain = null;
+        let rUploadedFiles = []; // { file, url }
         let rCurrentAttachUrl = null;
         const rListView = document.getElementById('r-list-view');
         const rEditorView = document.getElementById('r-editor-view');
@@ -908,15 +910,27 @@
         rLpUrl.addEventListener('keydown', e => { if (e.key === 'Enter') rInsertLink(); if (e.key === 'Escape') rLinkPopup.style.display = 'none'; });
         rLpText.addEventListener('keydown', e => { if (e.key === 'Escape') rLinkPopup.style.display = 'none'; });
 
-        // attachment upload
+        // attachment upload — eager: uploads immediately when file is picked
         document.getElementById('r-attach-pick-btn').addEventListener('click', () => document.getElementById('r-attach-input').click());
 
-        document.getElementById('r-attach-input').addEventListener('change', e => {
-            Array.from(e.target.files).forEach(f => {
-                rAttachFiles.push(f);
-                if (!rAttachMain && /\.(html|htm|pdf)$/i.test(f.name)) rAttachMain = f;
-            });
+        document.getElementById('r-attach-input').addEventListener('change', async e => {
+            const files = Array.from(e.target.files);
             e.target.value = '';
+            if (!files.length) return;
+            const adminDb = await getAdminClient();
+            if (!adminDb) return;
+            const btn = document.getElementById('r-attach-pick-btn');
+            btn.textContent = 'uploading...'; btn.disabled = true;
+            for (const f of files) {
+                const path = `attachments/${rCurrentSlug}/${f.name}`;
+                const { error } = await adminDb.storage.from('media').upload(path, f, { upsert: true });
+                if (!error) {
+                    const url = `${SUPABASE_URL}/storage/v1/object/public/media/${path}`;
+                    rUploadedFiles.push({ file: f, url });
+                    if (!rCurrentAttachUrl && /\.(html|htm|pdf)$/i.test(f.name)) rCurrentAttachUrl = url;
+                }
+            }
+            btn.textContent = '+ attach files'; btn.disabled = false;
             renderRAttachList();
         });
 
@@ -925,26 +939,25 @@
             document.getElementById('r-attach-current').style.display = 'none';
         });
 
+        function rInsertAttachLink(item) {
+            const name = item.file.name.replace(/\.[^.]+$/, '');
+            const md = `[${name}](${item.url})`;
+            const start = rBody.selectionStart;
+            const end = rBody.selectionEnd;
+            rBody.value = rBody.value.substring(0, start) + md + rBody.value.substring(end);
+            rBody.selectionStart = rBody.selectionEnd = start + md.length;
+            rBody.focus();
+        }
+
         function renderRAttachList() {
             const list = document.getElementById('r-attach-list');
             list.innerHTML = '';
-            rAttachFiles.forEach((f, i) => {
+            rUploadedFiles.forEach((item, i) => {
                 const row = document.createElement('div');
                 row.className = 'attach-file-row';
-                const isMain = f === rAttachMain;
-                row.innerHTML = `
-                    <span class="attach-file-name">${f.name}</span>
-                    ${isMain
-                        ? `<span class="attach-main-badge">main</span>`
-                        : `<button type="button" class="attach-set-main">set main</button>`}
-                    <button type="button" class="attach-remove-btn">×</button>
-                `;
-                if (!isMain) row.querySelector('.attach-set-main').addEventListener('click', () => { rAttachMain = f; renderRAttachList(); });
-                row.querySelector('.attach-remove-btn').addEventListener('click', () => {
-                    rAttachFiles.splice(i, 1);
-                    if (rAttachMain === f) rAttachMain = rAttachFiles.find(x => /\.(html|htm|pdf)$/i.test(x.name)) || rAttachFiles[0] || null;
-                    renderRAttachList();
-                });
+                row.innerHTML = `<span class="attach-file-name">${item.file.name}</span><button type="button" class="attach-insert-btn">insert link</button><button type="button" class="attach-remove-btn">×</button>`;
+                row.querySelector('.attach-insert-btn').addEventListener('click', () => rInsertAttachLink(item));
+                row.querySelector('.attach-remove-btn').addEventListener('click', () => { rUploadedFiles.splice(i, 1); renderRAttachList(); });
                 list.appendChild(row);
             });
         }
@@ -977,8 +990,7 @@
             const { data, error } = await db.from('research').select('*').eq('slug', slug).single();
             if (error || !data) return;
             rCurrentSlug = slug;
-            rAttachFiles = [];
-            rAttachMain = null;
+            rUploadedFiles = [];
             rCurrentAttachUrl = data.attachment_url || null;
             document.getElementById('r-title').value = data.title || '';
             rBody.value = data.body || '';
@@ -1013,16 +1025,7 @@
             if (newSlug !== rCurrentSlug) {
                 await adminDb.from('research').delete().eq('slug', rCurrentSlug);
             }
-            let attachmentUrl = rCurrentAttachUrl;
-            if (rAttachFiles.length > 0) {
-                btn.textContent = 'uploading...';
-                const main = rAttachMain || rAttachFiles[0];
-                for (const f of rAttachFiles) {
-                    const path = `attachments/${newSlug}/${f.name}`;
-                    await adminDb.storage.from('media').upload(path, f, { upsert: true });
-                }
-                attachmentUrl = `${SUPABASE_URL}/storage/v1/object/public/media/attachments/${newSlug}/${main.name}`;
-            }
+            const attachmentUrl = rCurrentAttachUrl || null;
             const { error } = await adminDb.from('research').upsert(
                 { slug: newSlug, title, body: rBody.value, attachment_url: attachmentUrl },
                 { onConflict: 'slug' }
@@ -1033,9 +1036,6 @@
             } else {
                 rCurrentSlug = newSlug;
                 rCurrentAttachUrl = attachmentUrl;
-                rAttachFiles = [];
-                rAttachMain = null;
-                renderRAttachList();
                 btn.textContent = 'saved!';
             }
             setTimeout(() => { btn.textContent = 'save'; btn.disabled = false; }, 2000);
