@@ -1034,19 +1034,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html { background: #fff; }
-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; max-width: 780px; margin: 0 auto; padding: 2.5rem 2rem; color: #111; background: #fff; }
+html, body { background: #fff; color: #111; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; max-width: 780px; margin: 0 auto; padding: 2.5rem 2rem; }
 h1 { font-size: 1.4rem; font-weight: 700; margin-bottom: 1.75rem; }
 pre { white-space: pre-wrap; word-break: break-word; font-family: inherit; font-size: 0.88rem; line-height: 1.75; }
-@media (prefers-color-scheme: dark) {
-  html, body { background: #111; color: #ddd; }
-}
+body.dark, html.dark { background: #111; color: #ddd; }
 </style>
 <title>${title}</title>
 </head>
 <body>
 <h1>${title}</h1>
 <pre>${escaped}</pre>
+<script>
+if (new URLSearchParams(location.search).get('theme') === 'dark') {
+  document.documentElement.classList.add('dark');
+  document.body.classList.add('dark');
+}
+<\/script>
 </body>
 </html>`;
 
