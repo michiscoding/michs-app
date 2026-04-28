@@ -1058,7 +1058,6 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
             const url = await uploadToGitHub(file, rCurrentSlug);
             if (url) {
                 rUploadedFiles.push({ file, url });
-                document.getElementById('r-attachment-url').value = url;
                 renderRAttachList();
                 closeCreateAttach();
                 document.getElementById('r-attach-title').value = '';
