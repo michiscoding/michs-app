@@ -154,6 +154,10 @@
                     <label class="field-label" for="editor-textarea">entry</label>
                     <textarea id="editor-textarea"></textarea>
                 </div>
+                <div class="field-group">
+                    <label class="field-label" for="music-input">music</label>
+                    <input type="text" id="music-input" placeholder="spotify or youtube url...">
+                </div>
                 <div id="photo-strip">
                     <div id="photo-previews"></div>
                     <label id="photo-add-btn" for="photo-input">+ add photos</label>
@@ -440,7 +444,7 @@
         async function openEntry(file) {
             const date = file.name;
             const [{ data: entryData }, { data: photoData }] = await Promise.all([
-                db.from('entries').select('content').eq('date', date).single(),
+                db.from('entries').select('content, music_url').eq('date', date).single(),
                 db.from('entry_photos').select('storage_path').eq('entry_date', date)
             ]);
             currentDate = date;
@@ -450,6 +454,7 @@
             const [yyyy, mm, dd] = date.split('-');
             editorTitle.textContent = `${months[parseInt(mm)-1]} ${parseInt(dd)} ${yyyy}`;
             editorTextarea.value = entryData?.content || '';
+            document.getElementById('music-input').value = entryData?.music_url || '';
             backContext = 'entry';
             document.getElementById('entry-filters').style.display = 'none';
             entriesList.style.display = 'none';
@@ -516,8 +521,9 @@
                 if (!error) newPaths.push(path);
             }
 
+            const musicUrl = document.getElementById('music-input').value.trim() || null;
             const { error } = await adminDb.from('entries').upsert(
-                { date: currentDate, content: editorTextarea.value },
+                { date: currentDate, content: editorTextarea.value, music_url: musicUrl },
                 { onConflict: 'date' }
             );
             if (newPaths.length) {
