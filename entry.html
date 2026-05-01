@@ -54,6 +54,8 @@
         <h1 id="date-label" contenteditable="true" spellcheck="false">new entry</h1>
         <textarea></textarea>
 
+        <input type="text" id="music-input" placeholder="music url (spotify / youtube)...">
+
         <div id="photo-strip">
             <div id="photo-previews"></div>
             <label id="photo-add-btn" for="photo-input">+ add photos</label>
@@ -107,9 +109,10 @@
                 photoPreviews.querySelectorAll('.photo-thumb.new-thumb').forEach(t => t.remove());
 
                 const [{ data: entryData }, { data: photoData }] = await Promise.all([
-                    db.from('entries').select('content').eq('date', date).single(),
+                    db.from('entries').select('content, music_url').eq('date', date).single(),
                     db.from('entry_photos').select('storage_path').eq('entry_date', date)
                 ]);
+                document.getElementById('music-input').value = entryData?.music_url || '';
                 if (entryData?.content) {
                     textarea.value = entryData.content;
                     requestAnimationFrame(() => { textarea.style.height = 'auto'; textarea.style.height = textarea.scrollHeight + 'px'; });
@@ -202,7 +205,8 @@
             }
 
             // Upsert entry text (creates if new, updates content if existing)
-            const { error } = await adminDb.from('entries').upsert({ date, content: textarea.value }, { onConflict: 'date' });
+            const musicUrl = document.getElementById('music-input').value.trim() || null;
+            const { error } = await adminDb.from('entries').upsert({ date, content: textarea.value, music_url: musicUrl }, { onConflict: 'date' });
             if (error) {
                 btn.textContent = 'error — check console';
                 console.error(error);
