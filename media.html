@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <title>media</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="mishi">
+    <style>
+        .page { max-width: 480px; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
+        h2 { font-size: 1rem; font-weight: 700; margin-bottom: 1.25rem; }
+
+        .type-row { display: flex; gap: 0.5rem; margin-bottom: 1.25rem; }
+        .type-btn { flex: 1; padding: 0.45rem; border: 1px solid #ddd; border-radius: 8px; background: none; font-family: inherit; font-size: 0.82rem; font-weight: 600; color: #aaa; cursor: pointer; }
+        .type-btn.active { background: #111; color: #fff; border-color: #111; }
+        body.dark .type-btn { border-color: #333; color: #555; }
+        body.dark .type-btn.active { background: #ddd; color: #111; border-color: #ddd; }
+
+        .search-row { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+        .search-row input { flex: 1; }
+        .search-btn { padding: 0.65rem 1rem; background: #111; color: #fff; border: none; border-radius: 8px; font-family: inherit; font-size: 0.82rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+        .search-btn:hover { background: #333; }
+        body.dark .search-btn { background: #ddd; color: #111; }
+
+        .results { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem; }
+        .result-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.75rem; border-radius: 8px; background: #ededed; cursor: pointer; }
+        .result-item:hover { background: #e0e0e0; }
+        body.dark .result-item { background: #1e1e1e; }
+        body.dark .result-item:hover { background: #2a2a2a; }
+        .result-cover { width: 36px; height: 54px; object-fit: cover; border-radius: 3px; flex-shrink: 0; background: #ddd; display: block; }
+        body.dark .result-cover { background: #333; }
+        .result-info { flex: 1; min-width: 0; }
+        .result-title { font-size: 0.83rem; font-weight: 600; color: #111; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        body.dark .result-title { color: #ddd; }
+        .result-sub { font-size: 0.72rem; color: #888; }
+
+        .selected-card { display: flex; gap: 1rem; margin-bottom: 1.25rem; padding: 1rem; background: #ededed; border-radius: 10px; align-items: flex-start; }
+        body.dark .selected-card { background: #1e1e1e; }
+        .selected-cover { width: 54px; height: 80px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
+        .selected-info { flex: 1; }
+        .selected-title { font-size: 0.88rem; font-weight: 700; color: #111; margin-bottom: 0.2rem; }
+        body.dark .selected-title { color: #eee; }
+        .selected-sub { font-size: 0.75rem; color: #888; }
+        .selected-clear { background: none; border: none; color: #bbb; cursor: pointer; font-size: 0.75rem; padding: 0; font-family: inherit; }
+        .selected-clear:hover { color: #555; }
+
+        .form-field { margin-bottom: 1rem; }
+        .form-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #aaa; margin-bottom: 0.4rem; display: block; }
+        textarea { width: 100%; background: #ededed; border: none; border-radius: 8px; padding: 0.65rem 1rem; color: #111; outline: none; resize: none; min-height: 90px; box-sizing: border-box; font-family: inherit; font-size: inherit; }
+        body.dark textarea { background: #1e1e1e; color: #ddd; }
+        input[type="date"] { background: #ededed; border: none; border-radius: 8px; padding: 0.65rem 1rem; color: #111; outline: none; width: 100%; box-sizing: border-box; }
+        body.dark input[type="date"] { background: #1e1e1e; color: #ddd; }
+
+        .star-row { display: flex; gap: 0.35rem; }
+        .star-btn { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #ddd; line-height: 1; padding: 0; transition: color 0.15s; }
+        body.dark .star-btn { color: #444; }
+        .star-btn.filled { color: #f5c518; }
+
+        .save-btn { width: 100%; padding: 0.75rem; background: #111; color: #fff; border: none; border-radius: 10px; font-family: inherit; font-size: 0.88rem; font-weight: 700; cursor: pointer; margin-top: 0.5rem; }
+        .save-btn:hover { background: #333; }
+        body.dark .save-btn { background: #ddd; color: #111; }
+        .save-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .m-status { font-size: 0.8rem; color: #aaa; margin-top: 0.75rem; text-align: center; min-height: 1.2em; }
+    </style>
+</head>
+<body>
+<div class="top-bar">
+    <a href="edit.html" id="site-link" aria-label="back" style="color:#888;line-height:0">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+        </svg>
+    </a>
+    <button type="button" id="burger-btn" class="burger-btn" aria-label="menu">
+        <svg id="burger-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+        <svg id="close-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <line x1="4" y1="4" x2="20" y2="20"/><line x1="20" y1="4" x2="4" y2="20"/>
+        </svg>
+    </button>
+</div>
+<nav class="nav-menu">
+    <ul>
+        <li><a href="entry.html">entry</a></li>
+        <li><a href="visuals.html">visuals</a></li>
+        <li><span class="nav-toggle" id="work-toggle">work</span>
+            <ul class="nav-sub" id="work-sub">
+                <li><a href="powerapps-new.html">powerapps</a></li>
+                <li><a href="writings.html">projects</a></li>
+            </ul>
+        </li>
+        <li><a href="edit.html">edit</a></li>
+        <li><a href="media.html">media</a></li>
+        <li><button type="button" id="dark-toggle" aria-label="toggle dark mode"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button></li>
+    </ul>
+</nav>
+
+<div class="page">
+    <h2>media</h2>
+
+    <div class="type-row">
+        <button class="type-btn active" data-type="book">book</button>
+        <button class="type-btn" data-type="movie">movie</button>
+    </div>
+
+    <div class="search-row">
+        <input type="text" id="m-search" placeholder="search title...">
+        <button class="search-btn" id="m-search-btn">search</button>
+    </div>
+
+    <div class="results" id="m-search-results"></div>
+
+    <div id="m-form" style="display:none">
+        <div class="selected-card">
+            <img class="selected-cover" id="m-sel-cover" src="" alt="">
+            <div class="selected-info">
+                <div class="selected-title" id="m-sel-title"></div>
+                <div class="selected-sub" id="m-sel-sub"></div>
+            </div>
+            <button class="selected-clear" id="m-clear">clear</button>
+        </div>
+
+        <div class="form-field">
+            <label class="form-label">notes</label>
+            <textarea id="m-notes" placeholder="thoughts..."></textarea>
+        </div>
+        <div class="form-field">
+            <label class="form-label">rating</label>
+            <div class="star-row" id="m-stars">
+                <button class="star-btn" data-val="1">★</button>
+                <button class="star-btn" data-val="2">★</button>
+                <button class="star-btn" data-val="3">★</button>
+                <button class="star-btn" data-val="4">★</button>
+                <button class="star-btn" data-val="5">★</button>
+            </div>
+        </div>
+        <div class="form-field">
+            <label class="form-label">date</label>
+            <input type="date" id="m-date">
+        </div>
+        <button class="save-btn" id="m-save">save</button>
+        <div class="m-status" id="m-status"></div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+<script src="js/app.js"></script>
+<script>
+const TMDB_KEY = ''; // get a free key at developers.themoviedb.org
+
+let currentType = 'book';
+let selectedItem = null;
+let currentRating = 0;
+
+document.querySelectorAll('.type-btn').forEach(btn => {
+    btn.onclick = () => {
+        document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentType = btn.dataset.type;
+        document.getElementById('m-search-results').innerHTML = '';
+        clearSelection();
+    };
+});
+
+const searchInput = document.getElementById('m-search');
+document.getElementById('m-search-btn').onclick = doSearch;
+searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+
+async function doSearch() {
+    const q = searchInput.value.trim();
+    if (!q) return;
+    document.getElementById('m-search-results').innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.5rem 0">searching...</div>';
+    if (currentType === 'book') await searchBooks(q);
+    else await searchMovies(q);
+}
+
+async function searchBooks(q) {
+    try {
+        const res = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&fields=key,title,author_name,cover_i,first_publish_year&limit=6`);
+        const data = await res.json();
+        renderResults((data.docs || []).map(b => ({
+            title: b.title,
+            sub: [b.author_name?.[0], b.first_publish_year].filter(Boolean).join(' · '),
+            cover: b.cover_i ? `https://covers.openlibrary.org/b/id/${b.cover_i}-M.jpg` : '',
+        })));
+    } catch { renderResults([]); }
+}
+
+async function searchMovies(q) {
+    if (!TMDB_KEY) {
+        document.getElementById('m-search-results').innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.5rem 0">add TMDB_KEY to enable movie search</div>';
+        return;
+    }
+    try {
+        const res = await fetch(`https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(q)}&api_key=${TMDB_KEY}&language=en-US`);
+        const data = await res.json();
+        renderResults((data.results || []).slice(0, 6).map(m => ({
+            title: m.title,
+            sub: m.release_date?.slice(0, 4) || '',
+            cover: m.poster_path ? `https://image.tmdb.org/t/p/w185${m.poster_path}` : '',
+        })));
+    } catch { renderResults([]); }
+}
+
+function renderResults(items) {
+    const el = document.getElementById('m-search-results');
+    if (!items.length) { el.innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.5rem 0">no results</div>'; return; }
+    el.innerHTML = items.map((item, i) => `
+        <div class="result-item" data-index="${i}">
+            ${item.cover ? `<img class="result-cover" src="${item.cover}" alt="">` : '<div class="result-cover"></div>'}
+            <div class="result-info">
+                <div class="result-title">${item.title}</div>
+                <div class="result-sub">${item.sub}</div>
+            </div>
+        </div>`).join('');
+    el.querySelectorAll('.result-item').forEach(row => {
+        row.onclick = () => selectItem(items[parseInt(row.dataset.index)]);
+    });
+}
+
+function selectItem(item) {
+    selectedItem = item;
+    document.getElementById('m-sel-cover').src = item.cover || '';
+    document.getElementById('m-sel-title').textContent = item.title;
+    document.getElementById('m-sel-sub').textContent = item.sub;
+    document.getElementById('m-search-results').innerHTML = '';
+    document.getElementById('m-form').style.display = '';
+    document.getElementById('m-date').value = new Date().toISOString().slice(0, 10);
+    setRating(0);
+}
+
+function clearSelection() {
+    selectedItem = null;
+    document.getElementById('m-form').style.display = 'none';
+    document.getElementById('m-notes').value = '';
+    setRating(0);
+}
+
+document.querySelectorAll('.star-btn').forEach(btn => {
+    btn.onclick = () => setRating(parseInt(btn.dataset.val));
+    btn.onmouseover = () => highlightStars(parseInt(btn.dataset.val));
+    btn.onmouseout = () => highlightStars(currentRating);
+});
+
+function setRating(val) { currentRating = val; highlightStars(val); }
+function highlightStars(val) {
+    document.querySelectorAll('.star-btn').forEach(btn => {
+        btn.classList.toggle('filled', parseInt(btn.dataset.val) <= val);
+    });
+}
+
+document.getElementById('m-clear').onclick = clearSelection;
+document.getElementById('m-save').onclick = async () => {
+    if (!selectedItem) return;
+    const btn = document.getElementById('m-save');
+    const status = document.getElementById('m-status');
+    btn.disabled = true;
+    status.textContent = 'saving...';
+
+    const client = await getAdminClient();
+    if (!client) { btn.disabled = false; status.textContent = ''; return; }
+
+    const { error } = await client.from('media').insert({
+        type: currentType,
+        title: selectedItem.title,
+        cover_url: selectedItem.cover || null,
+        notes: document.getElementById('m-notes').value.trim() || null,
+        rating: currentRating || null,
+        date: document.getElementById('m-date').value || null,
+    });
+
+    if (error) {
+        status.textContent = 'error: ' + error.message;
+    } else {
+        status.textContent = 'saved!';
+        clearSelection();
+        searchInput.value = '';
+        setTimeout(() => { status.textContent = ''; }, 2000);
+    }
+    btn.disabled = false;
+};
+
+document.body.style.opacity = '1';
+</script>
+</body>
+</html>
