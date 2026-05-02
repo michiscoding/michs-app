@@ -182,13 +182,17 @@ async function doSearch() {
 
 async function searchBooks(q) {
     try {
-        const res = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&fields=key,title,author_name,cover_i,first_publish_year&limit=6`);
+        const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=8&langRestrict=en`);
         const data = await res.json();
-        renderResults((data.docs || []).map(b => ({
-            title: b.title,
-            sub: [b.author_name?.[0], b.first_publish_year].filter(Boolean).join(' · '),
-            cover: b.cover_i ? `https://covers.openlibrary.org/b/id/${b.cover_i}-M.jpg` : '',
-        })));
+        renderResults((data.items || []).map(b => {
+            const info = b.volumeInfo;
+            const cover = info.imageLinks?.thumbnail?.replace('http://', 'https://') || '';
+            return {
+                title: info.title,
+                sub: [info.authors?.[0], info.publishedDate?.slice(0, 4)].filter(Boolean).join(' · '),
+                cover,
+            };
+        }));
     } catch { renderResults([]); }
 }
 
