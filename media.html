@@ -152,6 +152,7 @@
 <script src="js/supabase.js"></script>
 <script src="js/app.js"></script>
 <script>
+const GOOGLE_BOOKS_KEY = 'AIzaSyCt9_PogrDmDY1ndTit3F7WF69iLey2eQ4';
 const TMDB_KEY = ''; // get a free key at developers.themoviedb.org
 
 let currentType = 'book';
@@ -182,7 +183,7 @@ async function doSearch() {
 
 async function searchBooks(q) {
     try {
-        const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=8`);
+        const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=8&key=${GOOGLE_BOOKS_KEY}`);
         const data = await res.json();
         if (!res.ok) {
             document.getElementById('m-search-results').innerHTML = `<div style="font-size:0.8rem;color:#aaa;padding:0.5rem 0">error ${res.status}: ${data.error?.message || 'unknown'}</div>`;
