@@ -184,6 +184,10 @@ async function searchBooks(q) {
     try {
         const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=8`);
         const data = await res.json();
+        if (!res.ok) {
+            document.getElementById('m-search-results').innerHTML = `<div style="font-size:0.8rem;color:#aaa;padding:0.5rem 0">error ${res.status}: ${data.error?.message || 'unknown'}</div>`;
+            return;
+        }
         renderResults((data.items || []).map(b => {
             const info = b.volumeInfo;
             const cover = info.imageLinks?.thumbnail?.replace('http://', 'https://') || '';
@@ -193,7 +197,9 @@ async function searchBooks(q) {
                 cover,
             };
         }));
-    } catch { renderResults([]); }
+    } catch (e) {
+        document.getElementById('m-search-results').innerHTML = `<div style="font-size:0.8rem;color:#aaa;padding:0.5rem 0">fetch error: ${e.message}</div>`;
+    }
 }
 
 async function searchMovies(q) {
