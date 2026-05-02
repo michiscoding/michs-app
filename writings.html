@@ -115,6 +115,58 @@
         #attach-pick-btn { margin-top: 0.5rem; }
         #attach-upload-btn { margin-top: 0.5rem; display: none; }
         #post-btn { margin-top: 1.5rem; }
+
+        .mode-tabs {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .mode-tab {
+            background: none;
+            border: none;
+            padding: 0;
+            font-family: inherit;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            color: #bbb;
+            cursor: pointer;
+            outline: none;
+        }
+        .mode-tab.active { color: #222; }
+        body.dark .mode-tab { color: #555; }
+        body.dark .mode-tab.active { color: #eee; }
+
+        #reorder-list { display: flex; flex-direction: column; gap: 0.15rem; }
+        .reorder-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: grab;
+            user-select: none;
+            transition: background 0.1s;
+        }
+        body.dark .reorder-item { border-bottom-color: #222; }
+        .reorder-item:active { cursor: grabbing; }
+        .reorder-item.dragging { opacity: 0.4; }
+        .reorder-item.drag-over { border-top: 2px solid #888; }
+        .drag-handle {
+            color: #ccc;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+            line-height: 1;
+        }
+        body.dark .drag-handle { color: #444; }
+        .reorder-title {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #333;
+            flex: 1;
+        }
+        body.dark .reorder-title { color: #ccc; }
+        #save-order-btn { margin-top: 1.25rem; }
     </style>
 </head>
 
@@ -156,6 +208,12 @@
     </nav>
 
     <div class="entry-container">
+        <div class="mode-tabs">
+            <button type="button" class="mode-tab active" data-mode="new">new</button>
+            <button type="button" class="mode-tab" data-mode="reorder">reorder</button>
+        </div>
+
+        <div id="new-form">
         <input type="text" id="title-input" placeholder="title" autocomplete="off">
 
         <div class="text-toolbar">
@@ -177,6 +235,12 @@
         </div>
 
         <button type="button" id="post-btn" class="btn-app">post</button>
+        </div>
+
+        <div id="reorder-view" style="display:none;">
+            <div id="reorder-list"></div>
+            <button type="button" id="save-order-btn" class="btn-app">save order</button>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -337,6 +401,66 @@
             });
             return res.ok ? `/${path}` : null;
         }
+
+        // mode tabs
+        let reorderLoaded = false;
+        document.querySelectorAll('.mode-tab').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.mode-tab').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const mode = btn.dataset.mode;
+                document.getElementById('new-form').style.display = mode === 'new' ? '' : 'none';
+                document.getElementById('reorder-view').style.display = mode === 'reorder' ? '' : 'none';
+                if (mode === 'reorder' && !reorderLoaded) { reorderLoaded = true; loadReorderList(); }
+            });
+        });
+
+        let dragSrc = null;
+        async function loadReorderList() {
+            const adminDb = await getAdminClient();
+            if (!adminDb) return;
+            const { data } = await adminDb.from('research').select('id, slug, title, sort_order').order('sort_order', { ascending: true });
+            renderReorderList(data || []);
+        }
+
+        function renderReorderList(rows) {
+            const list = document.getElementById('reorder-list');
+            list.innerHTML = '';
+            rows.forEach(row => {
+                const item = document.createElement('div');
+                item.className = 'reorder-item';
+                item.draggable = true;
+                item.dataset.id = row.id;
+                item.innerHTML = `<span class="drag-handle">⠿</span><span class="reorder-title">${row.title}</span>`;
+                item.addEventListener('dragstart', e => { dragSrc = item; item.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
+                item.addEventListener('dragend', () => { item.classList.remove('dragging'); list.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over')); });
+                item.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (item !== dragSrc) item.classList.add('drag-over'); });
+                item.addEventListener('dragleave', () => item.classList.remove('drag-over'));
+                item.addEventListener('drop', e => {
+                    e.preventDefault();
+                    item.classList.remove('drag-over');
+                    if (!dragSrc || dragSrc === item) return;
+                    const items = [...list.querySelectorAll('.reorder-item')];
+                    const fromIdx = items.indexOf(dragSrc);
+                    const toIdx = items.indexOf(item);
+                    if (fromIdx < toIdx) item.after(dragSrc); else item.before(dragSrc);
+                });
+                list.appendChild(item);
+            });
+        }
+
+        document.getElementById('save-order-btn').addEventListener('click', async () => {
+            const btn = document.getElementById('save-order-btn');
+            const adminDb = await getAdminClient();
+            if (!adminDb) return;
+            const items = document.querySelectorAll('.reorder-item');
+            const updates = [...items].map((el, i) => ({ id: el.dataset.id, sort_order: i }));
+            btn.textContent = 'saving...'; btn.disabled = true;
+            const { error } = await adminDb.from('research').upsert(updates, { onConflict: 'id' });
+            if (error) { btn.textContent = 'error'; setTimeout(() => { btn.textContent = 'save order'; btn.disabled = false; }, 2000); return; }
+            btn.textContent = 'saved!';
+            setTimeout(() => { btn.textContent = 'save order'; btn.disabled = false; }, 1500);
+        });
 
         document.getElementById('post-btn').addEventListener('click', async () => {
             const title = document.getElementById('title-input').value.trim();
