@@ -934,11 +934,20 @@
             setTimeout(() => { btn.textContent = 'save'; btn.disabled = false; }, 2000);
         });
 
+        let paDeletePending = false, paDeleteTimer = null;
         document.getElementById('pa-delete-btn').addEventListener('click', async () => {
             if (!paCurrentSlug) return;
+            const btn = document.getElementById('pa-delete-btn');
+            if (!paDeletePending) {
+                paDeletePending = true;
+                btn.textContent = 'sure?';
+                paDeleteTimer = setTimeout(() => { paDeletePending = false; btn.textContent = 'delete'; }, 3000);
+                return;
+            }
+            clearTimeout(paDeleteTimer);
+            paDeletePending = false;
             const adminDb = await getAdminClient();
             if (!adminDb) return;
-            const btn = document.getElementById('pa-delete-btn');
             btn.textContent = 'deleting...';
             await adminDb.from('powerapps').delete().eq('slug', paCurrentSlug);
             paCurrentSlug = null;
@@ -1214,11 +1223,20 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
             setTimeout(() => { btn.textContent = 'save'; btn.disabled = false; }, 2000);
         });
 
+        let rDeletePending = false, rDeleteTimer = null;
         document.getElementById('r-delete-btn').addEventListener('click', async () => {
             if (!rCurrentSlug) return;
+            const btn = document.getElementById('r-delete-btn');
+            if (!rDeletePending) {
+                rDeletePending = true;
+                btn.textContent = 'sure?';
+                rDeleteTimer = setTimeout(() => { rDeletePending = false; btn.textContent = 'delete'; }, 3000);
+                return;
+            }
+            clearTimeout(rDeleteTimer);
+            rDeletePending = false;
             const adminDb = await getAdminClient();
             if (!adminDb) return;
-            const btn = document.getElementById('r-delete-btn');
             btn.textContent = 'deleting...';
             for (const item of rUploadedFiles) {
                 if (item.url.startsWith('/reports/') || item.url.startsWith('/attachments/')) {
