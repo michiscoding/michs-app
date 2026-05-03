@@ -1117,7 +1117,7 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
 
         async function loadRList() {
             document.getElementById('r-records-list').innerHTML = '<p style="opacity:0.4;font-size:0.85rem">loading...</p>';
-            const { data, error } = await db.from('research').select('slug, title').order('created_at', { ascending: false });
+            const { data, error } = await db.from('records').select('slug, title').order('created_at', { ascending: false });
             const list = document.getElementById('r-records-list');
             list.innerHTML = '';
             if (error || !data?.length) { list.innerHTML = '<p style="opacity:0.4;font-size:0.85rem">none yet</p>'; return; }
@@ -1131,7 +1131,7 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
         }
 
         async function openREditor(slug) {
-            const { data, error } = await db.from('research').select('*').eq('slug', slug).single();
+            const { data, error } = await db.from('records').select('*').eq('slug', slug).single();
             if (error || !data) return;
             rCurrentSlug = slug;
             rDeletedUrls = [];
@@ -1190,10 +1190,10 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
             for (const url of rDeletedUrls) await deleteFromGitHub(url);
             rDeletedUrls = [];
             if (newSlug !== rCurrentSlug) {
-                await adminDb.from('research').delete().eq('slug', rCurrentSlug);
+                await adminDb.from('records').delete().eq('slug', rCurrentSlug);
             }
             const attachmentUrl = document.getElementById('r-attachment-url').value.trim() || null;
-            const { error } = await adminDb.from('research').upsert(
+            const { error } = await adminDb.from('records').upsert(
                 { slug: newSlug, title, body: rBody.value, attachment_url: attachmentUrl },
                 { onConflict: 'slug' }
             );
@@ -1218,7 +1218,7 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
                     await deleteFromGitHub(item.url);
                 }
             }
-            await adminDb.from('research').delete().eq('slug', rCurrentSlug);
+            await adminDb.from('records').delete().eq('slug', rCurrentSlug);
             rCurrentSlug = null;
             rEditorView.style.display = 'none';
             rListView.style.display = 'block';

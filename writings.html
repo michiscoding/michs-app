@@ -421,7 +421,7 @@
         async function loadReorderList() {
             const adminDb = await getAdminClient();
             if (!adminDb) return;
-            const { data } = await adminDb.from('research').select('id, slug, title, sort_order').order('sort_order', { ascending: true });
+            const { data } = await adminDb.from('records').select('id, slug, title, sort_order').order('sort_order', { ascending: true });
             renderReorderList(data || []);
         }
 
@@ -458,7 +458,7 @@
             const items = document.querySelectorAll('.reorder-item');
             const updates = [...items].map((el, i) => ({ id: el.dataset.id, sort_order: i }));
             btn.textContent = 'saving...'; btn.disabled = true;
-            const { error } = await adminDb.from('research').upsert(updates, { onConflict: 'id' });
+            const { error } = await adminDb.from('records').upsert(updates, { onConflict: 'id' });
             if (error) { btn.textContent = 'error'; setTimeout(() => { btn.textContent = 'save order'; btn.disabled = false; }, 2000); return; }
             btn.textContent = 'saved!';
             setTimeout(() => { btn.textContent = 'save order'; btn.disabled = false; }, 1500);
@@ -482,7 +482,7 @@
             const tagsRaw = document.getElementById('tags-input').value;
             const tags = tagsRaw.split(',').map(t => t.trim()).filter(Boolean);
 
-            const { error } = await adminDb.from('research').upsert(
+            const { error } = await adminDb.from('records').upsert(
                 { slug, title, body: textarea.value, attachment_url: attachmentUrl, tags: tags.length ? tags : null },
                 { onConflict: 'slug' }
             );
