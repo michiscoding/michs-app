@@ -71,13 +71,16 @@
         .selected-cover.landscape { width: 100%; height: auto; aspect-ratio: 4/3; object-fit: cover; border-radius: 8px; }
 
         .places-results { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 1rem; }
-        .place-item { padding: 0.65rem 0.75rem; border-radius: 8px; background: #ededed; cursor: pointer; }
+        .place-item { display: flex; align-items: center; gap: 0.65rem; padding: 0.6rem 0.75rem; border-radius: 8px; background: #ededed; cursor: pointer; }
         .place-item:hover { background: #e0e0e0; }
         body.dark .place-item { background: #1e1e1e; }
         body.dark .place-item:hover { background: #2a2a2a; }
-        .place-name { font-size: 0.83rem; font-weight: 600; color: #111; }
+        .place-photo { width: 46px; height: 46px; object-fit: cover; border-radius: 5px; flex-shrink: 0; background: #ddd; display: block; }
+        body.dark .place-photo { background: #333; }
+        .place-info { flex: 1; min-width: 0; }
+        .place-name { font-size: 0.83rem; font-weight: 600; color: #111; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         body.dark .place-name { color: #ddd; }
-        .place-addr { font-size: 0.72rem; color: #888; }
+        .place-addr { font-size: 0.72rem; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     </style>
 </head>
 <body>
@@ -232,46 +235,38 @@ async function searchPlaces(q) {
     const el = document.getElementById('m-search-results');
     el.innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.5rem 0">searching...</div>';
     try {
-        const res = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
+        const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': GOOGLE_KEY },
-            body: JSON.stringify({ input: q, includedPrimaryTypes: ['restaurant', 'cafe', 'bar', 'bakery'] })
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Goog-Api-Key': GOOGLE_KEY,
+                'X-Goog-FieldMask': 'places.id,places.displayName,places.shortFormattedAddress,places.photos'
+            },
+            body: JSON.stringify({ textQuery: q, includedType: 'restaurant', pageSize: 6 })
         });
         const data = await res.json();
-        const suggestions = data.suggestions || [];
-        if (!suggestions.length) { el.innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.5rem 0">no results</div>'; return; }
-        el.innerHTML = suggestions.map((s, i) => {
-            const p = s.placePrediction;
-            return `<div class="place-item" data-index="${i}" data-place-id="${p.placeId}">
-                <div class="place-name">${p.structuredFormat?.mainText?.text || p.text?.text}</div>
-                <div class="place-addr">${p.structuredFormat?.secondaryText?.text || ''}</div>
+        const places = data.places || [];
+        if (!places.length) { el.innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.5rem 0">no results</div>'; return; }
+        el.innerHTML = `<div class="places-results">${places.map((p, i) => {
+            const photoName = p.photos?.[0]?.name;
+            const thumbUrl = photoName ? `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=120&key=${GOOGLE_KEY}` : '';
+            return `<div class="place-item" data-index="${i}">
+                <img class="place-photo" src="${thumbUrl}" alt="">
+                <div class="place-info">
+                    <div class="place-name">${p.displayName?.text || ''}</div>
+                    <div class="place-addr">${p.shortFormattedAddress || ''}</div>
+                </div>
             </div>`;
-        }).join('');
+        }).join('')}</div>`;
         el.querySelectorAll('.place-item').forEach(item => {
-            item.onclick = () => selectPlace(item.dataset.placeId, item.querySelector('.place-name').textContent, item.querySelector('.place-addr').textContent);
+            const p = places[parseInt(item.dataset.index)];
+            const photoName = p.photos?.[0]?.name;
+            const photoUrl = photoName ? `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=800&key=${GOOGLE_KEY}` : null;
+            item.onclick = () => selectItem({ title: p.displayName?.text || '', sub: p.shortFormattedAddress || '', cover: photoUrl, placeId: p.id, isFood: true });
         });
     } catch (e) {
         el.innerHTML = `<div style="font-size:0.8rem;color:#aaa;padding:0.5rem 0">error: ${e.message}</div>`;
     }
-}
-
-async function selectPlace(placeId, name, addr) {
-    document.getElementById('m-search-results').innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.5rem 0">loading...</div>';
-    let photoUrl = null;
-    try {
-        const res = await fetch(`https://places.googleapis.com/v1/places/${placeId}`, {
-            headers: { 'X-Goog-Api-Key': GOOGLE_KEY, 'X-Goog-FieldMask': 'displayName,shortFormattedAddress,photos' }
-        });
-        const place = await res.json();
-        addr = place.shortFormattedAddress || addr;
-        const photo = place.photos?.[0];
-        if (photo) {
-            const pr = await fetch(`https://places.googleapis.com/v1/${photo.name}/media?maxWidthPx=800&skipHttpRedirect=true&key=${GOOGLE_KEY}`);
-            const pm = await pr.json();
-            photoUrl = pm.photoUri || null;
-        }
-    } catch {}
-    selectItem({ title: name, sub: addr, cover: photoUrl, placeId, isFood: true });
 }
 
 async function searchMovies(q) {
