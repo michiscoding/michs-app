@@ -137,7 +137,7 @@
         body.dark .mode-tab { color: #555; }
         body.dark .mode-tab.active { color: #eee; }
 
-        #reorder-list { display: flex; flex-direction: column; gap: 0.15rem; }
+        #reorder-list { display: flex; flex-direction: column; touch-action: none; }
         .reorder-item {
             display: flex;
             align-items: center;
@@ -146,12 +146,9 @@
             border-bottom: 1px solid #f0f0f0;
             cursor: grab;
             user-select: none;
-            transition: background 0.1s;
         }
         body.dark .reorder-item { border-bottom-color: #222; }
-        .reorder-item:active { cursor: grabbing; }
-        .reorder-item.dragging { opacity: 0.4; }
-        .reorder-item.drag-over { border-top: 2px solid #888; }
+        .reorder-item.dragging { opacity: 0.85; box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
         .drag-handle {
             color: #ccc;
             font-size: 0.9rem;
@@ -417,11 +414,10 @@
             });
         });
 
-        let dragSrc = null;
         async function loadReorderList() {
             const adminDb = await getAdminClient();
             if (!adminDb) return;
-            const { data } = await adminDb.from('records').select('id, slug, title, sort_order').order('sort_order', { ascending: true });
+            const { data } = await adminDb.from('records').select('id, slug, title').order('created_at', { ascending: false });
             renderReorderList(data || []);
         }
 
@@ -431,24 +427,54 @@
             rows.forEach(row => {
                 const item = document.createElement('div');
                 item.className = 'reorder-item';
-                item.draggable = true;
                 item.dataset.id = row.id;
                 item.innerHTML = `<span class="drag-handle">⠿</span><span class="reorder-title">${row.title}</span>`;
-                item.addEventListener('dragstart', e => { dragSrc = item; item.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
-                item.addEventListener('dragend', () => { item.classList.remove('dragging'); list.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over')); });
-                item.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (item !== dragSrc) item.classList.add('drag-over'); });
-                item.addEventListener('dragleave', () => item.classList.remove('drag-over'));
-                item.addEventListener('drop', e => {
-                    e.preventDefault();
-                    item.classList.remove('drag-over');
-                    if (!dragSrc || dragSrc === item) return;
-                    const items = [...list.querySelectorAll('.reorder-item')];
-                    const fromIdx = items.indexOf(dragSrc);
-                    const toIdx = items.indexOf(item);
-                    if (fromIdx < toIdx) item.after(dragSrc); else item.before(dragSrc);
-                });
                 list.appendChild(item);
             });
+
+            let dragging = null, offsetY = 0;
+
+            list.addEventListener('pointerdown', e => {
+                const item = e.target.closest('.reorder-item');
+                if (!item) return;
+                e.preventDefault();
+                dragging = item;
+                const rect = item.getBoundingClientRect();
+                offsetY = e.clientY - rect.top;
+                const ph = document.createElement('div');
+                ph.id = 'drag-ph';
+                ph.style.cssText = `height:${rect.height}px;border-bottom:1px solid #f0f0f0;flex-shrink:0;`;
+                item.after(ph);
+                item.style.cssText = `position:fixed;width:${rect.width}px;top:${rect.top}px;left:${rect.left}px;z-index:999;background:var(--bg,#fff);`;
+                item.classList.add('dragging');
+                document.addEventListener('pointermove', onMove);
+                document.addEventListener('pointerup', onUp, { once: true });
+            });
+
+            function onMove(e) {
+                if (!dragging) return;
+                e.preventDefault();
+                dragging.style.top = (e.clientY - offsetY) + 'px';
+                const ph = document.getElementById('drag-ph');
+                if (!ph) return;
+                const siblings = [...list.querySelectorAll('.reorder-item:not(.dragging)')];
+                let before = null;
+                for (const s of siblings) {
+                    const r = s.getBoundingClientRect();
+                    if (e.clientY < r.top + r.height / 2) { before = s; break; }
+                }
+                if (before) list.insertBefore(ph, before); else list.appendChild(ph);
+            }
+
+            function onUp() {
+                if (!dragging) return;
+                document.removeEventListener('pointermove', onMove);
+                const ph = document.getElementById('drag-ph');
+                dragging.style.cssText = '';
+                dragging.classList.remove('dragging');
+                if (ph) ph.replaceWith(dragging);
+                dragging = null;
+            }
         }
 
         document.getElementById('save-order-btn').addEventListener('click', async () => {
