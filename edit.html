@@ -252,6 +252,10 @@
                         <textarea id="r-body" placeholder="write here..."></textarea>
                     </div>
                     <div class="field-group">
+                        <label class="field-label">tags</label>
+                        <input type="text" id="r-tags" placeholder="comma separated" autocomplete="off">
+                    </div>
+                    <div class="field-group">
                         <label class="field-label">attachment url</label>
                         <input type="text" id="r-attachment-url" placeholder="/reports/... or supabase url" autocomplete="off">
                         <div class="attach-section">
@@ -1148,6 +1152,7 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
                 }
             }
             document.getElementById('r-title').value = data.title || '';
+            document.getElementById('r-tags').value = (data.tags || []).join(', ');
             document.getElementById('r-attachment-url').value = data.attachment_url || '';
             rBody.value = data.body || '';
             rLinkPopup.style.display = 'none';
@@ -1193,8 +1198,10 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
                 await adminDb.from('records').delete().eq('slug', rCurrentSlug);
             }
             const attachmentUrl = document.getElementById('r-attachment-url').value.trim() || null;
+            const tagsRaw = document.getElementById('r-tags').value;
+            const tags = tagsRaw.split(',').map(t => t.trim()).filter(Boolean);
             const { error } = await adminDb.from('records').upsert(
-                { slug: newSlug, title, body: rBody.value, attachment_url: attachmentUrl },
+                { slug: newSlug, title, body: rBody.value, attachment_url: attachmentUrl, tags: tags.length ? tags : null },
                 { onConflict: 'slug' }
             );
             if (error) {
