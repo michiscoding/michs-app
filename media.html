@@ -66,6 +66,18 @@
         .save-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
         .m-status { font-size: 0.8rem; color: #aaa; margin-top: 0.75rem; text-align: center; min-height: 1.2em; }
+
+        .selected-card.food-mode { flex-direction: column; }
+        .selected-cover.landscape { width: 100%; height: auto; aspect-ratio: 4/3; object-fit: cover; border-radius: 8px; }
+
+        .places-results { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 1rem; }
+        .place-item { padding: 0.65rem 0.75rem; border-radius: 8px; background: #ededed; cursor: pointer; }
+        .place-item:hover { background: #e0e0e0; }
+        body.dark .place-item { background: #1e1e1e; }
+        body.dark .place-item:hover { background: #2a2a2a; }
+        .place-name { font-size: 0.83rem; font-weight: 600; color: #111; }
+        body.dark .place-name { color: #ddd; }
+        .place-addr { font-size: 0.72rem; color: #888; }
     </style>
 </head>
 <body>
@@ -106,6 +118,7 @@
     <div class="type-row">
         <button class="type-btn active" data-type="book">book</button>
         <button class="type-btn" data-type="movie">movie</button>
+        <button class="type-btn" data-type="food">food</button>
     </div>
 
     <div class="search-row">
@@ -152,7 +165,7 @@
 <script src="js/supabase.js"></script>
 <script src="js/app.js"></script>
 <script>
-const GOOGLE_BOOKS_KEY = 'AIzaSyCt9_PogrDmDY1ndTit3F7WF69iLey2eQ4';
+const GOOGLE_KEY = 'AIzaSyCt9_PogrDmDY1ndTit3F7WF69iLey2eQ4';
 const TMDB_KEY = ''; // get a free key at developers.themoviedb.org
 
 let currentType = 'book';
@@ -165,13 +178,25 @@ document.querySelectorAll('.type-btn').forEach(btn => {
         btn.classList.add('active');
         currentType = btn.dataset.type;
         document.getElementById('m-search-results').innerHTML = '';
+        document.getElementById('m-search').value = '';
+        searchInput.placeholder = currentType === 'food' ? 'search restaurants...' : 'search title...';
+        document.getElementById('m-search-btn').style.display = currentType === 'food' ? 'none' : '';
         clearSelection();
     };
 });
 
 const searchInput = document.getElementById('m-search');
 document.getElementById('m-search-btn').onclick = doSearch;
-searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+searchInput.addEventListener('keydown', e => { if (e.key === 'Enter' && currentType !== 'food') doSearch(); });
+
+let placeDebounce = null;
+searchInput.addEventListener('input', () => {
+    if (currentType !== 'food') return;
+    clearTimeout(placeDebounce);
+    const q = searchInput.value.trim();
+    if (!q) { document.getElementById('m-search-results').innerHTML = ''; return; }
+    placeDebounce = setTimeout(() => searchPlaces(q), 400);
+});
 
 async function doSearch() {
     const q = searchInput.value.trim();
@@ -201,6 +226,52 @@ async function searchBooks(q) {
     } catch (e) {
         document.getElementById('m-search-results').innerHTML = `<div style="font-size:0.8rem;color:#aaa;padding:0.5rem 0">fetch error: ${e.message}</div>`;
     }
+}
+
+async function searchPlaces(q) {
+    const el = document.getElementById('m-search-results');
+    el.innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.5rem 0">searching...</div>';
+    try {
+        const res = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': GOOGLE_KEY },
+            body: JSON.stringify({ input: q, includedPrimaryTypes: ['restaurant', 'cafe', 'bar', 'bakery'] })
+        });
+        const data = await res.json();
+        const suggestions = data.suggestions || [];
+        if (!suggestions.length) { el.innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.5rem 0">no results</div>'; return; }
+        el.innerHTML = suggestions.map((s, i) => {
+            const p = s.placePrediction;
+            return `<div class="place-item" data-index="${i}" data-place-id="${p.placeId}">
+                <div class="place-name">${p.structuredFormat?.mainText?.text || p.text?.text}</div>
+                <div class="place-addr">${p.structuredFormat?.secondaryText?.text || ''}</div>
+            </div>`;
+        }).join('');
+        el.querySelectorAll('.place-item').forEach(item => {
+            item.onclick = () => selectPlace(item.dataset.placeId, item.querySelector('.place-name').textContent, item.querySelector('.place-addr').textContent);
+        });
+    } catch (e) {
+        el.innerHTML = `<div style="font-size:0.8rem;color:#aaa;padding:0.5rem 0">error: ${e.message}</div>`;
+    }
+}
+
+async function selectPlace(placeId, name, addr) {
+    document.getElementById('m-search-results').innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.5rem 0">loading...</div>';
+    let photoUrl = null;
+    try {
+        const res = await fetch(`https://places.googleapis.com/v1/places/${placeId}`, {
+            headers: { 'X-Goog-Api-Key': GOOGLE_KEY, 'X-Goog-FieldMask': 'displayName,shortFormattedAddress,photos' }
+        });
+        const place = await res.json();
+        addr = place.shortFormattedAddress || addr;
+        const photo = place.photos?.[0];
+        if (photo) {
+            const pr = await fetch(`https://places.googleapis.com/v1/${photo.name}/media?maxWidthPx=800&skipHttpRedirect=true&key=${GOOGLE_KEY}`);
+            const pm = await pr.json();
+            photoUrl = pm.photoUri || null;
+        }
+    } catch {}
+    selectItem({ title: name, sub: addr, cover: photoUrl, placeId, isFood: true });
 }
 
 async function searchMovies(q) {
@@ -237,7 +308,12 @@ function renderResults(items) {
 
 function selectItem(item) {
     selectedItem = item;
-    document.getElementById('m-sel-cover').src = item.cover || '';
+    const cover = document.getElementById('m-sel-cover');
+    const card = cover.closest('.selected-card');
+    cover.src = item.cover || '';
+    cover.style.display = item.cover ? '' : 'none';
+    cover.classList.toggle('landscape', !!item.isFood);
+    card.classList.toggle('food-mode', !!item.isFood);
     document.getElementById('m-sel-title').textContent = item.title;
     document.getElementById('m-sel-sub').textContent = item.sub;
     document.getElementById('m-search-results').innerHTML = '';
@@ -277,14 +353,13 @@ document.getElementById('m-save').onclick = async () => {
     const client = await getAdminClient();
     if (!client) { btn.disabled = false; status.textContent = ''; return; }
 
-    const { error } = await client.from('media').insert({
-        type: currentType,
-        title: selectedItem.title,
-        cover_url: selectedItem.cover || null,
-        notes: document.getElementById('m-notes').value.trim() || null,
-        rating: currentRating || null,
-        date: document.getElementById('m-date').value || null,
-    });
+    const notes = document.getElementById('m-notes').value.trim() || null;
+    const rating = currentRating || null;
+    const date = document.getElementById('m-date').value || null;
+
+    const { error } = currentType === 'food'
+        ? await client.from('food').insert({ name: selectedItem.title, location: selectedItem.sub || null, photo_url: selectedItem.cover || null, place_id: selectedItem.placeId || null, notes, rating, date })
+        : await client.from('media').insert({ type: currentType, title: selectedItem.title, cover_url: selectedItem.cover || null, notes, rating, date });
 
     if (error) {
         status.textContent = 'error: ' + error.message;
