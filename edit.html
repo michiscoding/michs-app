@@ -663,7 +663,7 @@
             writings: document.getElementById('subtab-writings'),
             resume: document.getElementById('subtab-resume'),
         };
-        const subtabs = document.querySelectorAll('.edit-subtabs .edit-tab');
+        const subtabs = document.querySelectorAll('#tab-work .edit-subtabs .edit-tab');
 
         subtabs.forEach(tab => {
             tab.addEventListener('click', () => {
@@ -1532,7 +1532,7 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
                 document.querySelectorAll('#consumption-subtabs .edit-tab').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 activeCsub = btn.dataset.csub;
-                Object.entries(csubEls).forEach(([k, el]) => { el.style.display = k === activeCsub ? '' : 'none'; });
+                Object.entries(csubEls).forEach(([k, el]) => { el.style.display = k === activeCsub ? 'block' : 'none'; });
                 if (activeCsub === 'books' && !booksLoaded) { booksLoaded = true; loadMediaList('book'); }
                 if (activeCsub === 'movies' && !moviesLoaded) { moviesLoaded = true; loadMediaList('movie'); }
                 if (activeCsub === 'food' && !foodLoaded) { foodLoaded = true; loadFoodList(); }

@@ -201,6 +201,9 @@ a:hover { text-decoration: none; }
     padding: 2rem;
     border-radius: 12px;
 }
+@media (max-width: 900px) {
+    .entry-container { max-width: 95vw; padding: 1.25rem 1rem; margin: 1.5rem auto; }
+}
 
 
 .btn-app {
@@ -499,8 +502,9 @@ body.dark .edit-tab { color: #444; }
 body.dark .edit-tab.active { color: #eee; }
 body.dark .edit-tab:hover { color: #aaa; }
 
-#tab-entries, #tab-photos, #tab-work,
+#tab-entries, #tab-photos, #tab-work, #tab-consumption,
 #subtab-powerapps, #subtab-writings, #subtab-resume,
+#csub-books, #csub-movies, #csub-food,
 #pa-list-view, #r-list-view, #entries-list,
 #pa-editor-view, #r-editor-view, #entry-editor-view {
     transition: opacity 0.5s ease;
@@ -512,7 +516,9 @@ body.dark #editor-title { color: #aaa; }
 
 #tab-photos { display: none; }
 #tab-work { display: none; }
+#tab-consumption { display: none; }
 #subtab-writings, #subtab-resume { display: none; }
+#csub-movies, #csub-food { display: none; }
 
 .edit-subtabs {
     margin-bottom: 1.25rem;
