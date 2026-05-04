@@ -137,6 +137,7 @@
             <button type="button" class="edit-tab active" data-tab="entries">entries</button>
             <button type="button" class="edit-tab" data-tab="photos">visuals</button>
             <button type="button" class="edit-tab" data-tab="work">work</button>
+            <button type="button" class="edit-tab" data-tab="consumption">consumption</button>
         </div>
 
         <div id="tab-entries">
@@ -290,6 +291,57 @@
             </div>
         </div>
     </div>
+
+        <div id="tab-consumption" style="display:none">
+            <div class="edit-tabs edit-subtabs" id="consumption-subtabs">
+                <button type="button" class="edit-tab active" data-csub="books">books</button>
+                <button type="button" class="edit-tab" data-csub="movies">movies</button>
+                <button type="button" class="edit-tab" data-csub="food">food</button>
+            </div>
+
+            <div id="csub-books">
+                <div id="books-list-view"><div id="books-list"></div></div>
+                <div id="books-editor-view" style="display:none">
+                    <div class="field-group"><label class="field-label">title</label><input type="text" id="bk-title" autocomplete="off"></div>
+                    <div class="field-group"><label class="field-label">notes</label><textarea id="bk-notes" placeholder="thoughts..."></textarea></div>
+                    <div class="field-group"><label class="field-label">rating (1–5)</label><input type="number" id="bk-rating" min="1" max="5"></div>
+                    <div class="field-group"><label class="field-label">date</label><input type="date" id="bk-date"></div>
+                    <div class="editor-actions">
+                        <button type="button" id="bk-delete-btn" class="danger-btn">delete</button>
+                        <button type="button" id="bk-save-btn" class="btn-app">save</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="csub-movies" style="display:none">
+                <div id="movies-list-view"><div id="movies-list"></div></div>
+                <div id="movies-editor-view" style="display:none">
+                    <div class="field-group"><label class="field-label">title</label><input type="text" id="mv-title" autocomplete="off"></div>
+                    <div class="field-group"><label class="field-label">notes</label><textarea id="mv-notes" placeholder="thoughts..."></textarea></div>
+                    <div class="field-group"><label class="field-label">rating (1–5)</label><input type="number" id="mv-rating" min="1" max="5"></div>
+                    <div class="field-group"><label class="field-label">date</label><input type="date" id="mv-date"></div>
+                    <div class="editor-actions">
+                        <button type="button" id="mv-delete-btn" class="danger-btn">delete</button>
+                        <button type="button" id="mv-save-btn" class="btn-app">save</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="csub-food" style="display:none">
+                <div id="food-list-view"><div id="food-list"></div></div>
+                <div id="food-editor-view" style="display:none">
+                    <div class="field-group"><label class="field-label">name</label><input type="text" id="fd-name" autocomplete="off"></div>
+                    <div class="field-group"><label class="field-label">location</label><input type="text" id="fd-location" autocomplete="off"></div>
+                    <div class="field-group"><label class="field-label">notes</label><textarea id="fd-notes" placeholder="thoughts..."></textarea></div>
+                    <div class="field-group"><label class="field-label">rating (1–5)</label><input type="number" id="fd-rating" min="1" max="5"></div>
+                    <div class="field-group"><label class="field-label">date</label><input type="date" id="fd-date"></div>
+                    <div class="editor-actions">
+                        <button type="button" id="fd-delete-btn" class="danger-btn">delete</button>
+                        <button type="button" id="fd-save-btn" class="btn-app">save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
 <div id="r-create-attach-overlay">
     <div id="r-create-attach-modal">
@@ -500,6 +552,11 @@
                 rListView.style.display = 'block';
                 revealTab(rListView);
                 rCurrentSlug = null;
+                return;
+            }
+
+            if (backContext === 'consumption') {
+                collapseMediaEditors();
             }
         });
 
@@ -551,9 +608,11 @@
         const tabEntries = document.getElementById('tab-entries');
         const tabPhotos = document.getElementById('tab-photos');
         const tabWork = document.getElementById('tab-work');
-        const tabs = document.querySelectorAll('.edit-tab:not(.edit-subtabs .edit-tab)');
+        const tabConsumption = document.getElementById('tab-consumption');
+        const tabs = document.querySelectorAll('.edit-tab:not(.edit-subtabs .edit-tab):not(#consumption-subtabs .edit-tab)');
         let photosTabLoaded = false;
         let paListLoaded = false, rListLoaded = false;
+        let booksLoaded = false, moviesLoaded = false, foodLoaded = false;
 
         function revealTab(el) {
             el.style.opacity = '0';
@@ -564,13 +623,15 @@
             tabEntries.style.display = name === 'entries' ? '' : 'none';
             tabPhotos.style.display = name === 'photos' ? 'block' : 'none';
             tabWork.style.display = name === 'work' ? 'block' : 'none';
-            const active = name === 'entries' ? tabEntries : name === 'photos' ? tabPhotos : tabWork;
+            tabConsumption.style.display = name === 'consumption' ? 'block' : 'none';
+            const active = name === 'entries' ? tabEntries : name === 'photos' ? tabPhotos : name === 'work' ? tabWork : tabConsumption;
             revealTab(active);
             if (name === 'photos' && !photosTabLoaded) { photosTabLoaded = true; loadRetag(); }
             if (name === 'work') {
                 if (!paListLoaded) { paListLoaded = true; loadPaList(); }
                 loadResume();
             }
+            if (name === 'consumption' && !booksLoaded) { booksLoaded = true; loadMediaList('book'); }
         }
 
         tabs.forEach(tab => {
@@ -1401,6 +1462,168 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
             });
             if (res.ok) { btn.textContent = 'saved!'; setTimeout(() => { btn.textContent = 'save'; btn.disabled = false; }, 2000); }
             else { btn.textContent = 'error'; btn.disabled = false; }
+        });
+        // --- consumption ---
+        const csubEls = {
+            books: document.getElementById('csub-books'),
+            movies: document.getElementById('csub-movies'),
+            food: document.getElementById('csub-food'),
+        };
+        let activeCsub = 'books';
+        document.querySelectorAll('#consumption-subtabs .edit-tab').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#consumption-subtabs .edit-tab').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                activeCsub = btn.dataset.csub;
+                Object.entries(csubEls).forEach(([k, el]) => { el.style.display = k === activeCsub ? '' : 'none'; });
+                if (activeCsub === 'books' && !booksLoaded) { booksLoaded = true; loadMediaList('book'); }
+                if (activeCsub === 'movies' && !moviesLoaded) { moviesLoaded = true; loadMediaList('movie'); }
+                if (activeCsub === 'food' && !foodLoaded) { foodLoaded = true; loadFoodList(); }
+                collapseMediaEditors();
+            });
+        });
+
+        function collapseMediaEditors() {
+            ['books','movies'].forEach(t => {
+                document.getElementById(`${t}-editor-view`).style.display = 'none';
+                document.getElementById(`${t}-list-view`).style.display = '';
+            });
+            document.getElementById('food-editor-view').style.display = 'none';
+            document.getElementById('food-list-view').style.display = '';
+            setBackVisible(false);
+        }
+
+        let currentMediaId = null, currentMediaType = null, currentFoodId = null;
+
+        async function loadMediaList(type) {
+            const listEl = document.getElementById(type === 'book' ? 'books-list' : 'movies-list');
+            listEl.innerHTML = '<div style="color:#aaa;font-size:0.8rem;padding:0.5rem 0">loading...</div>';
+            const { data } = await db.from('media').select('id, title, rating, date').eq('type', type).order('date', { ascending: false });
+            listEl.innerHTML = '';
+            (data || []).forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'blog-record';
+                row.style.cursor = 'pointer';
+                row.innerHTML = `<div class="blog-details-1">${item.title}</div>${item.date ? `<div class="blog-details-2">${item.date.slice(0,7)}${item.rating ? ' · ' + '★'.repeat(item.rating) : ''}</div>` : ''}`;
+                row.addEventListener('click', () => openMediaEditor(item.id, type));
+                listEl.appendChild(row);
+            });
+        }
+
+        async function openMediaEditor(id, type) {
+            const { data } = await db.from('media').select('*').eq('id', id).single();
+            if (!data) return;
+            currentMediaId = id; currentMediaType = type;
+            const p = type === 'book' ? 'bk' : 'mv';
+            document.getElementById(`${p}-title`).value = data.title || '';
+            document.getElementById(`${p}-notes`).value = data.notes || '';
+            document.getElementById(`${p}-rating`).value = data.rating || '';
+            document.getElementById(`${p}-date`).value = data.date || '';
+            const listKey = type === 'book' ? 'books' : 'movies';
+            document.getElementById(`${listKey}-list-view`).style.display = 'none';
+            document.getElementById(`${listKey}-editor-view`).style.display = '';
+            revealTab(document.getElementById(`${listKey}-editor-view`));
+            setBackVisible(true);
+            backContext = 'consumption';
+        }
+
+        ['bk', 'mv'].forEach(p => {
+            const type = p === 'bk' ? 'book' : 'movie';
+            const listKey = p === 'bk' ? 'books' : 'movies';
+            document.getElementById(`${p}-save-btn`).addEventListener('click', async () => {
+                if (!currentMediaId) return;
+                const btn = document.getElementById(`${p}-save-btn`);
+                const adminDb = await getAdminClient(); if (!adminDb) return;
+                btn.textContent = 'saving...'; btn.disabled = true;
+                const { error } = await adminDb.from('media').update({
+                    title: document.getElementById(`${p}-title`).value.trim(),
+                    notes: document.getElementById(`${p}-notes`).value.trim() || null,
+                    rating: parseInt(document.getElementById(`${p}-rating`).value) || null,
+                    date: document.getElementById(`${p}-date`).value || null,
+                }).eq('id', currentMediaId);
+                btn.textContent = error ? 'error' : 'saved!';
+                setTimeout(() => { btn.textContent = 'save'; btn.disabled = false; }, 2000);
+                if (!error) { if (type === 'book') { booksLoaded = false; loadMediaList('book'); } else { moviesLoaded = false; loadMediaList('movie'); } }
+            });
+            let deletePending = false, deleteTimer = null;
+            document.getElementById(`${p}-delete-btn`).addEventListener('click', async () => {
+                if (!currentMediaId) return;
+                const btn = document.getElementById(`${p}-delete-btn`);
+                if (!deletePending) { deletePending = true; btn.textContent = 'sure?'; deleteTimer = setTimeout(() => { deletePending = false; btn.textContent = 'delete'; }, 3000); return; }
+                clearTimeout(deleteTimer); deletePending = false;
+                const adminDb = await getAdminClient(); if (!adminDb) return;
+                btn.textContent = 'deleting...';
+                await adminDb.from('media').delete().eq('id', currentMediaId);
+                currentMediaId = null;
+                document.getElementById(`${listKey}-editor-view`).style.display = 'none';
+                document.getElementById(`${listKey}-list-view`).style.display = '';
+                setBackVisible(false);
+                if (type === 'book') { booksLoaded = false; loadMediaList('book'); } else { moviesLoaded = false; loadMediaList('movie'); }
+            });
+        });
+
+        async function loadFoodList() {
+            const listEl = document.getElementById('food-list');
+            listEl.innerHTML = '<div style="color:#aaa;font-size:0.8rem;padding:0.5rem 0">loading...</div>';
+            const { data } = await db.from('food').select('id, name, rating, date, location').order('created_at', { ascending: false });
+            listEl.innerHTML = '';
+            (data || []).forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'blog-record';
+                row.style.cursor = 'pointer';
+                row.innerHTML = `<div class="blog-details-1">${item.name}</div>${item.location || item.date ? `<div class="blog-details-2">${[item.location, item.date?.slice(0,7)].filter(Boolean).join(' · ')}${item.rating ? ' · ' + '★'.repeat(item.rating) : ''}</div>` : ''}`;
+                row.addEventListener('click', () => openFoodEditor(item.id));
+                listEl.appendChild(row);
+            });
+        }
+
+        async function openFoodEditor(id) {
+            const { data } = await db.from('food').select('*').eq('id', id).single();
+            if (!data) return;
+            currentFoodId = id;
+            document.getElementById('fd-name').value = data.name || '';
+            document.getElementById('fd-location').value = data.location || '';
+            document.getElementById('fd-notes').value = data.notes || '';
+            document.getElementById('fd-rating').value = data.rating || '';
+            document.getElementById('fd-date').value = data.date || '';
+            document.getElementById('food-list-view').style.display = 'none';
+            document.getElementById('food-editor-view').style.display = '';
+            revealTab(document.getElementById('food-editor-view'));
+            setBackVisible(true);
+            backContext = 'consumption';
+        }
+
+        document.getElementById('fd-save-btn').addEventListener('click', async () => {
+            if (!currentFoodId) return;
+            const btn = document.getElementById('fd-save-btn');
+            const adminDb = await getAdminClient(); if (!adminDb) return;
+            btn.textContent = 'saving...'; btn.disabled = true;
+            const { error } = await adminDb.from('food').update({
+                name: document.getElementById('fd-name').value.trim(),
+                location: document.getElementById('fd-location').value.trim() || null,
+                notes: document.getElementById('fd-notes').value.trim() || null,
+                rating: parseInt(document.getElementById('fd-rating').value) || null,
+                date: document.getElementById('fd-date').value || null,
+            }).eq('id', currentFoodId);
+            btn.textContent = error ? 'error' : 'saved!';
+            setTimeout(() => { btn.textContent = 'save'; btn.disabled = false; }, 2000);
+            if (!error) { foodLoaded = false; loadFoodList(); }
+        });
+
+        let fdDeletePending = false, fdDeleteTimer = null;
+        document.getElementById('fd-delete-btn').addEventListener('click', async () => {
+            if (!currentFoodId) return;
+            const btn = document.getElementById('fd-delete-btn');
+            if (!fdDeletePending) { fdDeletePending = true; btn.textContent = 'sure?'; fdDeleteTimer = setTimeout(() => { fdDeletePending = false; btn.textContent = 'delete'; }, 3000); return; }
+            clearTimeout(fdDeleteTimer); fdDeletePending = false;
+            const adminDb = await getAdminClient(); if (!adminDb) return;
+            btn.textContent = 'deleting...';
+            await adminDb.from('food').delete().eq('id', currentFoodId);
+            currentFoodId = null;
+            document.getElementById('food-editor-view').style.display = 'none';
+            document.getElementById('food-list-view').style.display = '';
+            setBackVisible(false);
+            foodLoaded = false; loadFoodList();
         });
     </script>
 </body>

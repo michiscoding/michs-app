@@ -11,7 +11,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="mishi">
     <style>
-        .page { max-width: 480px; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
+        .page { max-width: 720px; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
         h2 { font-size: 1rem; font-weight: 700; margin-bottom: 1.25rem; }
 
         .type-row { display: flex; gap: 0.5rem; margin-bottom: 1.25rem; }
@@ -242,7 +242,7 @@ async function searchPlaces(q) {
                 'X-Goog-Api-Key': GOOGLE_KEY,
                 'X-Goog-FieldMask': 'places.id,places.displayName,places.shortFormattedAddress,places.photos'
             },
-            body: JSON.stringify({ textQuery: q, includedType: 'restaurant', pageSize: 6 })
+            body: JSON.stringify({ textQuery: q, pageSize: 6 })
         });
         const data = await res.json();
         const places = data.places || [];
