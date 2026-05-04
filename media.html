@@ -54,6 +54,8 @@
         body.dark textarea { background: #1e1e1e; color: #ddd; }
         input[type="date"] { background: #ededed; border: none; border-radius: 8px; padding: 0.65rem 1rem; color: #111; outline: none; width: 100%; box-sizing: border-box; }
         body.dark input[type="date"] { background: #1e1e1e; color: #ddd; }
+        .form-field input[type="text"] { background: #ededed; border: none; border-radius: 8px; padding: 0.65rem 1rem; color: #111; outline: none; width: 100%; box-sizing: border-box; font-family: inherit; font-size: inherit; }
+        body.dark .form-field input[type="text"] { background: #1e1e1e; color: #ddd; }
 
         .star-row { display: flex; gap: 0.35rem; }
         .star-btn { position: relative; background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #ddd; line-height: 1; padding: 0; transition: color 0.15s; }
@@ -69,6 +71,12 @@
         .save-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
         .m-status { font-size: 0.8rem; color: #aaa; margin-top: 0.75rem; text-align: center; min-height: 1.2em; }
+
+        .status-pill-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .status-pill { background: #ededed; border: none; border-radius: 999px; padding: 0.3rem 0.85rem; font-family: inherit; font-size: 0.78rem; font-weight: 600; color: #aaa; cursor: pointer; transition: background 0.15s, color 0.15s; }
+        .status-pill.active { background: #222; color: #fff; }
+        body.dark .status-pill { background: #2a2a2a; color: #555; }
+        body.dark .status-pill.active { background: #ddd; color: #111; }
 
         .selected-card.food-mode { flex-direction: column; }
         .selected-cover.landscape { width: 100%; height: auto; aspect-ratio: 4/3; object-fit: cover; border-radius: 8px; }
@@ -148,6 +156,10 @@
             <label class="form-label">notes</label>
             <textarea id="m-notes" placeholder="thoughts..."></textarea>
         </div>
+        <div class="form-field" id="m-food-tags-row" style="display:none">
+            <label class="form-label">tags</label>
+            <input type="text" id="m-food-tags" placeholder="e.g. sushi, date night, midtown" autocomplete="off">
+        </div>
         <div class="form-field">
             <label class="form-label">rating</label>
             <div class="star-row" id="m-stars">
@@ -158,9 +170,22 @@
                 <button class="star-btn" data-val="5">★</button>
             </div>
         </div>
-        <div class="form-field">
+        <div class="form-field" id="m-status-row" style="display:none">
+            <label class="form-label">status</label>
+            <div class="status-pill-row" id="m-status-pills">
+                <button type="button" class="status-pill" data-status="on my shelf">on my shelf</button>
+                <button type="button" class="status-pill" data-status="reading">reading</button>
+                <button type="button" class="status-pill" data-status="complete">complete</button>
+            </div>
+        </div>
+        <div class="form-field" id="m-date-row">
             <label class="form-label">date</label>
             <input type="date" id="m-date">
+        </div>
+        <div class="form-field" id="m-dates-row" style="display:none">
+            <label class="form-label">dates</label>
+            <div id="m-dates-container"></div>
+            <button type="button" id="m-add-date-btn" style="margin-top:0.35rem;background:none;border:1px solid #ddd;border-radius:8px;padding:0.35rem 0.75rem;font-family:inherit;font-size:0.75rem;font-weight:600;color:#aaa;cursor:pointer">+ add date</button>
         </div>
         <button class="save-btn" id="m-save">save</button>
         <div class="m-status" id="m-status"></div>
@@ -177,6 +202,25 @@ const TMDB_KEY = ''; // get a free key at developers.themoviedb.org
 let currentType = 'book';
 let selectedItem = null;
 let currentRating = 0;
+let currentBookStatus = null;
+
+function addMDateRow(value = '') {
+    const container = document.getElementById('m-dates-container');
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:0.5rem;margin-bottom:0.4rem;';
+    const input = document.createElement('input');
+    input.type = 'date'; input.value = value;
+    input.style.cssText = 'flex:1;background:#ededed;border:none;border-radius:8px;padding:0.65rem 1rem;color:#111;outline:none;box-sizing:border-box;font-family:inherit;font-size:inherit;';
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.style.cssText = 'background:none;border:none;color:#bbb;cursor:pointer;font-size:1.1rem;line-height:1;padding:0;flex-shrink:0;';
+    removeBtn.textContent = '×';
+    removeBtn.onclick = () => row.remove();
+    row.appendChild(input); row.appendChild(removeBtn);
+    container.appendChild(row);
+}
+
+document.getElementById('m-add-date-btn').addEventListener('click', () => addMDateRow());
 
 document.querySelectorAll('.type-btn').forEach(btn => {
     btn.onclick = () => {
@@ -187,8 +231,19 @@ document.querySelectorAll('.type-btn').forEach(btn => {
         document.getElementById('m-search').value = '';
         searchInput.placeholder = currentType === 'food' ? 'search restaurants...' : 'search title...';
         clearSelection();
+        updateFormForType();
     };
 });
+
+function updateFormForType() {
+    document.getElementById('m-status-row').style.display = currentType === 'book' ? '' : 'none';
+    document.getElementById('m-food-tags-row').style.display = currentType === 'food' ? '' : 'none';
+    document.getElementById('m-date-row').style.display = currentType === 'food' ? 'none' : '';
+    document.getElementById('m-dates-row').style.display = currentType === 'food' ? '' : 'none';
+    if (currentType === 'food' && document.getElementById('m-dates-container').children.length === 0) {
+        addMDateRow(new Date().toISOString().slice(0, 10));
+    }
+}
 
 const searchInput = document.getElementById('m-search');
 document.getElementById('m-search-btn').onclick = doSearch;
@@ -316,7 +371,13 @@ function selectItem(item) {
     document.getElementById('m-sel-sub').textContent = item.sub;
     document.getElementById('m-search-results').innerHTML = '';
     document.getElementById('m-form').style.display = '';
-    document.getElementById('m-date').value = new Date().toISOString().slice(0, 10);
+    const today = new Date().toISOString().slice(0, 10);
+    document.getElementById('m-date').value = today;
+    updateFormForType();
+    if (currentType === 'food') {
+        document.getElementById('m-dates-container').innerHTML = '';
+        addMDateRow(today);
+    }
     setRating(0);
 }
 
@@ -324,6 +385,10 @@ function clearSelection() {
     selectedItem = null;
     document.getElementById('m-form').style.display = 'none';
     document.getElementById('m-notes').value = '';
+    document.getElementById('m-food-tags').value = '';
+    document.getElementById('m-dates-container').innerHTML = '';
+    currentBookStatus = null;
+    document.querySelectorAll('#m-status-pills .status-pill').forEach(p => p.classList.remove('active'));
     setRating(0);
 }
 
@@ -354,6 +419,13 @@ function highlightStars(val) {
     });
 }
 
+document.querySelectorAll('#m-status-pills .status-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+        currentBookStatus = currentBookStatus === pill.dataset.status ? null : pill.dataset.status;
+        document.querySelectorAll('#m-status-pills .status-pill').forEach(p => p.classList.toggle('active', p.dataset.status === currentBookStatus));
+    });
+});
+
 document.getElementById('m-clear').onclick = clearSelection;
 document.getElementById('m-save').onclick = async () => {
     if (!selectedItem) return;
@@ -369,9 +441,25 @@ document.getElementById('m-save').onclick = async () => {
     const rating = currentRating || null;
     const date = document.getElementById('m-date').value || null;
 
-    const { error } = currentType === 'food'
-        ? await client.from('food').insert({ name: selectedItem.title, location: selectedItem.sub || null, photo_url: selectedItem.cover || null, place_id: selectedItem.placeId || null, notes, rating, date })
-        : await client.from('media').insert({ type: currentType, title: selectedItem.title, cover_url: selectedItem.cover || null, notes, rating, date });
+    let error;
+    if (currentType === 'food') {
+        const dates = Array.from(document.querySelectorAll('#m-dates-container input[type="date"]')).map(i => i.value).filter(Boolean);
+        const tags = document.getElementById('m-food-tags').value.split(',').map(t => t.trim()).filter(Boolean);
+        ({ error } = await client.from('food').insert({
+            name: selectedItem.title, location: selectedItem.sub || null,
+            photo_url: selectedItem.cover || null, place_id: selectedItem.placeId || null,
+            notes, rating,
+            date: dates[0] || date || null,
+            dates: dates.length ? dates : null,
+            tags: tags.length ? tags : null,
+        }));
+    } else {
+        ({ error } = await client.from('media').insert({
+            type: currentType, title: selectedItem.title, cover_url: selectedItem.cover || null,
+            notes, rating, date,
+            status: currentType === 'book' ? (currentBookStatus || null) : null,
+        }));
+    }
 
     if (error) {
         status.textContent = 'error: ' + error.message;

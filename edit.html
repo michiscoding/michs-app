@@ -339,15 +339,19 @@
                 <div id="food-editor-view" style="display:none">
                     <div class="field-group"><label class="field-label">name</label><input type="text" id="fd-name" autocomplete="off"></div>
                     <div class="field-group"><label class="field-label">location</label><input type="text" id="fd-location" autocomplete="off"></div>
+                    <div class="field-group"><label class="field-label">tags</label><input type="text" id="fd-tags" placeholder="e.g. sushi, date night, midtown" autocomplete="off"></div>
                     <div class="field-group"><label class="field-label">notes</label><textarea id="fd-notes" placeholder="thoughts..."></textarea></div>
                     <div class="field-group"><label class="field-label">rating</label><div class="edit-star-row" id="fd-stars"><button type="button" class="edit-star" data-prefix="fd" data-val="1">★</button><button type="button" class="edit-star" data-prefix="fd" data-val="2">★</button><button type="button" class="edit-star" data-prefix="fd" data-val="3">★</button><button type="button" class="edit-star" data-prefix="fd" data-val="4">★</button><button type="button" class="edit-star" data-prefix="fd" data-val="5">★</button></div></div>
-                    <div class="field-group"><label class="field-label">date</label><input type="date" id="fd-date"></div>
                     <div class="field-group">
-                        <label class="field-label">photo</label>
-                        <img id="fd-photo-preview" src="" alt="" style="display:none;width:100%;max-height:180px;object-fit:cover;border-radius:8px;margin-bottom:0.5rem;">
-                        <input type="file" id="fd-photo-input" accept="image/*" style="display:none">
-                        <button type="button" class="toolbar-btn" id="fd-photo-btn">change photo</button>
-                        <span id="fd-photo-status" style="font-size:0.75rem;color:#aaa;margin-left:0.5rem;"></span>
+                        <label class="field-label">dates</label>
+                        <div id="fd-dates-container"></div>
+                        <button type="button" class="toolbar-btn" id="fd-add-date-btn">+ add date</button>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">photos</label>
+                        <input type="file" id="fd-photo-input" accept="image/*" multiple style="display:none">
+                        <div id="fd-photos-strip" class="media-scroll-row"></div>
+                        <button type="button" class="toolbar-btn" id="fd-photo-btn">+ add photos</button>
                     </div>
                     <div class="editor-actions">
                         <button type="button" id="fd-delete-btn" class="danger-btn">delete</button>
@@ -1503,20 +1507,54 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
         });
 
         // --- food photo upload ---
-        let fdNewPhotoFile = null, fdCurrentPhotoUrl = null;
+        let fdPhotos = []; // { type:'existing', id, storage_path } | { type:'new', file }
+        let fdDeletedPhotoIds = new Set();
+
+        function renderFdPhotos() {
+            const strip = document.getElementById('fd-photos-strip');
+            strip.innerHTML = '';
+            fdPhotos.forEach((photo, i) => {
+                const src = photo.type === 'existing' ? MEDIA_BASE + photo.storage_path : URL.createObjectURL(photo.file);
+                const wrap = document.createElement('div');
+                wrap.className = 'media-thumb-wrap';
+                const img = document.createElement('img');
+                img.src = src; img.className = 'media-thumb'; img.alt = '';
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button'; removeBtn.className = 'remove-btn'; removeBtn.textContent = '×';
+                removeBtn.addEventListener('click', () => {
+                    if (photo.type === 'existing') fdDeletedPhotoIds.add(photo.id);
+                    fdPhotos.splice(i, 1);
+                    renderFdPhotos();
+                });
+                wrap.appendChild(img); wrap.appendChild(removeBtn);
+                strip.appendChild(wrap);
+            });
+        }
+
+        function addFdDateRow(value = '') {
+            const container = document.getElementById('fd-dates-container');
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex;align-items:center;gap:0.5rem;margin-bottom:0.4rem;';
+            const input = document.createElement('input');
+            input.type = 'date'; input.className = 'fd-date-input';
+            input.style.cssText = 'flex:1;background:#ededed;border:none;border-radius:8px;padding:0.5rem 0.75rem;color:#111;outline:none;box-sizing:border-box;font-family:inherit;font-size:inherit;';
+            input.value = value;
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button'; removeBtn.className = 'attach-remove-btn'; removeBtn.textContent = '×';
+            removeBtn.addEventListener('click', () => row.remove());
+            row.appendChild(input); row.appendChild(removeBtn);
+            container.appendChild(row);
+        }
+
+        document.getElementById('fd-add-date-btn').addEventListener('click', () => addFdDateRow());
 
         document.getElementById('fd-photo-btn').addEventListener('click', () => {
             document.getElementById('fd-photo-input').click();
         });
 
         document.getElementById('fd-photo-input').addEventListener('change', e => {
-            const file = e.target.files[0];
-            if (!file) return;
-            fdNewPhotoFile = file;
-            const preview = document.getElementById('fd-photo-preview');
-            preview.src = URL.createObjectURL(file);
-            preview.style.display = '';
-            document.getElementById('fd-photo-status').textContent = file.name;
+            Array.from(e.target.files).forEach(file => fdPhotos.push({ type: 'new', file }));
+            renderFdPhotos();
             e.target.value = '';
         });
 
@@ -1598,6 +1636,7 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
                     rating: editRatings[p] || null,
                     date: document.getElementById(`${p}-date`).value || null,
                 }).eq('id', currentMediaId);
+                if (error) console.error(`${p} save error:`, error);
                 btn.textContent = error ? 'error' : 'saved!';
                 setTimeout(() => { btn.textContent = 'save'; btn.disabled = false; }, 2000);
                 if (!error) { if (type === 'book') { booksLoaded = false; loadMediaList('book'); } else { moviesLoaded = false; loadMediaList('movie'); } }
@@ -1635,20 +1674,23 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
         }
 
         async function openFoodEditor(id) {
-            const { data } = await db.from('food').select('*').eq('id', id).single();
+            const [{ data }, { data: foodPhotos }] = await Promise.all([
+                db.from('food').select('*').eq('id', id).single(),
+                db.from('food_photos').select('id, storage_path').eq('food_id', id)
+            ]);
             if (!data) return;
             currentFoodId = id;
-            fdNewPhotoFile = null;
-            fdCurrentPhotoUrl = data.photo_url || null;
+            fdPhotos = (foodPhotos || []).map(p => ({ type: 'existing', id: p.id, storage_path: p.storage_path }));
+            fdDeletedPhotoIds = new Set();
             document.getElementById('fd-name').value = data.name || '';
             document.getElementById('fd-location').value = data.location || '';
+            document.getElementById('fd-tags').value = (data.tags || []).join(', ');
             document.getElementById('fd-notes').value = data.notes || '';
             setEditRating('fd', data.rating || 0);
-            document.getElementById('fd-date').value = data.date || '';
-            document.getElementById('fd-photo-status').textContent = '';
-            const preview = document.getElementById('fd-photo-preview');
-            if (data.photo_url) { preview.src = data.photo_url; preview.style.display = ''; }
-            else { preview.src = ''; preview.style.display = 'none'; }
+            document.getElementById('fd-dates-container').innerHTML = '';
+            const dates = data.dates?.length ? data.dates : [data.date || ''];
+            dates.forEach(d => addFdDateRow(d));
+            renderFdPhotos();
             document.getElementById('food-list-view').style.display = 'none';
             document.getElementById('food-editor-view').style.display = '';
             revealTab(document.getElementById('food-editor-view'));
@@ -1661,21 +1703,38 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
             const btn = document.getElementById('fd-save-btn');
             const adminDb = await getAdminClient(); if (!adminDb) return;
             btn.textContent = 'saving...'; btn.disabled = true;
-            let photoUrl = fdCurrentPhotoUrl;
-            if (fdNewPhotoFile) {
-                const ext = fdNewPhotoFile.name.split('.').pop() || 'jpg';
-                const path = `food/${currentFoodId}.${ext}`;
-                const { error: uploadErr } = await adminDb.storage.from('media').upload(path, fdNewPhotoFile, { upsert: true, contentType: mimeType(fdNewPhotoFile) });
-                if (!uploadErr) { photoUrl = MEDIA_BASE + path; fdCurrentPhotoUrl = photoUrl; fdNewPhotoFile = null; }
+
+            for (const photoId of fdDeletedPhotoIds) {
+                await adminDb.from('food_photos').delete().eq('id', photoId);
             }
+            fdDeletedPhotoIds.clear();
+
+            for (let i = 0; i < fdPhotos.length; i++) {
+                const photo = fdPhotos[i];
+                if (photo.type !== 'new') continue;
+                const ext = photo.file.name.split('.').pop() || 'jpg';
+                const path = `food/${currentFoodId}/${Date.now()}-${i}.${ext}`;
+                const { error: uploadErr } = await adminDb.storage.from('media').upload(path, photo.file, { upsert: false, contentType: mimeType(photo.file) });
+                if (!uploadErr) {
+                    const { data: inserted } = await adminDb.from('food_photos').insert({ food_id: currentFoodId, storage_path: path }).select().single();
+                    if (inserted) { photo.type = 'existing'; photo.id = inserted.id; photo.storage_path = path; }
+                }
+            }
+
+            const dates = Array.from(document.querySelectorAll('#fd-dates-container .fd-date-input')).map(i => i.value).filter(Boolean);
+            const tags = document.getElementById('fd-tags').value.split(',').map(t => t.trim()).filter(Boolean);
+
             const { error } = await adminDb.from('food').update({
                 name: document.getElementById('fd-name').value.trim(),
                 location: document.getElementById('fd-location').value.trim() || null,
                 notes: document.getElementById('fd-notes').value.trim() || null,
                 rating: editRatings.fd || null,
-                date: document.getElementById('fd-date').value || null,
-                photo_url: photoUrl,
+                dates: dates.length ? dates : null,
+                date: dates[0] || null,
+                tags: tags.length ? tags : null,
             }).eq('id', currentFoodId);
+
+            if (error) console.error('food save error:', error);
             btn.textContent = error ? 'error' : 'saved!';
             setTimeout(() => { btn.textContent = 'save'; btn.disabled = false; }, 2000);
             if (!error) { foodLoaded = false; loadFoodList(); }
