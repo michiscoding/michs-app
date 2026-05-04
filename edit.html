@@ -91,6 +91,14 @@
         .media-thumb-wrap { position: relative; flex: 0 0 auto; width: 140px; }
         .media-thumb { width: 140px; height: 110px; object-fit: cover; border-radius: 8px; display: block; }
 
+        .c-search-row { display: flex; gap: 0.5rem; margin-bottom: 0.6rem; margin-top: 0.25rem; }
+        .c-search-row input { flex: 1; background: #ededed; border: none; border-radius: 8px; padding: 0.5rem 0.85rem; font-family: inherit; font-size: 0.85rem; color: #111; outline: none; }
+        body.dark .c-search-row input { background: #2a2a2a; color: #ddd; }
+        .c-search-row .btn-app { padding: 0.5rem 0.85rem; font-size: 0.82rem; white-space: nowrap; }
+        .c-search-results { margin-bottom: 0.5rem; }
+        .c-list-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #ccc; margin: 0.85rem 0 0.4rem; }
+        body.dark .c-list-label { color: #444; }
+
         .edit-star-row { display: flex; gap: 0.25rem; }
         .edit-star { position: relative; background: none; border: none; font-size: 1.5rem; color: #ddd; cursor: pointer; padding: 0; line-height: 1; transition: color 0.1s; }
         .edit-star.filled { color: #f5a623; }
@@ -307,6 +315,14 @@
             </div>
 
             <div id="csub-books">
+                <div id="bk-search-section">
+                    <div class="c-search-row">
+                        <input type="text" id="bk-search-input" placeholder="search books to add...">
+                        <button type="button" id="bk-search-btn" class="btn-app">search</button>
+                    </div>
+                    <div class="c-search-results" id="bk-search-results"></div>
+                </div>
+                <div class="c-list-label">your books</div>
                 <div id="books-list-view"><div id="books-list"></div></div>
                 <div id="books-editor-view" style="display:none">
                     <div class="field-group"><label class="field-label">title</label><input type="text" id="bk-title" autocomplete="off"></div>
@@ -321,6 +337,14 @@
             </div>
 
             <div id="csub-movies" style="display:none">
+                <div id="mv-search-section">
+                    <div class="c-search-row">
+                        <input type="text" id="mv-search-input" placeholder="search movies to add...">
+                        <button type="button" id="mv-search-btn" class="btn-app">search</button>
+                    </div>
+                    <div class="c-search-results" id="mv-search-results"></div>
+                </div>
+                <div class="c-list-label">your movies</div>
                 <div id="movies-list-view"><div id="movies-list"></div></div>
                 <div id="movies-editor-view" style="display:none">
                     <div class="field-group"><label class="field-label">title</label><input type="text" id="mv-title" autocomplete="off"></div>
@@ -335,6 +359,14 @@
             </div>
 
             <div id="csub-food" style="display:none">
+                <div id="fd-search-section">
+                    <div class="c-search-row">
+                        <input type="text" id="fd-search-input" placeholder="search restaurants to add...">
+                        <button type="button" id="fd-search-btn" class="btn-app">search</button>
+                    </div>
+                    <div class="c-search-results" id="fd-search-results"></div>
+                </div>
+                <div class="c-list-label">your food</div>
                 <div id="food-list-view"><div id="food-list"></div></div>
                 <div id="food-editor-view" style="display:none">
                     <div class="field-group"><label class="field-label">name</label><input type="text" id="fd-name" autocomplete="off"></div>
@@ -1585,6 +1617,12 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
             });
             document.getElementById('food-editor-view').style.display = 'none';
             document.getElementById('food-list-view').style.display = '';
+            ['bk','mv','fd'].forEach(p => {
+                const sec = document.getElementById(`${p}-search-section`);
+                if (sec) sec.style.display = '';
+                const res = document.getElementById(`${p}-search-results`);
+                if (res) res.innerHTML = '';
+            });
             setBackVisible(false);
         }
 
@@ -1614,6 +1652,8 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
             document.getElementById(`${p}-notes`).value = data.notes || '';
             setEditRating(p, data.rating || 0);
             document.getElementById(`${p}-date`).value = data.date || '';
+            document.getElementById(`${p}-delete-btn`).style.display = '';
+            document.getElementById(`${p}-search-section`).style.display = 'none';
             const listKey = type === 'book' ? 'books' : 'movies';
             document.getElementById(`${listKey}-list-view`).style.display = 'none';
             document.getElementById(`${listKey}-editor-view`).style.display = '';
@@ -1626,16 +1666,21 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
             const type = p === 'bk' ? 'book' : 'movie';
             const listKey = p === 'bk' ? 'books' : 'movies';
             document.getElementById(`${p}-save-btn`).addEventListener('click', async () => {
-                if (!currentMediaId) return;
                 const btn = document.getElementById(`${p}-save-btn`);
                 const adminDb = await getAdminClient(); if (!adminDb) return;
                 btn.textContent = 'saving...'; btn.disabled = true;
-                const { error } = await adminDb.from('media').update({
-                    title: document.getElementById(`${p}-title`).value.trim(),
-                    notes: document.getElementById(`${p}-notes`).value.trim() || null,
-                    rating: editRatings[p] || null,
-                    date: document.getElementById(`${p}-date`).value || null,
-                }).eq('id', currentMediaId);
+                const title = document.getElementById(`${p}-title`).value.trim();
+                const notes = document.getElementById(`${p}-notes`).value.trim() || null;
+                const rating = editRatings[p] || null;
+                const date = document.getElementById(`${p}-date`).value || null;
+                let error;
+                if (!currentMediaId) {
+                    const { data: ins, error: e } = await adminDb.from('media').insert({ type, title, cover_url: currentMediaCoverUrl || null, notes, rating, date }).select('id').single();
+                    error = e;
+                    if (!error && ins) { currentMediaId = ins.id; document.getElementById(`${p}-delete-btn`).style.display = ''; }
+                } else {
+                    ({ error } = await adminDb.from('media').update({ title, notes, rating, date }).eq('id', currentMediaId));
+                }
                 if (error) console.error(`${p} save error:`, error);
                 btn.textContent = error ? 'error' : 'saved!';
                 setTimeout(() => { btn.textContent = 'save'; btn.disabled = false; }, 2000);
@@ -1691,6 +1736,8 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
             const dates = data.dates?.length ? data.dates : [data.date || ''];
             dates.forEach(d => addFdDateRow(d));
             renderFdPhotos();
+            document.getElementById('fd-delete-btn').style.display = '';
+            document.getElementById('fd-search-section').style.display = 'none';
             document.getElementById('food-list-view').style.display = 'none';
             document.getElementById('food-editor-view').style.display = '';
             revealTab(document.getElementById('food-editor-view'));
@@ -1699,10 +1746,32 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
         }
 
         document.getElementById('fd-save-btn').addEventListener('click', async () => {
-            if (!currentFoodId) return;
             const btn = document.getElementById('fd-save-btn');
             const adminDb = await getAdminClient(); if (!adminDb) return;
             btn.textContent = 'saving...'; btn.disabled = true;
+
+            const dates = Array.from(document.querySelectorAll('#fd-dates-container .fd-date-input')).map(i => i.value).filter(Boolean);
+            const tags = document.getElementById('fd-tags').value.split(',').map(t => t.trim()).filter(Boolean);
+
+            if (!currentFoodId) {
+                const { data: ins, error: insertErr } = await adminDb.from('food').insert({
+                    name: document.getElementById('fd-name').value.trim(),
+                    location: document.getElementById('fd-location').value.trim() || null,
+                    notes: document.getElementById('fd-notes').value.trim() || null,
+                    rating: editRatings.fd || null,
+                    dates: dates.length ? dates : null, date: dates[0] || null,
+                    tags: tags.length ? tags : null,
+                    photo_url: currentFoodNewPhotoUrl || null,
+                    place_id: currentFoodPlaceId || null,
+                }).select('id').single();
+                if (insertErr) { console.error('food insert error:', insertErr); btn.textContent = 'error'; setTimeout(() => { btn.textContent = 'save'; btn.disabled = false; }, 2000); return; }
+                currentFoodId = ins.id;
+                document.getElementById('fd-delete-btn').style.display = '';
+                btn.textContent = 'saved!';
+                setTimeout(() => { btn.textContent = 'save'; btn.disabled = false; }, 2000);
+                foodLoaded = false; loadFoodList();
+                return;
+            }
 
             for (const photoId of fdDeletedPhotoIds) {
                 await adminDb.from('food_photos').delete().eq('id', photoId);
@@ -1720,9 +1789,6 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
                     if (inserted) { photo.type = 'existing'; photo.id = inserted.id; photo.storage_path = path; }
                 }
             }
-
-            const dates = Array.from(document.querySelectorAll('#fd-dates-container .fd-date-input')).map(i => i.value).filter(Boolean);
-            const tags = document.getElementById('fd-tags').value.split(',').map(t => t.trim()).filter(Boolean);
 
             const { error } = await adminDb.from('food').update({
                 name: document.getElementById('fd-name').value.trim(),
@@ -1754,6 +1820,129 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
             document.getElementById('food-list-view').style.display = '';
             setBackVisible(false);
             foodLoaded = false; loadFoodList();
+        });
+
+        // --- consumption search + add ---
+        const GOOGLE_KEY = 'AIzaSyCt9_PogrDmDY1ndTit3F7WF69iLey2eQ4';
+        const TMDB_KEY = '';
+        let currentMediaCoverUrl = null;
+        let currentFoodPlaceId = null, currentFoodNewPhotoUrl = null;
+
+        function renderCSearchResults(prefix, items, onSelect) {
+            const el = document.getElementById(`${prefix}-search-results`);
+            if (!items.length) { el.innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.4rem 0">no results</div>'; return; }
+            el.innerHTML = '';
+            items.forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'blog-record';
+                row.style.cursor = 'pointer';
+                row.innerHTML = `<div class="blog-details-1">${item.title}</div>${item.sub ? `<div class="blog-details-2">${item.sub}</div>` : ''}`;
+                row.addEventListener('click', () => { el.innerHTML = ''; onSelect(item); });
+                el.appendChild(row);
+            });
+        }
+
+        async function searchBooksC(q) {
+            const el = document.getElementById('bk-search-results');
+            el.innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.4rem 0">searching...</div>';
+            try {
+                const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=6&key=${GOOGLE_KEY}`);
+                const data = await res.json();
+                renderCSearchResults('bk', (data.items || []).map(b => {
+                    const info = b.volumeInfo;
+                    return { title: info.title, sub: [info.authors?.[0], info.publishedDate?.slice(0,4)].filter(Boolean).join(' · '), cover: info.imageLinks?.thumbnail?.replace('http://','https://') || '' };
+                }), item => openMediaEditorForAdd('book', item));
+            } catch(e) { document.getElementById('bk-search-results').innerHTML = `<div style="font-size:0.8rem;color:#aaa;padding:0.4rem 0">error: ${e.message}</div>`; }
+        }
+
+        async function searchMoviesC(q) {
+            const el = document.getElementById('mv-search-results');
+            if (!TMDB_KEY) { el.innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.4rem 0">add TMDB_KEY to enable</div>'; return; }
+            el.innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.4rem 0">searching...</div>';
+            try {
+                const res = await fetch(`https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(q)}&api_key=${TMDB_KEY}&language=en-US`);
+                const data = await res.json();
+                renderCSearchResults('mv', (data.results || []).slice(0,6).map(m => ({
+                    title: m.title, sub: m.release_date?.slice(0,4) || '',
+                    cover: m.poster_path ? `https://image.tmdb.org/t/p/w185${m.poster_path}` : ''
+                })), item => openMediaEditorForAdd('movie', item));
+            } catch(e) { document.getElementById('mv-search-results').innerHTML = `<div style="font-size:0.8rem;color:#aaa;padding:0.4rem 0">error: ${e.message}</div>`; }
+        }
+
+        async function searchFoodC(q) {
+            const el = document.getElementById('fd-search-results');
+            el.innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.4rem 0">searching...</div>';
+            try {
+                const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': GOOGLE_KEY, 'X-Goog-FieldMask': 'places.id,places.displayName,places.shortFormattedAddress,places.photos' },
+                    body: JSON.stringify({ textQuery: q, pageSize: 6 })
+                });
+                const data = await res.json();
+                const places = data.places || [];
+                if (!places.length) { el.innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.4rem 0">no results</div>'; return; }
+                renderCSearchResults('fd', places.map(p => ({
+                    title: p.displayName?.text || '', sub: p.shortFormattedAddress || '',
+                    placeId: p.id,
+                    photoName: p.photos?.[0]?.name,
+                })), item => openFoodEditorForAdd(item));
+            } catch(e) { document.getElementById('fd-search-results').innerHTML = `<div style="font-size:0.8rem;color:#aaa;padding:0.4rem 0">error: ${e.message}</div>`; }
+        }
+
+        function openMediaEditorForAdd(type, item) {
+            const p = type === 'book' ? 'bk' : 'mv';
+            currentMediaId = null; currentMediaType = type;
+            currentMediaCoverUrl = item.cover || null;
+            document.getElementById(`${p}-title`).value = item.title || '';
+            document.getElementById(`${p}-notes`).value = '';
+            setEditRating(p, 0);
+            document.getElementById(`${p}-date`).value = new Date().toISOString().slice(0,10);
+            document.getElementById(`${p}-delete-btn`).style.display = 'none';
+            document.getElementById(`${p}-search-section`).style.display = 'none';
+            const listKey = type === 'book' ? 'books' : 'movies';
+            document.getElementById(`${listKey}-list-view`).style.display = 'none';
+            document.getElementById(`${listKey}-editor-view`).style.display = '';
+            revealTab(document.getElementById(`${listKey}-editor-view`));
+            setBackVisible(true); backContext = 'consumption';
+        }
+
+        async function openFoodEditorForAdd(item) {
+            currentFoodId = null;
+            currentFoodPlaceId = item.placeId || null;
+            currentFoodNewPhotoUrl = null;
+            if (item.photoName) {
+                currentFoodNewPhotoUrl = `https://places.googleapis.com/v1/${item.photoName}/media?maxWidthPx=800&key=${GOOGLE_KEY}`;
+            }
+            fdPhotos = []; fdDeletedPhotoIds = new Set();
+            document.getElementById('fd-name').value = item.title || '';
+            document.getElementById('fd-location').value = item.sub || '';
+            document.getElementById('fd-tags').value = '';
+            document.getElementById('fd-notes').value = '';
+            setEditRating('fd', 0);
+            document.getElementById('fd-dates-container').innerHTML = '';
+            addFdDateRow(new Date().toISOString().slice(0,10));
+            renderFdPhotos();
+            document.getElementById('fd-delete-btn').style.display = 'none';
+            document.getElementById('fd-search-section').style.display = 'none';
+            document.getElementById('food-list-view').style.display = 'none';
+            document.getElementById('food-editor-view').style.display = '';
+            revealTab(document.getElementById('food-editor-view'));
+            setBackVisible(true); backContext = 'consumption';
+        }
+
+        document.getElementById('bk-search-btn').addEventListener('click', () => { const q = document.getElementById('bk-search-input').value.trim(); if (q) searchBooksC(q); });
+        document.getElementById('bk-search-input').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('bk-search-btn').click(); });
+        document.getElementById('mv-search-btn').addEventListener('click', () => { const q = document.getElementById('mv-search-input').value.trim(); if (q) searchMoviesC(q); });
+        document.getElementById('mv-search-input').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('mv-search-btn').click(); });
+
+        let fdSearchDebounce = null;
+        document.getElementById('fd-search-btn').addEventListener('click', () => { const q = document.getElementById('fd-search-input').value.trim(); if (q) searchFoodC(q); });
+        document.getElementById('fd-search-input').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('fd-search-btn').click(); });
+        document.getElementById('fd-search-input').addEventListener('input', () => {
+            clearTimeout(fdSearchDebounce);
+            const q = document.getElementById('fd-search-input').value.trim();
+            if (!q) { document.getElementById('fd-search-results').innerHTML = ''; return; }
+            fdSearchDebounce = setTimeout(() => searchFoodC(q), 400);
         });
     </script>
 </body>
