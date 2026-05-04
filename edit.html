@@ -311,6 +311,7 @@
                 <button type="button" class="edit-tab active" data-csub="books">books</button>
                 <button type="button" class="edit-tab" data-csub="movies">movies</button>
                 <button type="button" class="edit-tab" data-csub="food">food</button>
+                <button type="button" class="edit-tab" data-csub="venues">venues</button>
             </div>
 
             <div id="csub-books">
@@ -387,6 +388,40 @@
                     <div class="editor-actions">
                         <button type="button" id="fd-delete-btn" class="danger-btn">delete</button>
                         <button type="button" id="fd-save-btn" class="btn-app">save</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="csub-venues" style="display:none">
+                <div id="vn-search-section">
+                    <div class="c-search-row">
+                        <input type="text" id="vn-search-input" placeholder="search clubs, bars, venues to add...">
+                        <button type="button" id="vn-search-btn" class="btn-app">search</button>
+                    </div>
+                    <div class="c-search-results" id="vn-search-results"></div>
+                </div>
+                <div class="c-list-label">your venues</div>
+                <div id="venue-list-view"><div id="venue-list"></div></div>
+                <div id="venue-editor-view" style="display:none">
+                    <div class="field-group"><label class="field-label">name</label><input type="text" id="vn-name" autocomplete="off"></div>
+                    <div class="field-group"><label class="field-label">location</label><input type="text" id="vn-location" autocomplete="off"></div>
+                    <div class="field-group"><label class="field-label">tags</label><input type="text" id="vn-tags" placeholder="e.g. techno, rooftop, chelsea" autocomplete="off"></div>
+                    <div class="field-group"><label class="field-label">notes</label><textarea id="vn-notes" placeholder="thoughts..."></textarea></div>
+                    <div class="field-group"><label class="field-label">rating</label><div class="edit-star-row" id="vn-stars"><button type="button" class="edit-star" data-prefix="vn" data-val="1">★</button><button type="button" class="edit-star" data-prefix="vn" data-val="2">★</button><button type="button" class="edit-star" data-prefix="vn" data-val="3">★</button><button type="button" class="edit-star" data-prefix="vn" data-val="4">★</button><button type="button" class="edit-star" data-prefix="vn" data-val="5">★</button></div></div>
+                    <div class="field-group">
+                        <label class="field-label">dates</label>
+                        <div id="vn-dates-container"></div>
+                        <button type="button" class="toolbar-btn" id="vn-add-date-btn">+ add date</button>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">photos</label>
+                        <input type="file" id="vn-photo-input" accept="image/*" multiple style="display:none">
+                        <div id="vn-photos-strip" class="media-scroll-row"></div>
+                        <button type="button" class="toolbar-btn" id="vn-photo-btn">+ add photos</button>
+                    </div>
+                    <div class="editor-actions">
+                        <button type="button" id="vn-delete-btn" class="danger-btn">delete</button>
+                        <button type="button" id="vn-save-btn" class="btn-app">save</button>
                     </div>
                 </div>
             </div>
@@ -662,7 +697,7 @@
         const tabs = document.querySelectorAll('.edit-tab:not(.edit-subtabs .edit-tab):not(#consumption-subtabs .edit-tab)');
         let photosTabLoaded = false;
         let paListLoaded = false, rListLoaded = false;
-        let booksLoaded = false, moviesLoaded = false, foodLoaded = false;
+        let booksLoaded = false, moviesLoaded = false, foodLoaded = false, venueLoaded = false;
 
         function revealTab(el) {
             el.style.opacity = '0';
@@ -1514,7 +1549,7 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
             else { btn.textContent = 'error'; btn.disabled = false; }
         });
         // --- star ratings ---
-        const editRatings = { bk: 0, mv: 0, fd: 0 };
+        const editRatings = { bk: 0, mv: 0, fd: 0, vn: 0 };
 
         function setEditRating(prefix, val) {
             editRatings[prefix] = val;
@@ -1589,11 +1624,64 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
             e.target.value = '';
         });
 
+        // --- venue photo upload ---
+        let vnPhotos = [];
+        let vnDeletedPhotoIds = new Set();
+
+        function renderVnPhotos() {
+            const strip = document.getElementById('vn-photos-strip');
+            strip.innerHTML = '';
+            vnPhotos.forEach((photo, i) => {
+                const src = photo.type === 'existing' ? MEDIA_BASE + photo.storage_path : URL.createObjectURL(photo.file);
+                const wrap = document.createElement('div');
+                wrap.className = 'media-thumb-wrap';
+                const img = document.createElement('img');
+                img.src = src; img.className = 'media-thumb'; img.alt = '';
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button'; removeBtn.className = 'remove-btn'; removeBtn.textContent = '×';
+                removeBtn.addEventListener('click', () => {
+                    if (photo.type === 'existing') vnDeletedPhotoIds.add(photo.id);
+                    vnPhotos.splice(i, 1);
+                    renderVnPhotos();
+                });
+                wrap.appendChild(img); wrap.appendChild(removeBtn);
+                strip.appendChild(wrap);
+            });
+        }
+
+        function addVnDateRow(value = '') {
+            const container = document.getElementById('vn-dates-container');
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex;align-items:center;gap:0.5rem;margin-bottom:0.4rem;';
+            const input = document.createElement('input');
+            input.type = 'date'; input.className = 'vn-date-input';
+            input.style.cssText = 'flex:1;background:#ededed;border:none;border-radius:8px;padding:0.5rem 0.75rem;color:#111;outline:none;box-sizing:border-box;font-family:inherit;font-size:inherit;';
+            input.value = value;
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button'; removeBtn.className = 'attach-remove-btn'; removeBtn.textContent = '×';
+            removeBtn.addEventListener('click', () => row.remove());
+            row.appendChild(input); row.appendChild(removeBtn);
+            container.appendChild(row);
+        }
+
+        document.getElementById('vn-add-date-btn').addEventListener('click', () => addVnDateRow());
+
+        document.getElementById('vn-photo-btn').addEventListener('click', () => {
+            document.getElementById('vn-photo-input').click();
+        });
+
+        document.getElementById('vn-photo-input').addEventListener('change', e => {
+            Array.from(e.target.files).forEach(file => vnPhotos.push({ type: 'new', file }));
+            renderVnPhotos();
+            e.target.value = '';
+        });
+
         // --- consumption ---
         const csubEls = {
             books: document.getElementById('csub-books'),
             movies: document.getElementById('csub-movies'),
             food: document.getElementById('csub-food'),
+            venues: document.getElementById('csub-venues'),
         };
         let activeCsub = 'books';
         document.querySelectorAll('#consumption-subtabs .edit-tab').forEach(btn => {
@@ -1605,6 +1693,7 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
                 if (activeCsub === 'books' && !booksLoaded) { booksLoaded = true; loadMediaList('book'); }
                 if (activeCsub === 'movies' && !moviesLoaded) { moviesLoaded = true; loadMediaList('movie'); }
                 if (activeCsub === 'food' && !foodLoaded) { foodLoaded = true; loadFoodList(); }
+                if (activeCsub === 'venues' && !venueLoaded) { venueLoaded = true; loadVenueList(); }
                 collapseMediaEditors();
             });
         });
@@ -1616,7 +1705,9 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
             });
             document.getElementById('food-editor-view').style.display = 'none';
             document.getElementById('food-list-view').style.display = '';
-            ['bk','mv','fd'].forEach(p => {
+            document.getElementById('venue-editor-view').style.display = 'none';
+            document.getElementById('venue-list-view').style.display = '';
+            ['bk','mv','fd','vn'].forEach(p => {
                 const sec = document.getElementById(`${p}-search-section`);
                 if (sec) sec.style.display = '';
                 const res = document.getElementById(`${p}-search-results`);
@@ -1825,6 +1916,131 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
             foodLoaded = false; loadFoodList();
         });
 
+        // --- venues ---
+        let currentVenueId = null;
+        let currentVenuePlaceId = null, currentVenueNewPhotoUrl = null;
+
+        async function loadVenueList() {
+            const listEl = document.getElementById('venue-list');
+            listEl.innerHTML = '<div style="color:#aaa;font-size:0.8rem;padding:0.5rem 0">loading...</div>';
+            const { data } = await db.from('venues').select('id, name, rating, date, location').order('created_at', { ascending: false });
+            listEl.innerHTML = '';
+            (data || []).forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'blog-record';
+                row.style.cursor = 'pointer';
+                row.innerHTML = `<div class="blog-details-1">${item.name}</div>${item.location || item.date ? `<div class="blog-details-2">${[item.location, item.date?.slice(0,7)].filter(Boolean).join(' · ')}${item.rating ? ' · ' + '★'.repeat(item.rating) : ''}</div>` : ''}`;
+                row.addEventListener('click', () => openVenueEditor(item.id));
+                listEl.appendChild(row);
+            });
+        }
+
+        async function openVenueEditor(id) {
+            const [{ data }, { data: venuePhotos }] = await Promise.all([
+                db.from('venues').select('*').eq('id', id).single(),
+                db.from('venue_photos').select('id, storage_path').eq('venue_id', id)
+            ]);
+            if (!data) return;
+            currentVenueId = id;
+            vnPhotos = (venuePhotos || []).map(p => ({ type: 'existing', id: p.id, storage_path: p.storage_path }));
+            vnDeletedPhotoIds = new Set();
+            document.getElementById('vn-name').value = data.name || '';
+            document.getElementById('vn-location').value = data.location || '';
+            document.getElementById('vn-tags').value = (data.tags || []).join(', ');
+            document.getElementById('vn-notes').value = data.notes || '';
+            setEditRating('vn', data.rating || 0);
+            document.getElementById('vn-dates-container').innerHTML = '';
+            const dates = data.dates?.length ? data.dates : [data.date || ''];
+            dates.forEach(d => addVnDateRow(d));
+            renderVnPhotos();
+            document.getElementById('vn-delete-btn').style.display = '';
+            document.getElementById('vn-search-section').style.display = 'none';
+            document.getElementById('venue-list-view').style.display = 'none';
+            document.getElementById('venue-editor-view').style.display = '';
+            revealTab(document.getElementById('venue-editor-view'));
+            setBackVisible(true);
+            backContext = 'consumption';
+        }
+
+        document.getElementById('vn-save-btn').addEventListener('click', async () => {
+            const btn = document.getElementById('vn-save-btn');
+            const adminDb = await getAdminClient(); if (!adminDb) return;
+            btn.textContent = 'saving...'; btn.disabled = true;
+
+            const dates = Array.from(document.querySelectorAll('#vn-dates-container .vn-date-input')).map(i => i.value).filter(Boolean);
+            const tags = document.getElementById('vn-tags').value.split(',').map(t => t.trim()).filter(Boolean);
+
+            if (!currentVenueId) {
+                const { data: ins, error: insertErr } = await adminDb.from('venues').insert({
+                    name: document.getElementById('vn-name').value.trim(),
+                    location: document.getElementById('vn-location').value.trim() || null,
+                    notes: document.getElementById('vn-notes').value.trim() || null,
+                    rating: editRatings.vn || null,
+                    dates: dates.length ? dates : null, date: dates[0] || null,
+                    tags: tags.length ? tags : null,
+                    photo_url: currentVenueNewPhotoUrl || null,
+                    place_id: currentVenuePlaceId || null,
+                }).select('id').single();
+                if (insertErr) { console.error('venue insert error:', insertErr); btn.textContent = 'error'; setTimeout(() => { btn.textContent = 'save'; btn.disabled = false; }, 2000); return; }
+                currentVenueId = ins.id;
+                document.getElementById('vn-delete-btn').style.display = '';
+                btn.textContent = 'saved!';
+                setTimeout(() => { btn.textContent = 'save'; btn.disabled = false; }, 2000);
+                venueLoaded = false; loadVenueList();
+                return;
+            }
+
+            for (const photoId of vnDeletedPhotoIds) {
+                await adminDb.from('venue_photos').delete().eq('id', photoId);
+            }
+            vnDeletedPhotoIds.clear();
+
+            for (let i = 0; i < vnPhotos.length; i++) {
+                const photo = vnPhotos[i];
+                if (photo.type !== 'new') continue;
+                const ext = photo.file.name.split('.').pop() || 'jpg';
+                const path = `venues/${currentVenueId}/${Date.now()}-${i}.${ext}`;
+                const { error: uploadErr } = await adminDb.storage.from('media').upload(path, photo.file, { upsert: false, contentType: mimeType(photo.file) });
+                if (!uploadErr) {
+                    const { data: inserted } = await adminDb.from('venue_photos').insert({ venue_id: currentVenueId, storage_path: path }).select().single();
+                    if (inserted) { photo.type = 'existing'; photo.id = inserted.id; photo.storage_path = path; }
+                }
+            }
+
+            const { data: updVenue, error: updVenueErr } = await adminDb.from('venues').update({
+                name: document.getElementById('vn-name').value.trim(),
+                location: document.getElementById('vn-location').value.trim() || null,
+                notes: document.getElementById('vn-notes').value.trim() || null,
+                rating: editRatings.vn || null,
+                dates: dates.length ? dates : null,
+                date: dates[0] || null,
+                tags: tags.length ? tags : null,
+            }).eq('id', currentVenueId).select('id');
+            const venueSaveErr = updVenueErr || (!updVenue?.length ? { message: 'update blocked — run auth_update_venues RLS policy in Supabase' } : null);
+
+            if (venueSaveErr) console.error('venue save error:', venueSaveErr);
+            btn.textContent = venueSaveErr ? 'error' : 'saved!';
+            if (venueSaveErr) btn.title = venueSaveErr.message || 'unknown error';
+            setTimeout(() => { btn.textContent = 'save'; btn.title = ''; btn.disabled = false; }, venueSaveErr ? 5000 : 2000);
+            if (!venueSaveErr) { venueLoaded = false; loadVenueList(); }
+        });
+
+        let vnDeletePending = false, vnDeleteTimer = null;
+        document.getElementById('vn-delete-btn').addEventListener('click', async () => {
+            if (!currentVenueId) return;
+            const btn = document.getElementById('vn-delete-btn');
+            if (!vnDeletePending) { vnDeletePending = true; btn.textContent = 'sure?'; vnDeleteTimer = setTimeout(() => { vnDeletePending = false; btn.textContent = 'delete'; }, 3000); return; }
+            clearTimeout(vnDeleteTimer); vnDeletePending = false;
+            const adminDb = await getAdminClient(); if (!adminDb) return;
+            btn.textContent = 'deleting...';
+            await adminDb.from('venues').delete().eq('id', currentVenueId);
+            currentVenueId = null;
+            document.getElementById('venue-editor-view').style.display = 'none';
+            document.getElementById('venue-list-view').style.display = '';
+            setBackVisible(false);
+            venueLoaded = false; loadVenueList();
+        });
+
         // --- consumption search + add ---
         const GOOGLE_KEY = 'AIzaSyCt9_PogrDmDY1ndTit3F7WF69iLey2eQ4';
         const TMDB_KEY = '';
@@ -1946,6 +2162,60 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
             const q = document.getElementById('fd-search-input').value.trim();
             if (!q) { document.getElementById('fd-search-results').innerHTML = ''; return; }
             fdSearchDebounce = setTimeout(() => searchFoodC(q), 400);
+        });
+
+        async function searchVenuesC(q) {
+            const el = document.getElementById('vn-search-results');
+            el.innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.4rem 0">searching...</div>';
+            try {
+                const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': GOOGLE_KEY, 'X-Goog-FieldMask': 'places.id,places.displayName,places.shortFormattedAddress,places.photos' },
+                    body: JSON.stringify({ textQuery: q, pageSize: 6 })
+                });
+                const data = await res.json();
+                const places = data.places || [];
+                if (!places.length) { el.innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.4rem 0">no results</div>'; return; }
+                renderCSearchResults('vn', places.map(p => ({
+                    title: p.displayName?.text || '', sub: p.shortFormattedAddress || '',
+                    placeId: p.id,
+                    photoName: p.photos?.[0]?.name,
+                })), item => openVenueEditorForAdd(item));
+            } catch(e) { document.getElementById('vn-search-results').innerHTML = `<div style="font-size:0.8rem;color:#aaa;padding:0.4rem 0">error: ${e.message}</div>`; }
+        }
+
+        async function openVenueEditorForAdd(item) {
+            currentVenueId = null;
+            currentVenuePlaceId = item.placeId || null;
+            currentVenueNewPhotoUrl = null;
+            if (item.photoName) {
+                currentVenueNewPhotoUrl = `https://places.googleapis.com/v1/${item.photoName}/media?maxWidthPx=800&key=${GOOGLE_KEY}`;
+            }
+            vnPhotos = []; vnDeletedPhotoIds = new Set();
+            document.getElementById('vn-name').value = item.title || '';
+            document.getElementById('vn-location').value = item.sub || '';
+            document.getElementById('vn-tags').value = '';
+            document.getElementById('vn-notes').value = '';
+            setEditRating('vn', 0);
+            document.getElementById('vn-dates-container').innerHTML = '';
+            addVnDateRow(new Date().toISOString().slice(0,10));
+            renderVnPhotos();
+            document.getElementById('vn-delete-btn').style.display = 'none';
+            document.getElementById('vn-search-section').style.display = 'none';
+            document.getElementById('venue-list-view').style.display = 'none';
+            document.getElementById('venue-editor-view').style.display = '';
+            revealTab(document.getElementById('venue-editor-view'));
+            setBackVisible(true); backContext = 'consumption';
+        }
+
+        let vnSearchDebounce = null;
+        document.getElementById('vn-search-btn').addEventListener('click', () => { const q = document.getElementById('vn-search-input').value.trim(); if (q) searchVenuesC(q); });
+        document.getElementById('vn-search-input').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('vn-search-btn').click(); });
+        document.getElementById('vn-search-input').addEventListener('input', () => {
+            clearTimeout(vnSearchDebounce);
+            const q = document.getElementById('vn-search-input').value.trim();
+            if (!q) { document.getElementById('vn-search-results').innerHTML = ''; return; }
+            vnSearchDebounce = setTimeout(() => searchVenuesC(q), 400);
         });
     </script>
 </body>
