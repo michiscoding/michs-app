@@ -92,10 +92,12 @@
         .media-thumb { width: 140px; height: 110px; object-fit: cover; border-radius: 8px; display: block; }
 
         .edit-star-row { display: flex; gap: 0.25rem; }
-        .edit-star { background: none; border: none; font-size: 1.5rem; color: #ddd; cursor: pointer; padding: 0; line-height: 1; transition: color 0.1s; }
+        .edit-star { position: relative; background: none; border: none; font-size: 1.5rem; color: #ddd; cursor: pointer; padding: 0; line-height: 1; transition: color 0.1s; }
         .edit-star.filled { color: #f5a623; }
+        .edit-star.half-filled { color: #ddd; }
+        .edit-star.half-filled::after { content: '★'; position: absolute; left: 0; top: 0; width: 50%; overflow: hidden; color: #f5a623; pointer-events: none; }
         body.dark .edit-star { color: #444; }
-        body.dark .edit-star.filled { color: #f5a623; }
+        body.dark .edit-star.filled, body.dark .edit-star.half-filled::after { color: #f5a623; }
     </style>
 </head>
 
@@ -1482,14 +1484,20 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
         function setEditRating(prefix, val) {
             editRatings[prefix] = val;
             document.querySelectorAll(`.edit-star[data-prefix="${prefix}"]`).forEach(btn => {
-                btn.classList.toggle('filled', parseInt(btn.dataset.val) <= val);
+                const btnVal = parseInt(btn.dataset.val);
+                btn.classList.remove('filled', 'half-filled');
+                if (val >= btnVal) btn.classList.add('filled');
+                else if (val >= btnVal - 0.5) btn.classList.add('half-filled');
             });
         }
 
         document.querySelectorAll('.edit-star').forEach(btn => {
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', e => {
                 const prefix = btn.dataset.prefix;
-                const val = parseInt(btn.dataset.val);
+                const rect = btn.getBoundingClientRect();
+                const isLeft = e.clientX - rect.left < rect.width / 2;
+                const fullVal = parseInt(btn.dataset.val);
+                const val = isLeft ? fullVal - 0.5 : fullVal;
                 setEditRating(prefix, editRatings[prefix] === val ? 0 : val);
             });
         });
