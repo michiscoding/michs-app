@@ -90,6 +90,12 @@
         .media-scroll-row::-webkit-scrollbar { display: none; }
         .media-thumb-wrap { position: relative; flex: 0 0 auto; width: 140px; }
         .media-thumb { width: 140px; height: 110px; object-fit: cover; border-radius: 8px; display: block; }
+
+        .edit-star-row { display: flex; gap: 0.25rem; }
+        .edit-star { background: none; border: none; font-size: 1.5rem; color: #ddd; cursor: pointer; padding: 0; line-height: 1; transition: color 0.1s; }
+        .edit-star.filled { color: #f5a623; }
+        body.dark .edit-star { color: #444; }
+        body.dark .edit-star.filled { color: #f5a623; }
     </style>
 </head>
 
@@ -290,7 +296,6 @@
                 <button type="button" id="resume-save-btn" class="btn-app">save</button>
             </div>
         </div>
-    </div>
 
         <div id="tab-consumption" style="display:none">
             <div class="edit-tabs edit-subtabs" id="consumption-subtabs">
@@ -304,7 +309,7 @@
                 <div id="books-editor-view" style="display:none">
                     <div class="field-group"><label class="field-label">title</label><input type="text" id="bk-title" autocomplete="off"></div>
                     <div class="field-group"><label class="field-label">notes</label><textarea id="bk-notes" placeholder="thoughts..."></textarea></div>
-                    <div class="field-group"><label class="field-label">rating (1–5)</label><input type="number" id="bk-rating" min="1" max="5"></div>
+                    <div class="field-group"><label class="field-label">rating</label><div class="edit-star-row" id="bk-stars"><button type="button" class="edit-star" data-prefix="bk" data-val="1">★</button><button type="button" class="edit-star" data-prefix="bk" data-val="2">★</button><button type="button" class="edit-star" data-prefix="bk" data-val="3">★</button><button type="button" class="edit-star" data-prefix="bk" data-val="4">★</button><button type="button" class="edit-star" data-prefix="bk" data-val="5">★</button></div></div>
                     <div class="field-group"><label class="field-label">date</label><input type="date" id="bk-date"></div>
                     <div class="editor-actions">
                         <button type="button" id="bk-delete-btn" class="danger-btn">delete</button>
@@ -318,7 +323,7 @@
                 <div id="movies-editor-view" style="display:none">
                     <div class="field-group"><label class="field-label">title</label><input type="text" id="mv-title" autocomplete="off"></div>
                     <div class="field-group"><label class="field-label">notes</label><textarea id="mv-notes" placeholder="thoughts..."></textarea></div>
-                    <div class="field-group"><label class="field-label">rating (1–5)</label><input type="number" id="mv-rating" min="1" max="5"></div>
+                    <div class="field-group"><label class="field-label">rating</label><div class="edit-star-row" id="mv-stars"><button type="button" class="edit-star" data-prefix="mv" data-val="1">★</button><button type="button" class="edit-star" data-prefix="mv" data-val="2">★</button><button type="button" class="edit-star" data-prefix="mv" data-val="3">★</button><button type="button" class="edit-star" data-prefix="mv" data-val="4">★</button><button type="button" class="edit-star" data-prefix="mv" data-val="5">★</button></div></div>
                     <div class="field-group"><label class="field-label">date</label><input type="date" id="mv-date"></div>
                     <div class="editor-actions">
                         <button type="button" id="mv-delete-btn" class="danger-btn">delete</button>
@@ -333,8 +338,15 @@
                     <div class="field-group"><label class="field-label">name</label><input type="text" id="fd-name" autocomplete="off"></div>
                     <div class="field-group"><label class="field-label">location</label><input type="text" id="fd-location" autocomplete="off"></div>
                     <div class="field-group"><label class="field-label">notes</label><textarea id="fd-notes" placeholder="thoughts..."></textarea></div>
-                    <div class="field-group"><label class="field-label">rating (1–5)</label><input type="number" id="fd-rating" min="1" max="5"></div>
+                    <div class="field-group"><label class="field-label">rating</label><div class="edit-star-row" id="fd-stars"><button type="button" class="edit-star" data-prefix="fd" data-val="1">★</button><button type="button" class="edit-star" data-prefix="fd" data-val="2">★</button><button type="button" class="edit-star" data-prefix="fd" data-val="3">★</button><button type="button" class="edit-star" data-prefix="fd" data-val="4">★</button><button type="button" class="edit-star" data-prefix="fd" data-val="5">★</button></div></div>
                     <div class="field-group"><label class="field-label">date</label><input type="date" id="fd-date"></div>
+                    <div class="field-group">
+                        <label class="field-label">photo</label>
+                        <img id="fd-photo-preview" src="" alt="" style="display:none;width:100%;max-height:180px;object-fit:cover;border-radius:8px;margin-bottom:0.5rem;">
+                        <input type="file" id="fd-photo-input" accept="image/*" style="display:none">
+                        <button type="button" class="toolbar-btn" id="fd-photo-btn">change photo</button>
+                        <span id="fd-photo-status" style="font-size:0.75rem;color:#aaa;margin-left:0.5rem;"></span>
+                    </div>
                     <div class="editor-actions">
                         <button type="button" id="fd-delete-btn" class="danger-btn">delete</button>
                         <button type="button" id="fd-save-btn" class="btn-app">save</button>
@@ -342,6 +354,7 @@
                 </div>
             </div>
         </div>
+    </div>
 
 <div id="r-create-attach-overlay">
     <div id="r-create-attach-modal">
@@ -1463,6 +1476,42 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
             if (res.ok) { btn.textContent = 'saved!'; setTimeout(() => { btn.textContent = 'save'; btn.disabled = false; }, 2000); }
             else { btn.textContent = 'error'; btn.disabled = false; }
         });
+        // --- star ratings ---
+        const editRatings = { bk: 0, mv: 0, fd: 0 };
+
+        function setEditRating(prefix, val) {
+            editRatings[prefix] = val;
+            document.querySelectorAll(`.edit-star[data-prefix="${prefix}"]`).forEach(btn => {
+                btn.classList.toggle('filled', parseInt(btn.dataset.val) <= val);
+            });
+        }
+
+        document.querySelectorAll('.edit-star').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const prefix = btn.dataset.prefix;
+                const val = parseInt(btn.dataset.val);
+                setEditRating(prefix, editRatings[prefix] === val ? 0 : val);
+            });
+        });
+
+        // --- food photo upload ---
+        let fdNewPhotoFile = null, fdCurrentPhotoUrl = null;
+
+        document.getElementById('fd-photo-btn').addEventListener('click', () => {
+            document.getElementById('fd-photo-input').click();
+        });
+
+        document.getElementById('fd-photo-input').addEventListener('change', e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            fdNewPhotoFile = file;
+            const preview = document.getElementById('fd-photo-preview');
+            preview.src = URL.createObjectURL(file);
+            preview.style.display = '';
+            document.getElementById('fd-photo-status').textContent = file.name;
+            e.target.value = '';
+        });
+
         // --- consumption ---
         const csubEls = {
             books: document.getElementById('csub-books'),
@@ -1517,7 +1566,7 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
             const p = type === 'book' ? 'bk' : 'mv';
             document.getElementById(`${p}-title`).value = data.title || '';
             document.getElementById(`${p}-notes`).value = data.notes || '';
-            document.getElementById(`${p}-rating`).value = data.rating || '';
+            setEditRating(p, data.rating || 0);
             document.getElementById(`${p}-date`).value = data.date || '';
             const listKey = type === 'book' ? 'books' : 'movies';
             document.getElementById(`${listKey}-list-view`).style.display = 'none';
@@ -1538,7 +1587,7 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
                 const { error } = await adminDb.from('media').update({
                     title: document.getElementById(`${p}-title`).value.trim(),
                     notes: document.getElementById(`${p}-notes`).value.trim() || null,
-                    rating: parseInt(document.getElementById(`${p}-rating`).value) || null,
+                    rating: editRatings[p] || null,
                     date: document.getElementById(`${p}-date`).value || null,
                 }).eq('id', currentMediaId);
                 btn.textContent = error ? 'error' : 'saved!';
@@ -1581,11 +1630,17 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
             const { data } = await db.from('food').select('*').eq('id', id).single();
             if (!data) return;
             currentFoodId = id;
+            fdNewPhotoFile = null;
+            fdCurrentPhotoUrl = data.photo_url || null;
             document.getElementById('fd-name').value = data.name || '';
             document.getElementById('fd-location').value = data.location || '';
             document.getElementById('fd-notes').value = data.notes || '';
-            document.getElementById('fd-rating').value = data.rating || '';
+            setEditRating('fd', data.rating || 0);
             document.getElementById('fd-date').value = data.date || '';
+            document.getElementById('fd-photo-status').textContent = '';
+            const preview = document.getElementById('fd-photo-preview');
+            if (data.photo_url) { preview.src = data.photo_url; preview.style.display = ''; }
+            else { preview.src = ''; preview.style.display = 'none'; }
             document.getElementById('food-list-view').style.display = 'none';
             document.getElementById('food-editor-view').style.display = '';
             revealTab(document.getElementById('food-editor-view'));
@@ -1598,12 +1653,20 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
             const btn = document.getElementById('fd-save-btn');
             const adminDb = await getAdminClient(); if (!adminDb) return;
             btn.textContent = 'saving...'; btn.disabled = true;
+            let photoUrl = fdCurrentPhotoUrl;
+            if (fdNewPhotoFile) {
+                const ext = fdNewPhotoFile.name.split('.').pop() || 'jpg';
+                const path = `food/${currentFoodId}.${ext}`;
+                const { error: uploadErr } = await adminDb.storage.from('media').upload(path, fdNewPhotoFile, { upsert: true, contentType: mimeType(fdNewPhotoFile) });
+                if (!uploadErr) { photoUrl = MEDIA_BASE + path; fdCurrentPhotoUrl = photoUrl; fdNewPhotoFile = null; }
+            }
             const { error } = await adminDb.from('food').update({
                 name: document.getElementById('fd-name').value.trim(),
                 location: document.getElementById('fd-location').value.trim() || null,
                 notes: document.getElementById('fd-notes').value.trim() || null,
-                rating: parseInt(document.getElementById('fd-rating').value) || null,
+                rating: editRatings.fd || null,
                 date: document.getElementById('fd-date').value || null,
+                photo_url: photoUrl,
             }).eq('id', currentFoodId);
             btn.textContent = error ? 'error' : 'saved!';
             setTimeout(() => { btn.textContent = 'save'; btn.disabled = false; }, 2000);

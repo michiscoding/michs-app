@@ -183,14 +183,13 @@ document.querySelectorAll('.type-btn').forEach(btn => {
         document.getElementById('m-search-results').innerHTML = '';
         document.getElementById('m-search').value = '';
         searchInput.placeholder = currentType === 'food' ? 'search restaurants...' : 'search title...';
-        document.getElementById('m-search-btn').style.display = currentType === 'food' ? 'none' : '';
         clearSelection();
     };
 });
 
 const searchInput = document.getElementById('m-search');
 document.getElementById('m-search-btn').onclick = doSearch;
-searchInput.addEventListener('keydown', e => { if (e.key === 'Enter' && currentType !== 'food') doSearch(); });
+searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
 
 let placeDebounce = null;
 searchInput.addEventListener('input', () => {
@@ -206,12 +205,13 @@ async function doSearch() {
     if (!q) return;
     document.getElementById('m-search-results').innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.5rem 0">searching...</div>';
     if (currentType === 'book') await searchBooks(q);
+    else if (currentType === 'food') await searchPlaces(q);
     else await searchMovies(q);
 }
 
 async function searchBooks(q) {
     try {
-        const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=8&key=${GOOGLE_BOOKS_KEY}`);
+        const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=8&key=${GOOGLE_KEY}`);
         const data = await res.json();
         if (!res.ok) {
             document.getElementById('m-search-results').innerHTML = `<div style="font-size:0.8rem;color:#aaa;padding:0.5rem 0">error ${res.status}: ${data.error?.message || 'unknown'}</div>`;
