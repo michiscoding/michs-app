@@ -99,6 +99,10 @@
         .c-list-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #ccc; margin: 0.85rem 0 0.4rem; }
         body.dark .c-list-label { color: #444; }
 
+        .entry-month-label { font-size: 0.63rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #ccc; margin: 1.1rem 0 0.15rem; pointer-events: none; }
+        .entry-month-label:first-child { margin-top: 0.1rem; }
+        body.dark .entry-month-label { color: #3a3a3a; }
+
         .edit-star-row { display: flex; gap: 0.25rem; }
         .edit-star { position: relative; background: none; border: none; font-size: 1.5rem; color: #ddd; cursor: pointer; padding: 0; line-height: 1; transition: color 0.1s; }
         .edit-star.filled { color: #f5a623; }
@@ -528,12 +532,20 @@
                 const [yyyy, mm] = f.name.split('-');
                 return (yr === 'all' || yyyy === yr) && (mo === 'all' || mm === mo);
             });
+            let lastGroup = null;
             for (const file of filtered) {
                 const [yyyy, mm, dd] = file.name.replace('.html', '').split('-');
-                const label = `${mm}${dd}${yyyy.slice(2)}`;
+                const group = `${yyyy}-${mm}`;
+                if (group !== lastGroup) {
+                    lastGroup = group;
+                    const header = document.createElement('div');
+                    header.className = 'entry-month-label';
+                    header.textContent = `${months[parseInt(mm) - 1]} ${yyyy}`;
+                    entriesList.appendChild(header);
+                }
                 const record = document.createElement('div');
                 record.className = 'blog-record';
-                record.innerHTML = `<span class="blog-link">${label}</span>`;
+                record.innerHTML = `<span class="blog-link">${parseInt(dd)}</span>`;
                 record.addEventListener('click', () => openEntry(file));
                 entriesList.appendChild(record);
             }
