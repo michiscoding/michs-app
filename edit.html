@@ -99,9 +99,17 @@
         .c-list-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #ccc; margin: 0.85rem 0 0.4rem; }
         body.dark .c-list-label { color: #444; }
 
-        .entry-month-label { font-size: 0.63rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #ccc; margin: 1.1rem 0 0.15rem; pointer-events: none; }
-        .entry-month-label:first-child { margin-top: 0.1rem; }
-        body.dark .entry-month-label { color: #3a3a3a; }
+        .entry-year-label { font-size: 0.58rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #ccc; margin: 1.4rem 0 0.5rem; pointer-events: none; }
+        .entry-year-label:first-child { margin-top: 0.25rem; }
+        body.dark .entry-year-label { color: #383838; }
+        .entry-month-row { display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 0.45rem; }
+        .entry-month-name { font-size: 0.63rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #bbb; flex: 0 0 68px; pointer-events: none; }
+        body.dark .entry-month-name { color: #444; }
+        .entry-day-chips { display: flex; flex-wrap: wrap; gap: 0.2rem; }
+        .entry-day-chip { background: none; border: none; font-family: inherit; font-size: 0.8rem; font-weight: 500; color: #555; cursor: pointer; padding: 0.1rem 0.3rem; border-radius: 4px; line-height: 1.5; transition: background 0.12s, color 0.12s; }
+        .entry-day-chip:hover { background: #f0f0f0; color: #111; }
+        body.dark .entry-day-chip { color: #666; }
+        body.dark .entry-day-chip:hover { background: #2a2a2a; color: #ddd; }
 
         .edit-star-row { display: flex; gap: 0.25rem; }
         .edit-star { position: relative; background: none; border: none; font-size: 1.5rem; color: #ddd; cursor: pointer; padding: 0; line-height: 1; transition: color 0.1s; }
@@ -532,22 +540,44 @@
                 const [yyyy, mm] = f.name.split('-');
                 return (yr === 'all' || yyyy === yr) && (mo === 'all' || mm === mo);
             });
-            let lastGroup = null;
+            const groups = {};
             for (const file of filtered) {
-                const [yyyy, mm, dd] = file.name.replace('.html', '').split('-');
-                const group = `${yyyy}-${mm}`;
-                if (group !== lastGroup) {
-                    lastGroup = group;
-                    const header = document.createElement('div');
-                    header.className = 'entry-month-label';
-                    header.textContent = `${months[parseInt(mm) - 1]} ${yyyy}`;
-                    entriesList.appendChild(header);
+                const [yyyy, mm] = file.name.split('-');
+                if (!groups[yyyy]) groups[yyyy] = {};
+                if (!groups[yyyy][mm]) groups[yyyy][mm] = [];
+                groups[yyyy][mm].push(file);
+            }
+            for (const yyyy of Object.keys(groups).sort().reverse()) {
+                const yearEl = document.createElement('div');
+                yearEl.className = 'entry-year-label';
+                yearEl.textContent = yyyy;
+                entriesList.appendChild(yearEl);
+                for (const mm of Object.keys(groups[yyyy]).sort().reverse()) {
+                    const row = document.createElement('div');
+                    row.className = 'entry-month-row';
+                    const monthName = document.createElement('span');
+                    monthName.className = 'entry-month-name';
+                    monthName.textContent = months[parseInt(mm) - 1];
+                    row.appendChild(monthName);
+                    const chips = document.createElement('div');
+                    chips.className = 'entry-day-chips';
+                    const sorted = groups[yyyy][mm].slice().sort((a, b) => {
+                        const da = parseInt(a.name.split('-')[2]);
+                        const db = parseInt(b.name.split('-')[2]);
+                        return db - da;
+                    });
+                    for (const file of sorted) {
+                        const dd = parseInt(file.name.split('-')[2]);
+                        const chip = document.createElement('button');
+                        chip.type = 'button';
+                        chip.className = 'entry-day-chip';
+                        chip.textContent = dd;
+                        chip.addEventListener('click', () => openEntry(file));
+                        chips.appendChild(chip);
+                    }
+                    row.appendChild(chips);
+                    entriesList.appendChild(row);
                 }
-                const record = document.createElement('div');
-                record.className = 'blog-record';
-                record.innerHTML = `<span class="blog-link">${parseInt(dd)}</span>`;
-                record.addEventListener('click', () => openEntry(file));
-                entriesList.appendChild(record);
             }
         }
 
