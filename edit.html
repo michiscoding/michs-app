@@ -1832,6 +1832,7 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
             document.getElementById('fd-search-section').style.display = 'none';
             document.getElementById('food-list-view').style.display = 'none';
             document.getElementById('food-editor-view').style.display = '';
+            autoResizeNotes(document.getElementById('fd-notes'));
             revealTab(document.getElementById('food-editor-view'));
             setBackVisible(true);
             backContext = 'consumption';
@@ -1957,6 +1958,7 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
             document.getElementById('vn-search-section').style.display = 'none';
             document.getElementById('venue-list-view').style.display = 'none';
             document.getElementById('venue-editor-view').style.display = '';
+            autoResizeNotes(document.getElementById('vn-notes'));
             revealTab(document.getElementById('venue-editor-view'));
             setBackVisible(true);
             backContext = 'consumption';
@@ -2207,6 +2209,13 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
             revealTab(document.getElementById('venue-editor-view'));
             setBackVisible(true); backContext = 'consumption';
         }
+
+        function autoResizeNotes(el) {
+            el.style.height = 'auto';
+            el.style.height = el.scrollHeight + 'px';
+        }
+        document.getElementById('fd-notes').addEventListener('input', function() { autoResizeNotes(this); });
+        document.getElementById('vn-notes').addEventListener('input', function() { autoResizeNotes(this); });
 
         let vnSearchDebounce = null;
         document.getElementById('vn-search-btn').addEventListener('click', () => { const q = document.getElementById('vn-search-input').value.trim(); if (q) searchVenuesC(q); });
