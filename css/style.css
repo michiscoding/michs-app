@@ -665,9 +665,9 @@ body.dark .edu-block-form { background: #1e1e1e; }
     width: 120%; height: 120%;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='4' intercept='-1.5'/%3E%3CfeFuncG type='linear' slope='4' intercept='-1.5'/%3E%3CfeFuncB type='linear' slope='4' intercept='-1.5'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     background-size: cover;
-    opacity: 0.9;
+    opacity: 1;
     animation: vhs-jitter 0.08s steps(1) infinite;
-    transition: opacity 0.5s ease;
+    transition: none;
     pointer-events: none;
     z-index: 1;
 }
