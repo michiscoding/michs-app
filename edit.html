@@ -99,6 +99,17 @@
         .c-list-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #ccc; margin: 0.85rem 0 0.4rem; }
         body.dark .c-list-label { color: #444; }
 
+        .browse-tag-pills { display: flex; flex-wrap: wrap; gap: 0.3rem; margin: 0.4rem 0 0.85rem; }
+        .browse-tag-pill { background: none; border: 1px solid #e0e0e0; border-radius: 999px; padding: 0.18rem 0.65rem; font-family: inherit; font-size: 0.68rem; font-weight: 600; color: #aaa; cursor: pointer; transition: all 0.12s; }
+        .browse-tag-pill.active { background: #222; border-color: #222; color: #fff; }
+        body.dark .browse-tag-pill { border-color: #2a2a2a; color: #555; }
+        body.dark .browse-tag-pill.active { background: #ddd; border-color: #ddd; color: #111; }
+        .browse-alpha-label { font-size: 0.58rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #ccc; margin: 0.9rem 0 0.15rem; pointer-events: none; }
+        body.dark .browse-alpha-label { color: #383838; }
+        .c-results-section-label { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #ccc; margin: 0.6rem 0 0.2rem; }
+        .c-results-section-label:first-child { margin-top: 0; }
+        body.dark .c-results-section-label { color: #444; }
+
         .entry-year-label { font-size: 0.58rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #ccc; margin: 1.4rem 0 0.5rem; pointer-events: none; }
         .entry-year-label:first-child { margin-top: 0.25rem; }
         body.dark .entry-year-label { color: #383838; }
@@ -1837,19 +1848,73 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
             });
         });
 
+        let foodAllRecords = [], activeFdTagFilter = 'all';
+        let venueAllRecords = [], activeVnTagFilter = 'all';
+
+        function renderBrowseList(listEl, data, activeTag, onTagChange, onItemClick) {
+            listEl.innerHTML = '';
+            if (!data.length) { listEl.innerHTML = '<div style="color:#aaa;font-size:0.8rem;padding:0.5rem 0">none yet</div>'; return; }
+            const allTags = [...new Set(data.flatMap(d => d.tags || []))].sort();
+            if (allTags.length) {
+                const pillsEl = document.createElement('div');
+                pillsEl.className = 'browse-tag-pills';
+                ['all', ...allTags].forEach(tag => {
+                    const pill = document.createElement('button');
+                    pill.type = 'button';
+                    pill.className = 'browse-tag-pill' + (activeTag === tag ? ' active' : '');
+                    pill.textContent = tag;
+                    pill.addEventListener('click', () => onTagChange(tag));
+                    pillsEl.appendChild(pill);
+                });
+                listEl.appendChild(pillsEl);
+            }
+            const filtered = activeTag === 'all' ? data : data.filter(d => d.tags?.includes(activeTag));
+            if (!filtered.length) {
+                const empty = document.createElement('div');
+                empty.style.cssText = 'color:#aaa;font-size:0.8rem;padding:0.35rem 0';
+                empty.textContent = 'nothing with that tag';
+                listEl.appendChild(empty); return;
+            }
+            const groups = {};
+            filtered.forEach(item => {
+                const ch = (item.name?.[0] || '#').toUpperCase();
+                const key = /[A-Z]/.test(ch) ? ch : '#';
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(item);
+            });
+            const keys = Object.keys(groups).filter(k => k !== '#').sort();
+            if (groups['#']) keys.push('#');
+            keys.forEach(letter => {
+                const hdr = document.createElement('div');
+                hdr.className = 'browse-alpha-label';
+                hdr.textContent = letter;
+                listEl.appendChild(hdr);
+                groups[letter].forEach(item => {
+                    const row = document.createElement('div');
+                    row.className = 'blog-record';
+                    row.style.cursor = 'pointer';
+                    row.innerHTML = `<div class="blog-details-1">${item.name}</div>${item.location || item.date ? `<div class="blog-details-2">${[item.location, item.date?.slice(0,7)].filter(Boolean).join(' · ')}${item.rating ? ' · ' + '★'.repeat(Math.round(item.rating)) : ''}</div>` : ''}`;
+                    row.addEventListener('click', () => onItemClick(item.id));
+                    listEl.appendChild(row);
+                });
+            });
+        }
+
+        function renderFoodBrowseList() {
+            renderBrowseList(
+                document.getElementById('food-list'), foodAllRecords, activeFdTagFilter,
+                tag => { activeFdTagFilter = tag; renderFoodBrowseList(); },
+                id => openFoodEditor(id)
+            );
+        }
+
         async function loadFoodList() {
             const listEl = document.getElementById('food-list');
             listEl.innerHTML = '<div style="color:#aaa;font-size:0.8rem;padding:0.5rem 0">loading...</div>';
-            const { data } = await db.from('food').select('id, name, rating, date, location').order('created_at', { ascending: false });
-            listEl.innerHTML = '';
-            (data || []).forEach(item => {
-                const row = document.createElement('div');
-                row.className = 'blog-record';
-                row.style.cursor = 'pointer';
-                row.innerHTML = `<div class="blog-details-1">${item.name}</div>${item.location || item.date ? `<div class="blog-details-2">${[item.location, item.date?.slice(0,7)].filter(Boolean).join(' · ')}${item.rating ? ' · ' + '★'.repeat(item.rating) : ''}</div>` : ''}`;
-                row.addEventListener('click', () => openFoodEditor(item.id));
-                listEl.appendChild(row);
-            });
+            const { data } = await db.from('food').select('id, name, rating, date, location, tags').order('name', { ascending: true });
+            foodAllRecords = data || [];
+            activeFdTagFilter = 'all';
+            renderFoodBrowseList();
         }
 
         async function openFoodEditor(id) {
@@ -1963,19 +2028,21 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
         let currentVenueId = null;
         let currentVenuePlaceId = null, currentVenueNewPhotoUrl = null;
 
+        function renderVenueBrowseList() {
+            renderBrowseList(
+                document.getElementById('venue-list'), venueAllRecords, activeVnTagFilter,
+                tag => { activeVnTagFilter = tag; renderVenueBrowseList(); },
+                id => openVenueEditor(id)
+            );
+        }
+
         async function loadVenueList() {
             const listEl = document.getElementById('venue-list');
             listEl.innerHTML = '<div style="color:#aaa;font-size:0.8rem;padding:0.5rem 0">loading...</div>';
-            const { data } = await db.from('venues').select('id, name, rating, date, location').order('created_at', { ascending: false });
-            listEl.innerHTML = '';
-            (data || []).forEach(item => {
-                const row = document.createElement('div');
-                row.className = 'blog-record';
-                row.style.cursor = 'pointer';
-                row.innerHTML = `<div class="blog-details-1">${item.name}</div>${item.location || item.date ? `<div class="blog-details-2">${[item.location, item.date?.slice(0,7)].filter(Boolean).join(' · ')}${item.rating ? ' · ' + '★'.repeat(item.rating) : ''}</div>` : ''}`;
-                row.addEventListener('click', () => openVenueEditor(item.id));
-                listEl.appendChild(row);
-            });
+            const { data } = await db.from('venues').select('id, name, rating, date, location, tags').order('name', { ascending: true });
+            venueAllRecords = data || [];
+            activeVnTagFilter = 'all';
+            renderVenueBrowseList();
         }
 
         async function openVenueEditor(id) {
@@ -2135,21 +2202,39 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
         async function searchFoodC(q) {
             const el = document.getElementById('fd-search-results');
             el.innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.4rem 0">searching...</div>';
+            const qLow = q.toLowerCase();
+            const yours = foodAllRecords.filter(r => r.name?.toLowerCase().includes(qLow) || r.location?.toLowerCase().includes(qLow));
+            let places = [];
             try {
                 const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': GOOGLE_KEY, 'X-Goog-FieldMask': 'places.id,places.displayName,places.shortFormattedAddress,places.photos' },
-                    body: JSON.stringify({ textQuery: q, pageSize: 6 })
+                    body: JSON.stringify({ textQuery: q, pageSize: 5 })
                 });
                 const data = await res.json();
-                const places = data.places || [];
-                if (!places.length) { el.innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.4rem 0">no results</div>'; return; }
-                renderCSearchResults('fd', places.map(p => ({
-                    title: p.displayName?.text || '', sub: p.shortFormattedAddress || '',
-                    placeId: p.id,
-                    photoName: p.photos?.[0]?.name,
-                })), item => openFoodEditorForAdd(item));
-            } catch(e) { document.getElementById('fd-search-results').innerHTML = `<div style="font-size:0.8rem;color:#aaa;padding:0.4rem 0">error: ${e.message}</div>`; }
+                places = data.places || [];
+            } catch(e) {}
+            el.innerHTML = '';
+            if (!yours.length && !places.length) { el.innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.4rem 0">no results</div>'; return; }
+            if (yours.length) {
+                const lbl = document.createElement('div'); lbl.className = 'c-results-section-label'; lbl.textContent = 'yours'; el.appendChild(lbl);
+                yours.slice(0, 4).forEach(item => {
+                    const row = document.createElement('div'); row.className = 'blog-record'; row.style.cursor = 'pointer';
+                    row.innerHTML = `<div class="blog-details-1">${item.name}</div>${item.location ? `<div class="blog-details-2">${item.location}</div>` : ''}`;
+                    row.addEventListener('click', () => { el.innerHTML = ''; openFoodEditor(item.id); });
+                    el.appendChild(row);
+                });
+            }
+            if (places.length) {
+                const lbl = document.createElement('div'); lbl.className = 'c-results-section-label'; lbl.textContent = 'add new'; el.appendChild(lbl);
+                places.forEach(p => {
+                    const item = { title: p.displayName?.text || '', sub: p.shortFormattedAddress || '', placeId: p.id, photoName: p.photos?.[0]?.name };
+                    const row = document.createElement('div'); row.className = 'blog-record'; row.style.cursor = 'pointer';
+                    row.innerHTML = `<div class="blog-details-1">${item.title}</div>${item.sub ? `<div class="blog-details-2">${item.sub}</div>` : ''}`;
+                    row.addEventListener('click', () => { el.innerHTML = ''; openFoodEditorForAdd(item); });
+                    el.appendChild(row);
+                });
+            }
         }
 
         function openMediaEditorForAdd(type, item) {
@@ -2211,21 +2296,39 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
         async function searchVenuesC(q) {
             const el = document.getElementById('vn-search-results');
             el.innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.4rem 0">searching...</div>';
+            const qLow = q.toLowerCase();
+            const yours = venueAllRecords.filter(r => r.name?.toLowerCase().includes(qLow) || r.location?.toLowerCase().includes(qLow));
+            let places = [];
             try {
                 const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': GOOGLE_KEY, 'X-Goog-FieldMask': 'places.id,places.displayName,places.shortFormattedAddress,places.photos' },
-                    body: JSON.stringify({ textQuery: q, pageSize: 6 })
+                    body: JSON.stringify({ textQuery: q, pageSize: 5 })
                 });
                 const data = await res.json();
-                const places = data.places || [];
-                if (!places.length) { el.innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.4rem 0">no results</div>'; return; }
-                renderCSearchResults('vn', places.map(p => ({
-                    title: p.displayName?.text || '', sub: p.shortFormattedAddress || '',
-                    placeId: p.id,
-                    photoName: p.photos?.[0]?.name,
-                })), item => openVenueEditorForAdd(item));
-            } catch(e) { document.getElementById('vn-search-results').innerHTML = `<div style="font-size:0.8rem;color:#aaa;padding:0.4rem 0">error: ${e.message}</div>`; }
+                places = data.places || [];
+            } catch(e) {}
+            el.innerHTML = '';
+            if (!yours.length && !places.length) { el.innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.4rem 0">no results</div>'; return; }
+            if (yours.length) {
+                const lbl = document.createElement('div'); lbl.className = 'c-results-section-label'; lbl.textContent = 'yours'; el.appendChild(lbl);
+                yours.slice(0, 4).forEach(item => {
+                    const row = document.createElement('div'); row.className = 'blog-record'; row.style.cursor = 'pointer';
+                    row.innerHTML = `<div class="blog-details-1">${item.name}</div>${item.location ? `<div class="blog-details-2">${item.location}</div>` : ''}`;
+                    row.addEventListener('click', () => { el.innerHTML = ''; openVenueEditor(item.id); });
+                    el.appendChild(row);
+                });
+            }
+            if (places.length) {
+                const lbl = document.createElement('div'); lbl.className = 'c-results-section-label'; lbl.textContent = 'add new'; el.appendChild(lbl);
+                places.forEach(p => {
+                    const item = { title: p.displayName?.text || '', sub: p.shortFormattedAddress || '', placeId: p.id, photoName: p.photos?.[0]?.name };
+                    const row = document.createElement('div'); row.className = 'blog-record'; row.style.cursor = 'pointer';
+                    row.innerHTML = `<div class="blog-details-1">${item.title}</div>${item.sub ? `<div class="blog-details-2">${item.sub}</div>` : ''}`;
+                    row.addEventListener('click', () => { el.innerHTML = ''; openVenueEditorForAdd(item); });
+                    el.appendChild(row);
+                });
+            }
         }
 
         async function openVenueEditorForAdd(item) {
