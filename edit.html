@@ -129,6 +129,31 @@
         .edit-star.half-filled::after { content: '★'; position: absolute; left: 0; top: 0; width: 50%; overflow: hidden; color: #f5a623; pointer-events: none; }
         body.dark .edit-star { color: #444; }
         body.dark .edit-star.filled, body.dark .edit-star.half-filled::after { color: #f5a623; }
+
+        /* PA technical notes */
+        .pa-note-block { border: 1px solid #e8e8e8; border-radius: 8px; padding: 0.85rem 0.9rem; margin-bottom: 0.6rem; }
+        body.dark .pa-note-block { border-color: #252525; }
+        .pa-note-header { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.6rem; }
+        .pa-note-type-badge { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: #bbb; }
+        body.dark .pa-note-type-badge { color: #444; }
+        .pa-note-lang-select { background: none; border: 1px solid #e0e0e0; border-radius: 5px; padding: 0.18rem 0.45rem; font-family: inherit; font-size: 0.71rem; color: #666; outline: none; cursor: pointer; }
+        body.dark .pa-note-lang-select { border-color: #333; color: #888; background: #1a1a1a; }
+        .pa-note-spacer { flex: 1; }
+        .pa-note-move-btn { background: none; border: none; font-size: 0.85rem; color: #ccc; cursor: pointer; padding: 0.1rem 0.2rem; line-height: 1; }
+        .pa-note-move-btn:hover:not(:disabled) { color: #555; }
+        .pa-note-move-btn:disabled { opacity: 0.25; cursor: default; }
+        body.dark .pa-note-move-btn { color: #444; }
+        body.dark .pa-note-move-btn:hover:not(:disabled) { color: #aaa; }
+        .pa-note-del-btn { background: none; border: none; font-size: 1rem; color: #ccc; cursor: pointer; padding: 0.1rem 0.25rem; line-height: 1; margin-left: 0.15rem; }
+        .pa-note-del-btn:hover { color: #e55; }
+        .pa-note-code-ta { width: 100%; font-family: 'Courier New', Courier, monospace; font-size: 0.8rem; line-height: 1.55; border: 1px solid #e8e8e8; border-radius: 6px; padding: 0.55rem 0.75rem; resize: none; outline: none; background: #f9f9f9; color: #222; overflow: hidden; min-height: 60px; }
+        body.dark .pa-note-code-ta { border-color: #252525; background: #111; color: #ccc; }
+        .pa-note-attach-preview { width: 100%; max-height: 180px; object-fit: contain; border-radius: 6px; display: block; margin-bottom: 0.5rem; background: #f5f5f5; }
+        body.dark .pa-note-attach-preview { background: #1a1a1a; }
+        .pa-note-desc-ta { width: 100%; font-family: inherit; font-size: 0.83rem; line-height: 1.6; border: 1px solid #e8e8e8; border-radius: 6px; padding: 0.5rem 0.75rem; resize: none; outline: none; background: none; color: #444; margin-top: 0.5rem; overflow: hidden; min-height: 38px; }
+        body.dark .pa-note-desc-ta { border-color: #252525; color: #aaa; }
+        .pa-notes-add-row { display: flex; gap: 0.45rem; margin-top: 0.35rem; }
+        .pa-notes-add-row .btn-app { font-size: 0.75rem; padding: 0.3rem 0.7rem; }
     </style>
 </head>
 
@@ -261,6 +286,14 @@
                     <div class="field-group">
                         <label class="field-label">how it works</label>
                         <textarea id="pa-how" placeholder="describe the technical build..."></textarea>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">technical notes</label>
+                        <div id="pa-notes-list"></div>
+                        <div class="pa-notes-add-row">
+                            <button type="button" id="pa-add-code-btn" class="btn-app">+ code block</button>
+                            <button type="button" id="pa-add-attach-btn" class="btn-app">+ attachment</button>
+                        </div>
                     </div>
                     <div class="editor-actions">
                         <button type="button" id="pa-delete-btn" class="danger-btn">delete</button>
@@ -981,6 +1014,117 @@
 
         // --- powerapps ---
         let paMediaFiles = [], paSelectedTags = new Set(), paCurrentSlug = null, paExistingMedia = [];
+        let paCurrentNotes = [], paDeletedNoteIds = new Set();
+        const PA_LANGS = [
+            {id:'powerfx',label:'PowerFx'},{id:'javascript',label:'JavaScript'},{id:'typescript',label:'TypeScript'},
+            {id:'html',label:'HTML'},{id:'css',label:'CSS'},{id:'csharp',label:'C#'},
+            {id:'python',label:'Python'},{id:'sql',label:'SQL'},{id:'json',label:'JSON'},{id:'m',label:'Power Query (M)'}
+        ];
+
+        function renderPaNotes() {
+            const list = document.getElementById('pa-notes-list');
+            list.innerHTML = '';
+            paCurrentNotes.forEach((note, idx) => {
+                const block = document.createElement('div');
+                block.className = 'pa-note-block';
+
+                const header = document.createElement('div');
+                header.className = 'pa-note-header';
+
+                const badge = document.createElement('span');
+                badge.className = 'pa-note-type-badge';
+                badge.textContent = note.type;
+                header.appendChild(badge);
+
+                if (note.type === 'code') {
+                    const langSel = document.createElement('select');
+                    langSel.className = 'pa-note-lang-select';
+                    PA_LANGS.forEach(l => {
+                        const opt = document.createElement('option');
+                        opt.value = l.id; opt.textContent = l.label;
+                        if (l.id === (note.language || 'powerfx')) opt.selected = true;
+                        langSel.appendChild(opt);
+                    });
+                    langSel.addEventListener('change', () => { paCurrentNotes[idx].language = langSel.value; });
+                    header.appendChild(langSel);
+                }
+
+                const spacer = document.createElement('span');
+                spacer.className = 'pa-note-spacer';
+                header.appendChild(spacer);
+
+                const upBtn = document.createElement('button');
+                upBtn.type = 'button'; upBtn.className = 'pa-note-move-btn'; upBtn.textContent = '↑'; upBtn.disabled = idx === 0;
+                upBtn.addEventListener('click', () => { if (idx > 0) { [paCurrentNotes[idx], paCurrentNotes[idx-1]] = [paCurrentNotes[idx-1], paCurrentNotes[idx]]; renderPaNotes(); } });
+                const downBtn = document.createElement('button');
+                downBtn.type = 'button'; downBtn.className = 'pa-note-move-btn'; downBtn.textContent = '↓'; downBtn.disabled = idx === paCurrentNotes.length - 1;
+                downBtn.addEventListener('click', () => { if (idx < paCurrentNotes.length - 1) { [paCurrentNotes[idx], paCurrentNotes[idx+1]] = [paCurrentNotes[idx+1], paCurrentNotes[idx]]; renderPaNotes(); } });
+                const delBtn = document.createElement('button');
+                delBtn.type = 'button'; delBtn.className = 'pa-note-del-btn'; delBtn.textContent = '×';
+                delBtn.addEventListener('click', () => { if (note.id) paDeletedNoteIds.add(note.id); paCurrentNotes.splice(idx, 1); renderPaNotes(); });
+                header.appendChild(upBtn); header.appendChild(downBtn); header.appendChild(delBtn);
+                block.appendChild(header);
+
+                if (note.type === 'code') {
+                    const codeTA = document.createElement('textarea');
+                    codeTA.className = 'pa-note-code-ta';
+                    codeTA.placeholder = 'paste code here...';
+                    codeTA.value = note.content || '';
+                    codeTA.addEventListener('input', () => {
+                        paCurrentNotes[idx].content = codeTA.value;
+                        codeTA.style.height = 'auto'; codeTA.style.height = codeTA.scrollHeight + 'px';
+                    });
+                    requestAnimationFrame(() => { codeTA.style.height = 'auto'; codeTA.style.height = codeTA.scrollHeight + 'px'; });
+                    block.appendChild(codeTA);
+                } else {
+                    const fileInput = document.createElement('input');
+                    fileInput.type = 'file'; fileInput.accept = 'image/*,.pdf'; fileInput.style.display = 'none';
+                    const previewWrap = document.createElement('div');
+                    if (note._previewUrl || note.file_path) {
+                        const preview = document.createElement('img');
+                        preview.className = 'pa-note-attach-preview';
+                        preview.src = note._previewUrl || (MEDIA_BASE + note.file_path);
+                        previewWrap.appendChild(preview);
+                    }
+                    const chooseBtn = document.createElement('button');
+                    chooseBtn.type = 'button'; chooseBtn.className = 'btn-app pa-notes-add-row';
+                    chooseBtn.textContent = note._previewUrl || note.file_path ? 'change file' : 'choose file';
+                    chooseBtn.addEventListener('click', () => fileInput.click());
+                    fileInput.addEventListener('change', e => {
+                        const file = e.target.files[0]; if (!file) return;
+                        paCurrentNotes[idx]._file = file;
+                        const url = URL.createObjectURL(file);
+                        paCurrentNotes[idx]._previewUrl = url;
+                        previewWrap.innerHTML = '';
+                        const preview = document.createElement('img');
+                        preview.className = 'pa-note-attach-preview'; preview.src = url;
+                        previewWrap.appendChild(preview);
+                        chooseBtn.textContent = 'change file';
+                    });
+                    block.appendChild(fileInput); block.appendChild(previewWrap); block.appendChild(chooseBtn);
+                }
+
+                const descTA = document.createElement('textarea');
+                descTA.className = 'pa-note-desc-ta';
+                descTA.placeholder = 'description — what is this, what problem does it solve...';
+                descTA.value = note.description || '';
+                descTA.addEventListener('input', () => {
+                    paCurrentNotes[idx].description = descTA.value;
+                    descTA.style.height = 'auto'; descTA.style.height = descTA.scrollHeight + 'px';
+                });
+                requestAnimationFrame(() => { descTA.style.height = 'auto'; descTA.style.height = descTA.scrollHeight + 'px'; });
+                block.appendChild(descTA);
+                list.appendChild(block);
+            });
+        }
+
+        function addPaNote(type) {
+            paCurrentNotes.push({ id: null, type, language: type === 'code' ? 'powerfx' : null, content: '', file_path: '', description: '', sort_order: paCurrentNotes.length, _file: null, _previewUrl: null });
+            renderPaNotes();
+        }
+
+        document.getElementById('pa-add-code-btn').addEventListener('click', () => addPaNote('code'));
+        document.getElementById('pa-add-attach-btn').addEventListener('click', () => addPaNote('attachment'));
 
         document.querySelectorAll('.tag-pill').forEach(pill => {
             pill.addEventListener('click', () => {
@@ -1091,6 +1235,11 @@
             paEditorView.style.display = 'block';
             revealTab(paEditorView);
             setBackVisible(true);
+            paDeletedNoteIds = new Set();
+            document.getElementById('pa-notes-list').innerHTML = '';
+            const { data: notesData } = await db.from('powerapps_notes').select('*').eq('record_slug', slug).order('sort_order', { ascending: true });
+            paCurrentNotes = (notesData || []).map(n => ({ ...n, _file: null, _previewUrl: null }));
+            renderPaNotes();
         }
 
         document.getElementById('pa-save-btn').addEventListener('click', async () => {
@@ -1116,6 +1265,7 @@
             const how = document.getElementById('pa-how').value;
             const tags = [...paSelectedTags];
             if (newSlug !== paCurrentSlug) {
+                await adminDb.from('powerapps_notes').update({ record_slug: newSlug }).eq('record_slug', paCurrentSlug);
                 await adminDb.from('powerapps').delete().eq('slug', paCurrentSlug);
             }
             const { error } = await adminDb.from('powerapps').upsert(
@@ -1128,6 +1278,27 @@
             } else {
                 paCurrentSlug = newSlug;
                 paExistingMedia = mediaPaths;
+                if (paDeletedNoteIds.size > 0) {
+                    await adminDb.from('powerapps_notes').delete().in('id', [...paDeletedNoteIds]);
+                    paDeletedNoteIds.clear();
+                }
+                for (let i = 0; i < paCurrentNotes.length; i++) {
+                    const note = paCurrentNotes[i];
+                    let file_path = note.file_path || '';
+                    if (note._file) {
+                        const ext = note._file.name.split('.').pop() || 'bin';
+                        const path = `powerapps-notes/${newSlug}-${Date.now()}-${i}.${ext}`;
+                        const { error: upErr } = await adminDb.storage.from('media').upload(path, note._file, { upsert: true, contentType: note._file.type });
+                        if (!upErr) { file_path = path; paCurrentNotes[i].file_path = path; paCurrentNotes[i]._file = null; }
+                    }
+                    const row = { record_slug: newSlug, type: note.type, language: note.language || null, content: note.content || '', file_path, description: note.description || '', sort_order: i };
+                    if (note.id) {
+                        await adminDb.from('powerapps_notes').update(row).eq('id', note.id);
+                    } else {
+                        const { data: ins } = await adminDb.from('powerapps_notes').insert(row).select('id').single();
+                        if (ins) paCurrentNotes[i].id = ins.id;
+                    }
+                }
                 btn.textContent = 'saved!';
             }
             setTimeout(() => { btn.textContent = 'save'; btn.disabled = false; }, 2000);
@@ -1148,6 +1319,7 @@
             const adminDb = await getAdminClient();
             if (!adminDb) return;
             btn.textContent = 'deleting...';
+            await adminDb.from('powerapps_notes').delete().eq('record_slug', paCurrentSlug);
             await adminDb.from('powerapps').delete().eq('slug', paCurrentSlug);
             paCurrentSlug = null;
             paEditorView.style.display = 'none';
