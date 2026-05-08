@@ -1014,7 +1014,7 @@
 
         // --- powerapps ---
         let paMediaFiles = [], paSelectedTags = new Set(), paCurrentSlug = null, paExistingMedia = [];
-        let paCurrentNotes = [], paDeletedNoteIds = new Set();
+        let paCurrentNotes = [], paDeletedNoteIds = new Set(), paRemovedMedia = new Set();
         const PA_LANGS = [
             {id:'powerfx',label:'PowerFx'},{id:'javascript',label:'JavaScript'},{id:'typescript',label:'TypeScript'},
             {id:'html',label:'HTML'},{id:'css',label:'CSS'},{id:'csharp',label:'C#'},
@@ -1196,6 +1196,7 @@
             paCurrentSlug = slug;
             paExistingMedia = data.media || [];
             paMediaFiles = [];
+            paRemovedMedia = new Set();
             document.getElementById('pa-media-input').value = '';
             const previews = document.getElementById('pa-media-previews');
             previews.innerHTML = '';
@@ -1212,7 +1213,13 @@
                 el.className = 'media-thumb';
                 const wrap = document.createElement('div');
                 wrap.className = 'media-thumb-wrap';
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'remove-btn';
+                removeBtn.textContent = '×';
+                removeBtn.addEventListener('click', () => { paRemovedMedia.add(path); wrap.remove(); });
                 wrap.appendChild(el);
+                wrap.appendChild(removeBtn);
                 previews.appendChild(wrap);
             });
             document.getElementById('pa-title').value = data.title || '';
@@ -1250,16 +1257,14 @@
             const btn = document.getElementById('pa-save-btn');
             btn.textContent = 'saving...'; btn.disabled = true;
             const newSlug = slugify(title);
-            let mediaPaths = paMediaFiles.length > 0 ? [] : [...paExistingMedia];
-            if (paMediaFiles.length > 0) {
-                for (let i = 0; i < paMediaFiles.length; i++) {
-                    const file = paMediaFiles[i];
-                    const ext = file.name.split('.').pop() || 'jpg';
-                    const filename = paMediaFiles.length === 1 ? `${newSlug}.${ext}` : `${newSlug}-${i+1}.${ext}`;
-                    const path = `powerapps/${filename}`;
-                    const { error } = await adminDb.storage.from('media').upload(path, file, { upsert: true, contentType: mimeType(file) });
-                    if (!error) mediaPaths.push(path);
-                }
+            let mediaPaths = paExistingMedia.filter(p => !paRemovedMedia.has(p));
+            for (let i = 0; i < paMediaFiles.length; i++) {
+                const file = paMediaFiles[i];
+                const ext = file.name.split('.').pop() || 'jpg';
+                const filename = paMediaFiles.length === 1 ? `${newSlug}.${ext}` : `${newSlug}-${i+1}.${ext}`;
+                const path = `powerapps/${filename}`;
+                const { error } = await adminDb.storage.from('media').upload(path, file, { upsert: true, contentType: mimeType(file) });
+                if (!error) mediaPaths.push(path);
             }
             const what = document.getElementById('pa-what').value;
             const how = document.getElementById('pa-how').value;
