@@ -865,6 +865,9 @@ body.dark .back-btn:hover { color: #ccc; }
 .blog-record:hover { opacity: 0.5; }
 body.dark .blog-record { color: #ddd; }
 body.dark .blog-link { color: #ddd; }
+.blog-details-1 { font-size: 0.9rem; font-weight: 600; }
+.blog-details-2 { font-size: 0.75rem; font-weight: 400; color: #aaa; }
+body.dark .blog-details-2 { color: #666; }
 
 /* entry filters */
 #entry-filters {
