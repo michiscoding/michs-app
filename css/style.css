@@ -181,6 +181,23 @@ a:hover { text-decoration: none; }
     height: 20px;
     font-size: 0.75rem;
 }
+.photo-move-btn {
+    position: absolute;
+    bottom: 4px;
+    background: rgba(0,0,0,0.45);
+    border: none;
+    color: #fff;
+    font-size: 0.65rem;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    border-radius: 3px;
+    padding: 0;
+    line-height: 1;
+}
+.photo-move-prev { left: 4px; }
+.photo-move-next { right: 4px; }
+.photo-move-btn:disabled { opacity: 0.2; cursor: default; }
 
 #photo-add-btn {
     font-size: 0.8rem;

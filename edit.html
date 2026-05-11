@@ -529,35 +529,36 @@
         });
 
         function addNewPhoto(file) {
-            const entry = { type: 'new', file, name: sanitizeName(file.name) };
-            photos.push(entry);
-            renderThumb(URL.createObjectURL(file), entry, file.type.startsWith('video/'));
+            photos.push({ type: 'new', file, name: sanitizeName(file.name), src: URL.createObjectURL(file) });
+            renderAllPhotos();
         }
 
         function addExistingPhoto(storagePath) {
-            const isVideo = /\.(mp4|webm|mov)$/i.test(storagePath);
-            const entry = { type: 'existing', storage_path: storagePath, src: MEDIA_BASE + storagePath };
-            photos.push(entry);
-            renderThumb(entry.src, entry, isVideo);
+            photos.push({ type: 'existing', storage_path: storagePath, src: MEDIA_BASE + storagePath });
+            renderAllPhotos();
         }
 
-        function renderThumb(src, entry, isVideo) {
-            const thumb = document.createElement('div');
-            thumb.className = 'photo-thumb';
-            const media = document.createElement(isVideo ? 'video' : 'img');
-            media.src = src;
-            if (isVideo) { media.muted = true; media.loop = true; media.autoplay = true; media.playsInline = true; }
-            const removeBtn = document.createElement('button');
-            removeBtn.type = 'button';
-            removeBtn.className = 'remove-btn';
-            removeBtn.textContent = '×';
-            removeBtn.addEventListener('click', () => {
-                photos = photos.filter(p => p !== entry);
-                thumb.remove();
+        function renderAllPhotos() {
+            photoPreviews.innerHTML = '';
+            photos.forEach((entry, i) => {
+                const isVideo = entry.type === 'new' ? entry.file.type.startsWith('video/') : /\.(mp4|webm|mov)$/i.test(entry.storage_path || '');
+                const thumb = document.createElement('div');
+                thumb.className = 'photo-thumb';
+                const media = document.createElement(isVideo ? 'video' : 'img');
+                media.src = entry.src;
+                if (isVideo) { media.muted = true; media.loop = true; media.autoplay = true; media.playsInline = true; }
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button'; removeBtn.className = 'remove-btn'; removeBtn.textContent = '×';
+                removeBtn.addEventListener('click', () => { photos.splice(i, 1); renderAllPhotos(); });
+                const prevBtn = document.createElement('button');
+                prevBtn.type = 'button'; prevBtn.className = 'photo-move-btn photo-move-prev'; prevBtn.textContent = '←'; prevBtn.disabled = i === 0;
+                prevBtn.addEventListener('click', () => { [photos[i], photos[i-1]] = [photos[i-1], photos[i]]; renderAllPhotos(); });
+                const nextBtn = document.createElement('button');
+                nextBtn.type = 'button'; nextBtn.className = 'photo-move-btn photo-move-next'; nextBtn.textContent = '→'; nextBtn.disabled = i === photos.length - 1;
+                nextBtn.addEventListener('click', () => { [photos[i], photos[i+1]] = [photos[i+1], photos[i]]; renderAllPhotos(); });
+                thumb.appendChild(media); thumb.appendChild(removeBtn); thumb.appendChild(prevBtn); thumb.appendChild(nextBtn);
+                photoPreviews.appendChild(thumb);
             });
-            thumb.appendChild(media);
-            thumb.appendChild(removeBtn);
-            photoPreviews.appendChild(thumb);
         }
 
         function sanitizeName(name) {

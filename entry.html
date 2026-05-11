@@ -154,29 +154,31 @@
         });
 
         function addPhoto(file) {
-            const url = URL.createObjectURL(file);
-            const entry = { file, name: sanitizeName(file.name) };
-            newPhotos.push(entry);
+            newPhotos.push({ file, name: sanitizeName(file.name), src: URL.createObjectURL(file) });
+            renderNewPhotos();
+        }
 
-            const thumb = document.createElement('div');
-            thumb.className = 'photo-thumb new-thumb';
-            const isVideo = file.type.startsWith('video/');
-            const media = document.createElement(isVideo ? 'video' : 'img');
-            media.src = url;
-            if (isVideo) { media.muted = true; media.loop = true; media.autoplay = true; media.playsInline = true; }
-
-            const removeBtn = document.createElement('button');
-            removeBtn.type = 'button';
-            removeBtn.className = 'remove-btn';
-            removeBtn.textContent = '×';
-            removeBtn.addEventListener('click', () => {
-                newPhotos.splice(newPhotos.indexOf(entry), 1);
-                thumb.remove();
+        function renderNewPhotos() {
+            photoPreviews.querySelectorAll('.new-thumb').forEach(t => t.remove());
+            newPhotos.forEach((entry, i) => {
+                const isVideo = entry.file.type.startsWith('video/');
+                const thumb = document.createElement('div');
+                thumb.className = 'photo-thumb new-thumb';
+                const media = document.createElement(isVideo ? 'video' : 'img');
+                media.src = entry.src;
+                if (isVideo) { media.muted = true; media.loop = true; media.autoplay = true; media.playsInline = true; }
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button'; removeBtn.className = 'remove-btn'; removeBtn.textContent = '×';
+                removeBtn.addEventListener('click', () => { newPhotos.splice(i, 1); renderNewPhotos(); });
+                const prevBtn = document.createElement('button');
+                prevBtn.type = 'button'; prevBtn.className = 'photo-move-btn photo-move-prev'; prevBtn.textContent = '←'; prevBtn.disabled = i === 0;
+                prevBtn.addEventListener('click', () => { [newPhotos[i], newPhotos[i-1]] = [newPhotos[i-1], newPhotos[i]]; renderNewPhotos(); });
+                const nextBtn = document.createElement('button');
+                nextBtn.type = 'button'; nextBtn.className = 'photo-move-btn photo-move-next'; nextBtn.textContent = '→'; nextBtn.disabled = i === newPhotos.length - 1;
+                nextBtn.addEventListener('click', () => { [newPhotos[i], newPhotos[i+1]] = [newPhotos[i+1], newPhotos[i]]; renderNewPhotos(); });
+                thumb.appendChild(media); thumb.appendChild(removeBtn); thumb.appendChild(prevBtn); thumb.appendChild(nextBtn);
+                photoPreviews.appendChild(thumb);
             });
-
-            thumb.appendChild(media);
-            thumb.appendChild(removeBtn);
-            photoPreviews.appendChild(thumb);
         }
 
         function sanitizeName(name) {
