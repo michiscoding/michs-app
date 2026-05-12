@@ -52,8 +52,12 @@
 
 
     <div class="entry-container">
-        <h1 id="date-label" contenteditable="true" spellcheck="false">new entry</h1>
-        <textarea></textarea>
+        <div class="entry-day-nav">
+            <button type="button" id="entry-prev-btn" class="entry-nav-btn entry-nav-hidden">←</button>
+            <h1 id="date-label" contenteditable="true" spellcheck="false">new entry</h1>
+            <button type="button" id="entry-next-btn" class="entry-nav-btn entry-nav-hidden">→</button>
+        </div>
+        <textarea aria-label="entry content"></textarea>
 
         <input type="text" id="music-input" placeholder="music url (spotify / youtube)...">
 
@@ -74,9 +78,9 @@
         const dateLabel = document.getElementById('date-label');
         const photoInput = document.getElementById('photo-input');
         const photoPreviews = document.getElementById('photo-previews');
+        const siteLink = document.getElementById('site-link');
         const MEDIA_BASE = SUPABASE_URL + '/storage/v1/object/public/media/';
 
-        // Date defaults to when the page was opened — writing past midnight won't flip the date
         const _d = new Date();
         const DEFAULT_CODE = `${String(_d.getMonth()+1).padStart(2,'0')}${String(_d.getDate()).padStart(2,'0')}${String(_d.getFullYear()).slice(2)}`;
         dateLabel.textContent = DEFAULT_CODE;
@@ -86,11 +90,15 @@
             return `20${code.slice(4,6)}-${code.slice(0,2)}-${code.slice(2,4)}`;
         }
 
+        function isoToCode(iso) {
+            const [yyyy, mm, dd] = iso.split('-');
+            return `${mm}${dd}${yyyy.slice(2)}`;
+        }
+
         function currentDate() {
             return codeToIso(dateLabel.textContent.trim()) || codeToIso(DEFAULT_CODE);
         }
 
-        // Load existing entry for a given date, or clear if none
         const entryContent = [textarea, document.getElementById('photo-strip')];
 
         function fadeOut(cb) {
@@ -101,44 +109,50 @@
             entryContent.forEach(el => { el.style.opacity = '1'; });
         }
 
+        let photos = [];
+
         async function loadEntryForDate(date, animate) {
             const doLoad = async () => {
                 textarea.value = '';
                 textarea.style.height = '';
-                photoPreviews.querySelectorAll('.photo-thumb:not(.new-thumb)').forEach(t => t.remove());
-                newPhotos.length = 0;
-                photoPreviews.querySelectorAll('.photo-thumb.new-thumb').forEach(t => t.remove());
+                photos = [];
 
-                const [{ data: entryData }, { data: photoData }] = await Promise.all([
+                const [{ data: entryData }, { data: photoData }, { data: prevRows }, { data: nextRows }] = await Promise.all([
                     db.from('entries').select('content, music_url').eq('date', date).single(),
-                    db.from('entry_photos').select('storage_path').eq('entry_date', date)
+                    db.from('entry_photos').select('storage_path').eq('entry_date', date),
+                    db.from('entries').select('date').lt('date', date).order('date', { ascending: false }).limit(1),
+                    db.from('entries').select('date').gt('date', date).order('date', { ascending: true }).limit(1)
                 ]);
+
                 document.getElementById('music-input').value = entryData?.music_url || '';
                 if (entryData?.content) {
                     textarea.value = entryData.content;
                     requestAnimationFrame(() => { textarea.style.height = 'auto'; textarea.style.height = textarea.scrollHeight + 'px'; });
                 }
                 if (photoData?.length) {
-                    photoData.forEach(p => {
-                        const src = p.storage_path.startsWith('http') ? p.storage_path : MEDIA_BASE + p.storage_path;
-                        const isVid = /\.(mp4|webm|mov)$/i.test(p.storage_path);
-                        const thumb = document.createElement('div');
-                        thumb.className = 'photo-thumb';
-                        const media = document.createElement(isVid ? 'video' : 'img');
-                        media.src = src;
-                        if (isVid) { media.muted = true; media.loop = true; media.autoplay = true; media.playsInline = true; }
-                        thumb.appendChild(media);
-                        photoPreviews.appendChild(thumb);
-                    });
+                    photoData.forEach(p => photos.push({
+                        type: 'existing',
+                        storage_path: p.storage_path,
+                        src: p.storage_path.startsWith('http') ? p.storage_path : MEDIA_BASE + p.storage_path
+                    }));
                 }
+                renderAllPhotos();
+
+                const prevDate = prevRows?.[0]?.date;
+                const nextDate = nextRows?.[0]?.date;
+                const prevBtn = document.getElementById('entry-prev-btn');
+                const nextBtn = document.getElementById('entry-next-btn');
+                prevBtn.classList.toggle('entry-nav-hidden', !prevDate);
+                nextBtn.classList.toggle('entry-nav-hidden', !nextDate);
+                prevBtn.onclick = prevDate ? () => { dateLabel.textContent = isoToCode(prevDate); loadEntryForDate(prevDate, true); } : null;
+                nextBtn.onclick = nextDate ? () => { dateLabel.textContent = isoToCode(nextDate); loadEntryForDate(nextDate, true); } : null;
+
+                siteLink.href = `https://michiscoding.github.io/entries/view.html?date=${date}`;
+
                 fadeIn();
             };
-
             if (animate) { fadeOut(doLoad); } else { await doLoad(); }
         }
-
-        // Only new photos added this session — existing ones are shown above and left untouched
-        const newPhotos = [];
 
         loadEntryForDate(currentDate(), false);
 
@@ -154,28 +168,28 @@
         });
 
         function addPhoto(file) {
-            newPhotos.push({ file, name: sanitizeName(file.name), src: URL.createObjectURL(file) });
-            renderNewPhotos();
+            photos.push({ type: 'new', file, name: sanitizeName(file.name), src: URL.createObjectURL(file) });
+            renderAllPhotos();
         }
 
-        function renderNewPhotos() {
-            photoPreviews.querySelectorAll('.new-thumb').forEach(t => t.remove());
-            newPhotos.forEach((entry, i) => {
-                const isVideo = entry.file.type.startsWith('video/');
+        function renderAllPhotos() {
+            photoPreviews.innerHTML = '';
+            photos.forEach((entry, i) => {
+                const isVideo = entry.type === 'new' ? entry.file.type.startsWith('video/') : /\.(mp4|webm|mov)$/i.test(entry.storage_path || '');
                 const thumb = document.createElement('div');
-                thumb.className = 'photo-thumb new-thumb';
+                thumb.className = 'photo-thumb';
                 const media = document.createElement(isVideo ? 'video' : 'img');
                 media.src = entry.src;
                 if (isVideo) { media.muted = true; media.loop = true; media.autoplay = true; media.playsInline = true; }
                 const removeBtn = document.createElement('button');
                 removeBtn.type = 'button'; removeBtn.className = 'remove-btn'; removeBtn.textContent = '×';
-                removeBtn.addEventListener('click', () => { newPhotos.splice(i, 1); renderNewPhotos(); });
+                removeBtn.addEventListener('click', () => { photos.splice(i, 1); renderAllPhotos(); });
                 const prevBtn = document.createElement('button');
                 prevBtn.type = 'button'; prevBtn.className = 'photo-move-btn photo-move-prev'; prevBtn.textContent = '←'; prevBtn.disabled = i === 0;
-                prevBtn.addEventListener('click', () => { [newPhotos[i], newPhotos[i-1]] = [newPhotos[i-1], newPhotos[i]]; renderNewPhotos(); });
+                prevBtn.addEventListener('click', () => { [photos[i], photos[i-1]] = [photos[i-1], photos[i]]; renderAllPhotos(); });
                 const nextBtn = document.createElement('button');
-                nextBtn.type = 'button'; nextBtn.className = 'photo-move-btn photo-move-next'; nextBtn.textContent = '→'; nextBtn.disabled = i === newPhotos.length - 1;
-                nextBtn.addEventListener('click', () => { [newPhotos[i], newPhotos[i+1]] = [newPhotos[i+1], newPhotos[i]]; renderNewPhotos(); });
+                nextBtn.type = 'button'; nextBtn.className = 'photo-move-btn photo-move-next'; nextBtn.textContent = '→'; nextBtn.disabled = i === photos.length - 1;
+                nextBtn.addEventListener('click', () => { [photos[i], photos[i+1]] = [photos[i+1], photos[i]]; renderAllPhotos(); });
                 thumb.appendChild(media); thumb.appendChild(removeBtn); thumb.appendChild(prevBtn); thumb.appendChild(nextBtn);
                 photoPreviews.appendChild(thumb);
             });
@@ -192,22 +206,19 @@
         document.getElementById('post-btn').addEventListener('click', async () => {
             const adminDb = await getAdminClient();
             if (!adminDb) return;
-
             const btn = document.getElementById('post-btn');
             btn.textContent = 'saving...';
-
             const date = currentDate();
 
-            // Upload only new photos — never removes existing ones
-            const photoPaths = [];
-            for (const photo of newPhotos) {
-                const path = `entry-photos/${date}/${photo.name}`;
-                const { error: uploadError } = await adminDb.storage.from('media').upload(path, photo.file, { upsert: true, contentType: photo.file.type });
-                if (uploadError) { console.error('photo upload error:', uploadError); }
-                else { photoPaths.push(path); }
+            // Upload new photos and convert them to existing
+            for (let i = 0; i < photos.length; i++) {
+                const p = photos[i];
+                if (p.type !== 'new') continue;
+                const path = `entry-photos/${date}/${p.name}`;
+                const { error } = await adminDb.storage.from('media').upload(path, p.file, { upsert: true, contentType: p.file.type });
+                if (!error) photos[i] = { type: 'existing', storage_path: path, src: MEDIA_BASE + path };
             }
 
-            // Upsert entry text (creates if new, updates content if existing)
             const musicUrl = document.getElementById('music-input').value.trim() || null;
             const { error } = await adminDb.from('entries').upsert({ date, content: textarea.value, music_url: musicUrl }, { onConflict: 'date' });
             if (error) {
@@ -217,18 +228,14 @@
                 return;
             }
 
-            // Append new photo rows only
-            if (photoPaths.length) {
-                const { error: photoInsertError } = await adminDb.from('entry_photos').insert(photoPaths.map(p => ({ entry_date: date, storage_path: p })));
-                if (photoInsertError) {
-                    console.error('entry_photos insert error:', photoInsertError);
-                    btn.textContent = 'error — check console';
-                    setTimeout(() => btn.textContent = 'save', 3000);
-                    return;
-                }
+            // Delete all and re-insert in current order
+            await adminDb.from('entry_photos').delete().eq('entry_date', date);
+            const allPaths = photos.filter(p => p.storage_path).map(p => p.storage_path);
+            if (allPaths.length) {
+                await adminDb.from('entry_photos').insert(allPaths.map(p => ({ entry_date: date, storage_path: p })));
             }
 
-            newPhotos.length = 0;
+            renderAllPhotos();
             btn.textContent = 'saved!';
             setTimeout(() => btn.textContent = 'save', 2000);
         });

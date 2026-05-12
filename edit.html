@@ -213,7 +213,11 @@
             <div id="entry-editor-view">
                 <div class="field-group">
                     <span class="field-label">date</span>
-                    <span id="editor-title"></span>
+                    <div class="entry-day-nav">
+                        <button type="button" id="entry-prev-btn" class="entry-nav-btn entry-nav-hidden">←</button>
+                        <span id="editor-title"></span>
+                        <button type="button" id="entry-next-btn" class="entry-nav-btn entry-nav-hidden">→</button>
+                    </div>
                 </div>
                 <div class="field-group">
                     <label class="field-label" for="editor-textarea">entry</label>
@@ -504,7 +508,9 @@
         const siteLink = document.getElementById('site-link');
         function setBackVisible(visible) {
             backBtn.style.visibility = visible ? 'visible' : 'hidden';
-            siteLink.style.visibility = visible ? 'hidden' : 'visible';
+        }
+        function setSiteLink(url) {
+            siteLink.href = url || 'https://michiscoding.github.io/home.html';
         }
 
         const editorTitle = document.getElementById('editor-title');
@@ -672,9 +678,11 @@
 
         async function openEntry(file) {
             const date = file.name;
-            const [{ data: entryData }, { data: photoData }] = await Promise.all([
+            const [{ data: entryData }, { data: photoData }, { data: prevRows }, { data: nextRows }] = await Promise.all([
                 db.from('entries').select('content, music_url').eq('date', date).single(),
-                db.from('entry_photos').select('storage_path').eq('entry_date', date)
+                db.from('entry_photos').select('storage_path').eq('entry_date', date),
+                db.from('entries').select('date').lt('date', date).order('date', { ascending: false }).limit(1),
+                db.from('entries').select('date').gt('date', date).order('date', { ascending: true }).limit(1)
             ]);
             currentDate = date;
             photos = [];
@@ -684,7 +692,19 @@
             editorTitle.textContent = `${months[parseInt(mm)-1]} ${parseInt(dd)} ${yyyy}`;
             editorTextarea.value = entryData?.content || '';
             document.getElementById('music-input').value = entryData?.music_url || '';
+
+            const prevDate = prevRows?.[0]?.date;
+            const nextDate = nextRows?.[0]?.date;
+            const prevBtn = document.getElementById('entry-prev-btn');
+            const nextBtn = document.getElementById('entry-next-btn');
+            prevBtn.classList.toggle('entry-nav-hidden', !prevDate);
+            nextBtn.classList.toggle('entry-nav-hidden', !nextDate);
+            prevBtn.onclick = prevDate ? () => openEntry({ name: prevDate }) : null;
+            nextBtn.onclick = nextDate ? () => openEntry({ name: nextDate }) : null;
+
+            setSiteLink(`https://michiscoding.github.io/entries/view.html?date=${date}`);
             backContext = 'entry';
+
             document.getElementById('entry-filters').style.display = 'none';
             entriesList.style.display = 'none';
             entryEditorView.style.display = 'block';
@@ -1238,6 +1258,7 @@
             document.querySelectorAll('.tag-pill').forEach(p => {
                 p.classList.toggle('selected', paSelectedTags.has(p.dataset.tag));
             });
+            setSiteLink(`https://michiscoding.github.io/powerapps/view.html?slug=${slug}`);
             backContext = 'pa';
             paListView.style.display = 'none';
             paEditorView.style.display = 'block';
