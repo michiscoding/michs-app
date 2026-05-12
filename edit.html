@@ -758,21 +758,12 @@
             if (!adminDb) return;
             saveBtn.textContent = 'saving...';
 
-            const existingPaths = photos.filter(p => p.type === 'existing').map(p => p.storage_path);
-            const newPhotos = photos.filter(p => p.type === 'new');
-
-            const { data: currentPhotos } = await db.from('entry_photos').select('id, storage_path').eq('entry_date', currentDate);
-            if (currentPhotos) {
-                for (const cp of currentPhotos.filter(cp => !existingPaths.includes(cp.storage_path))) {
-                    await adminDb.from('entry_photos').delete().eq('id', cp.id);
-                }
-            }
-
-            const newPaths = [];
-            for (const photo of newPhotos) {
-                const path = `entry-photos/${currentDate}/${photo.name}`;
-                const { error } = await adminDb.storage.from('media').upload(path, photo.file, { upsert: true, contentType: mimeType(photo.file) });
-                if (!error) newPaths.push(path);
+            for (let i = 0; i < photos.length; i++) {
+                const p = photos[i];
+                if (p.type !== 'new') continue;
+                const path = `entry-photos/${currentDate}/${p.name}`;
+                const { error } = await adminDb.storage.from('media').upload(path, p.file, { upsert: true, contentType: mimeType(p.file) });
+                if (!error) photos[i] = { type: 'existing', storage_path: path, src: MEDIA_BASE + path };
             }
 
             const musicUrl = document.getElementById('music-input').value.trim() || null;
@@ -780,16 +771,20 @@
                 { date: currentDate, content: editorTextarea.value, music_url: musicUrl },
                 { onConflict: 'date' }
             );
-            if (newPaths.length) {
-                await adminDb.from('entry_photos').insert(newPaths.map(p => ({ entry_date: currentDate, storage_path: p })));
-            }
-
             if (error) {
                 saveBtn.textContent = 'error — check console';
                 console.error(error);
                 setTimeout(() => saveBtn.textContent = 'save', 3000);
                 return;
             }
+
+            await adminDb.from('entry_photos').delete().eq('entry_date', currentDate);
+            const allPaths = photos.filter(p => p.storage_path).map(p => p.storage_path);
+            if (allPaths.length) {
+                await adminDb.from('entry_photos').insert(allPaths.map(p => ({ entry_date: currentDate, storage_path: p })));
+            }
+
+            renderAllPhotos();
             saveBtn.textContent = 'saved!';
             setTimeout(() => saveBtn.textContent = 'save', 2000);
         });
