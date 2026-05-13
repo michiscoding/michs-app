@@ -894,14 +894,16 @@ body.dark .blog-link { color: #ddd; }
 body.dark .blog-details-2 { color: #666; }
 
 /* entry filters */
-#entry-filters {
+#entry-filters,
+#jj-filters {
     display: flex;
     align-items: center;
     gap: 0.75rem;
     margin-bottom: 1rem;
 }
 
-#entry-filter-clear {
+#entry-filter-clear,
+#jj-filter-clear {
     background: none;
     border: none;
     font-family: inherit;
@@ -913,12 +915,17 @@ body.dark .blog-details-2 { color: #666; }
     margin-left: 0;
 }
 
-#entry-filter-clear:hover { color: #888; }
-body.dark #entry-filter-clear { color: #444; }
-body.dark #entry-filter-clear:hover { color: #888; }
+#entry-filter-clear:hover,
+#jj-filter-clear:hover { color: #888; }
+body.dark #entry-filter-clear,
+body.dark #jj-filter-clear { color: #444; }
+body.dark #entry-filter-clear:hover,
+body.dark #jj-filter-clear:hover { color: #888; }
 
 #entry-year-filter,
-#entry-month-filter {
+#entry-month-filter,
+#jj-year-filter,
+#jj-month-filter {
     background: none;
     border: none;
     font-family: inherit;
@@ -933,13 +940,19 @@ body.dark #entry-filter-clear:hover { color: #888; }
 }
 
 #entry-year-filter:focus,
-#entry-month-filter:focus { color: #333; }
+#entry-month-filter:focus,
+#jj-year-filter:focus,
+#jj-month-filter:focus { color: #333; }
 
 body.dark #entry-year-filter,
-body.dark #entry-month-filter { color: #555; background: #111; }
+body.dark #entry-month-filter,
+body.dark #jj-year-filter,
+body.dark #jj-month-filter { color: #555; background: #111; }
 
 body.dark #entry-year-filter:focus,
-body.dark #entry-month-filter:focus { color: #ccc; }
+body.dark #entry-month-filter:focus,
+body.dark #jj-year-filter:focus,
+body.dark #jj-month-filter:focus { color: #ccc; }
 body.dark label { color: #555 !important; }
 
 textarea {

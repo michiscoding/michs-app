@@ -198,10 +198,10 @@
         <button type="button" id="list-back-btn" class="list-back-btn" aria-label="back">←</button>
         <div class="edit-tabs">
             <button type="button" class="edit-tab active" data-tab="entries">entries</button>
+            <button type="button" class="edit-tab" data-tab="jj">jiu jitsu</button>
             <button type="button" class="edit-tab" data-tab="photos">visuals</button>
             <button type="button" class="edit-tab" data-tab="work">work</button>
             <button type="button" class="edit-tab" data-tab="consumption">consumption</button>
-            <button type="button" class="edit-tab" data-tab="jj">jiu jitsu</button>
         </div>
 
         <div id="tab-entries">
@@ -2809,6 +2809,8 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
             if (!allJJFiles.find(f => f.name === date)) {
                 allJJFiles.push({ name: date });
                 allJJFiles.sort((a, b) => b.name.localeCompare(a.name));
+                rebuildJJMonthFilter();
+                renderJJList();
             }
             setSiteLink(`https://michiscoding.github.io/jiu-jitsu/view.html?date=${date}`);
             btn.textContent = 'saved!';
