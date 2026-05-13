@@ -201,6 +201,7 @@
             <button type="button" class="edit-tab" data-tab="photos">visuals</button>
             <button type="button" class="edit-tab" data-tab="work">work</button>
             <button type="button" class="edit-tab" data-tab="consumption">consumption</button>
+            <button type="button" class="edit-tab" data-tab="jj">jiu jitsu</button>
         </div>
 
         <div id="tab-entries">
@@ -486,6 +487,43 @@
                 </div>
             </div>
         </div>
+
+        <div id="tab-jj" style="display:none">
+            <div id="jj-list-view">
+                <button type="button" class="btn-app" id="jj-new-btn">+ new</button>
+                <div id="jj-filters">
+                    <select id="jj-year-filter" aria-label="filter by year"></select>
+                    <select id="jj-month-filter" aria-label="filter by month"></select>
+                    <button type="button" id="jj-filter-clear">×</button>
+                </div>
+                <div id="jj-entries-list"></div>
+            </div>
+            <div id="jj-editor-view" style="display:none">
+                <div class="field-group">
+                    <span class="field-label">date</span>
+                    <div class="entry-day-nav">
+                        <button type="button" id="jj-prev-btn" class="entry-nav-btn entry-nav-hidden">←</button>
+                        <span id="jj-editor-title" contenteditable="true" spellcheck="false"></span>
+                        <button type="button" id="jj-next-btn" class="entry-nav-btn entry-nav-hidden">→</button>
+                    </div>
+                </div>
+                <div class="field-group">
+                    <label class="field-label" for="jj-textarea">notes</label>
+                    <textarea id="jj-textarea"></textarea>
+                </div>
+                <div class="field-group">
+                    <label class="field-label" for="jj-techniques">techniques</label>
+                    <input type="text" id="jj-techniques" placeholder="comma separated...">
+                </div>
+                <div class="field-group">
+                    <label class="field-label" for="jj-partners">partners</label>
+                    <input type="text" id="jj-partners" placeholder="comma separated...">
+                </div>
+                <div class="editor-actions">
+                    <button type="button" id="jj-save-btn" class="btn-app">save</button>
+                </div>
+            </div>
+        </div>
     </div>
 
 <div id="r-create-attach-overlay">
@@ -747,6 +785,14 @@
                 return;
             }
 
+            if (backContext === 'jj') {
+                jjEditorView.style.display = 'none';
+                jjListView.style.display = 'block';
+                revealTab(jjListView);
+                jjCurrentDate = null;
+                return;
+            }
+
             if (backContext === 'consumption') {
                 collapseMediaEditors();
             }
@@ -796,10 +842,12 @@
         const tabPhotos = document.getElementById('tab-photos');
         const tabWork = document.getElementById('tab-work');
         const tabConsumption = document.getElementById('tab-consumption');
+        const tabJJ = document.getElementById('tab-jj');
         const tabs = document.querySelectorAll('.edit-tab:not(.edit-subtabs .edit-tab):not(#consumption-subtabs .edit-tab)');
         let photosTabLoaded = false;
         let paListLoaded = false, rListLoaded = false;
         let booksLoaded = false, moviesLoaded = false, foodLoaded = false, venueLoaded = false;
+        let jjListLoaded = false;
 
         function revealTab(el) {
             el.style.opacity = '0';
@@ -811,7 +859,8 @@
             tabPhotos.style.display = name === 'photos' ? 'block' : 'none';
             tabWork.style.display = name === 'work' ? 'block' : 'none';
             tabConsumption.style.display = name === 'consumption' ? 'block' : 'none';
-            const active = name === 'entries' ? tabEntries : name === 'photos' ? tabPhotos : name === 'work' ? tabWork : tabConsumption;
+            tabJJ.style.display = name === 'jj' ? 'block' : 'none';
+            const active = name === 'entries' ? tabEntries : name === 'photos' ? tabPhotos : name === 'work' ? tabWork : name === 'jj' ? tabJJ : tabConsumption;
             revealTab(active);
             if (name === 'photos' && !photosTabLoaded) { photosTabLoaded = true; loadRetag(); }
             if (name === 'work') {
@@ -819,6 +868,7 @@
                 loadResume();
             }
             if (name === 'consumption' && !booksLoaded) { booksLoaded = true; loadMediaList('book'); }
+            if (name === 'jj' && !jjListLoaded) { jjListLoaded = true; loadJJ(); }
         }
 
         tabs.forEach(tab => {
@@ -2564,6 +2614,205 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
             const q = document.getElementById('vn-search-input').value.trim();
             if (!q) { document.getElementById('vn-search-results').innerHTML = ''; return; }
             vnSearchDebounce = setTimeout(() => searchVenuesC(q), 400);
+        });
+
+        // --- jiu jitsu tab ---
+        const jjListView = document.getElementById('jj-list-view');
+        const jjEditorView = document.getElementById('jj-editor-view');
+        const jjEditorTitle = document.getElementById('jj-editor-title');
+        const jjTextarea = document.getElementById('jj-textarea');
+        const jjYearFilter = document.getElementById('jj-year-filter');
+        const jjMonthFilter = document.getElementById('jj-month-filter');
+        const jjMonths = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+        let allJJFiles = [];
+        let jjCurrentDate = null;
+
+        function jjCodeToIso(code) {
+            if (!/^\d{6}$/.test(code)) return null;
+            return `20${code.slice(4,6)}-${code.slice(0,2)}-${code.slice(2,4)}`;
+        }
+        function jjIsoToCode(iso) {
+            const [yyyy, mm, dd] = iso.split('-');
+            return `${mm}${dd}${yyyy.slice(2)}`;
+        }
+
+        function renderJJList() {
+            const jjList = document.getElementById('jj-entries-list');
+            jjList.innerHTML = '';
+            const yr = jjYearFilter.value;
+            const mo = jjMonthFilter.value;
+            const filtered = allJJFiles.filter(f => {
+                const [yyyy, mm] = f.name.split('-');
+                return (yr === 'all' || yyyy === yr) && (mo === 'all' || mm === mo);
+            });
+            const groups = {};
+            for (const file of filtered) {
+                const [yyyy, mm] = file.name.split('-');
+                if (!groups[yyyy]) groups[yyyy] = {};
+                if (!groups[yyyy][mm]) groups[yyyy][mm] = [];
+                groups[yyyy][mm].push(file);
+            }
+            for (const yyyy of Object.keys(groups).sort().reverse()) {
+                const yearEl = document.createElement('div');
+                yearEl.className = 'entry-year-label';
+                yearEl.textContent = yyyy;
+                jjList.appendChild(yearEl);
+                for (const mm of Object.keys(groups[yyyy]).sort().reverse()) {
+                    const row = document.createElement('div');
+                    row.className = 'entry-month-row';
+                    const monthName = document.createElement('span');
+                    monthName.className = 'entry-month-name';
+                    monthName.textContent = jjMonths[parseInt(mm) - 1];
+                    row.appendChild(monthName);
+                    const chips = document.createElement('div');
+                    chips.className = 'entry-day-chips';
+                    const sorted = groups[yyyy][mm].slice().sort((a, b) => parseInt(b.name.split('-')[2]) - parseInt(a.name.split('-')[2]));
+                    for (const file of sorted) {
+                        const dd = parseInt(file.name.split('-')[2]);
+                        const chip = document.createElement('button');
+                        chip.type = 'button';
+                        chip.className = 'entry-day-chip';
+                        chip.textContent = dd;
+                        chip.addEventListener('click', () => openJJEntry(file.name));
+                        chips.appendChild(chip);
+                    }
+                    row.appendChild(chips);
+                    jjList.appendChild(row);
+                }
+            }
+        }
+
+        function rebuildJJMonthFilter() {
+            const yr = jjYearFilter.value;
+            const seenMo = new Set();
+            jjMonthFilter.innerHTML = '<option value="all">month</option>';
+            allJJFiles.forEach(f => {
+                const [yyyy, mm] = f.name.split('-');
+                if ((yr === 'all' || yyyy === yr) && !seenMo.has(mm)) {
+                    seenMo.add(mm);
+                    const opt = document.createElement('option');
+                    opt.value = mm;
+                    opt.textContent = jjMonths[parseInt(mm) - 1];
+                    jjMonthFilter.appendChild(opt);
+                }
+            });
+        }
+
+        jjYearFilter.addEventListener('change', () => { rebuildJJMonthFilter(); renderJJList(); });
+        jjMonthFilter.addEventListener('change', renderJJList);
+        document.getElementById('jj-filter-clear').addEventListener('click', () => {
+            jjYearFilter.value = 'all'; rebuildJJMonthFilter(); renderJJList();
+        });
+
+        async function loadJJ() {
+            const { data } = await db.from('jiu_jitsu').select('date').order('date', { ascending: false });
+            if (!data) return;
+            allJJFiles = data.map(row => ({ name: row.date }));
+            const seenYr = new Set();
+            jjYearFilter.innerHTML = '<option value="all">year</option>';
+            allJJFiles.forEach(f => {
+                const [yyyy] = f.name.split('-');
+                if (!seenYr.has(yyyy)) {
+                    seenYr.add(yyyy);
+                    const opt = document.createElement('option');
+                    opt.value = yyyy; opt.textContent = yyyy;
+                    jjYearFilter.appendChild(opt);
+                }
+            });
+            rebuildJJMonthFilter();
+            renderJJList();
+        }
+
+        async function openJJEntry(date) {
+            const [{ data: jjData }, { data: prevRows }, { data: nextRows }] = await Promise.all([
+                db.from('jiu_jitsu').select('content, techniques, partners').eq('date', date).single(),
+                db.from('jiu_jitsu').select('date').lt('date', date).order('date', { ascending: false }).limit(1),
+                db.from('jiu_jitsu').select('date').gt('date', date).order('date', { ascending: true }).limit(1)
+            ]);
+            jjCurrentDate = date;
+            jjEditorTitle.textContent = jjIsoToCode(date);
+            jjTextarea.value = jjData?.content || '';
+            jjTextarea.style.height = 'auto';
+            document.getElementById('jj-techniques').value = (jjData?.techniques || []).join(', ');
+            document.getElementById('jj-partners').value = (jjData?.partners || []).join(', ');
+
+            const prevDate = prevRows?.[0]?.date;
+            const nextDate = nextRows?.[0]?.date;
+            const prevBtn = document.getElementById('jj-prev-btn');
+            const nextBtn = document.getElementById('jj-next-btn');
+            prevBtn.classList.toggle('entry-nav-hidden', !prevDate);
+            nextBtn.classList.toggle('entry-nav-hidden', !nextDate);
+            prevBtn.onclick = prevDate ? () => openJJEntry(prevDate) : null;
+            nextBtn.onclick = nextDate ? () => openJJEntry(nextDate) : null;
+
+            setSiteLink(`https://michiscoding.github.io/jiu-jitsu/view.html?date=${date}`);
+            backContext = 'jj';
+            jjListView.style.display = 'none';
+            jjEditorView.style.display = 'block';
+            revealTab(jjEditorView);
+            setBackVisible(true);
+            requestAnimationFrame(() => {
+                jjTextarea.style.height = jjTextarea.scrollHeight + 'px';
+            });
+        }
+
+        document.getElementById('jj-new-btn').addEventListener('click', () => {
+            const d = new Date();
+            const mm = String(d.getMonth()+1).padStart(2,'0');
+            const dd = String(d.getDate()).padStart(2,'0');
+            const yy = String(d.getFullYear()).slice(2);
+            jjCurrentDate = null;
+            jjEditorTitle.textContent = `${mm}${dd}${yy}`;
+            jjTextarea.value = '';
+            jjTextarea.style.height = '';
+            document.getElementById('jj-techniques').value = '';
+            document.getElementById('jj-partners').value = '';
+            document.getElementById('jj-prev-btn').classList.add('entry-nav-hidden');
+            document.getElementById('jj-next-btn').classList.add('entry-nav-hidden');
+            setSiteLink('https://michiscoding.github.io/training.html');
+            backContext = 'jj';
+            jjListView.style.display = 'none';
+            jjEditorView.style.display = 'block';
+            revealTab(jjEditorView);
+            setBackVisible(true);
+            jjTextarea.focus();
+        });
+
+        jjTextarea.addEventListener('input', () => {
+            if (jjTextarea.scrollHeight > jjTextarea.clientHeight) jjTextarea.style.height = jjTextarea.scrollHeight + 'px';
+        });
+
+        document.getElementById('jj-save-btn').addEventListener('click', async () => {
+            const code = jjEditorTitle.textContent.trim();
+            const date = jjCodeToIso(code);
+            if (!date) return;
+            const adminDb = await getAdminClient();
+            if (!adminDb) return;
+            const btn = document.getElementById('jj-save-btn');
+            btn.textContent = 'saving...';
+
+            const techniques = document.getElementById('jj-techniques').value.split(',').map(s => s.trim()).filter(Boolean);
+            const partners = document.getElementById('jj-partners').value.split(',').map(s => s.trim()).filter(Boolean);
+
+            const { error } = await adminDb.from('jiu_jitsu').upsert(
+                { date, content: jjTextarea.value, techniques, partners },
+                { onConflict: 'date' }
+            );
+            if (error) {
+                btn.textContent = 'error — check console';
+                console.error(error);
+                setTimeout(() => btn.textContent = 'save', 3000);
+                return;
+            }
+
+            jjCurrentDate = date;
+            if (!allJJFiles.find(f => f.name === date)) {
+                allJJFiles.push({ name: date });
+                allJJFiles.sort((a, b) => b.name.localeCompare(a.name));
+            }
+            setSiteLink(`https://michiscoding.github.io/jiu-jitsu/view.html?date=${date}`);
+            btn.textContent = 'saved!';
+            setTimeout(() => btn.textContent = 'save', 2000);
         });
     </script>
 </body>

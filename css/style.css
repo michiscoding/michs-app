@@ -181,6 +181,7 @@ a:hover { text-decoration: none; }
     height: 20px;
     font-size: 0.75rem;
 }
+#jj-new-btn { margin-bottom: 1rem; }
 .entry-day-nav { display: flex; align-items: center; gap: 0.5rem; }
 .entry-nav-btn { background: none; border: none; font-size: 1.3rem; color: #bbb; cursor: pointer; padding: 0.1rem 0.3rem; line-height: 1; }
 body.dark .entry-nav-btn { color: #555; }
