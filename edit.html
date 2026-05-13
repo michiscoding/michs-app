@@ -2050,6 +2050,9 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
             document.querySelectorAll('#mv-editor-status-tabs .edit-tab').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.edstatus === mvEditorStatus);
             });
+            const isWatchlist = mvEditorStatus === 'want';
+            document.getElementById('mv-stars').closest('.field-group').style.display = isWatchlist ? 'none' : '';
+            document.getElementById('mv-date').closest('.field-group').style.display = isWatchlist ? 'none' : '';
         }
 
         async function loadMediaList(type) {
