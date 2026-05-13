@@ -405,13 +405,22 @@
                     </div>
                     <div class="c-search-results" id="mv-search-results"></div>
                 </div>
-                <div class="c-list-label">your movies</div>
+                <div class="edit-tabs edit-subtabs" id="mv-status-tabs">
+                    <button type="button" class="edit-tab active" data-mvstatus="watched">watched</button>
+                    <button type="button" class="edit-tab" data-mvstatus="want">watchlist</button>
+                </div>
                 <div id="movies-list-view"><div id="movies-list"></div></div>
                 <div id="movies-editor-view" style="display:none">
                     <div class="field-group"><label class="field-label">title</label><input type="text" id="mv-title" autocomplete="off"></div>
+                    <div class="field-group"><label class="field-label">status</label>
+                        <div class="edit-tabs edit-subtabs" id="mv-editor-status-tabs">
+                            <button type="button" class="edit-tab active" data-edstatus="watched">watched</button>
+                            <button type="button" class="edit-tab" data-edstatus="want">watchlist</button>
+                        </div>
+                    </div>
                     <div class="field-group"><label class="field-label">notes</label><textarea id="mv-notes" placeholder="thoughts..."></textarea></div>
                     <div class="field-group"><label class="field-label">rating</label><div class="edit-star-row" id="mv-stars"><button type="button" class="edit-star" data-prefix="mv" data-val="1">★</button><button type="button" class="edit-star" data-prefix="mv" data-val="2">★</button><button type="button" class="edit-star" data-prefix="mv" data-val="3">★</button><button type="button" class="edit-star" data-prefix="mv" data-val="4">★</button><button type="button" class="edit-star" data-prefix="mv" data-val="5">★</button></div></div>
-                    <div class="field-group"><label class="field-label">date</label><input type="date" id="mv-date"></div>
+                    <div class="field-group"><label class="field-label">date watched</label><input type="date" id="mv-date"></div>
                     <div class="editor-actions">
                         <button type="button" id="mv-delete-btn" class="danger-btn">delete</button>
                         <button type="button" id="mv-save-btn" class="btn-app">save</button>
@@ -2015,10 +2024,40 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
 
         let currentMediaId = null, currentMediaType = null, currentFoodId = null;
 
+        let mvActiveStatus = 'watched';
+        let mvEditorStatus = 'watched';
+
+        document.querySelectorAll('#mv-status-tabs .edit-tab').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#mv-status-tabs .edit-tab').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                mvActiveStatus = btn.dataset.mvstatus;
+                moviesLoaded = false;
+                loadMediaList('movie');
+            });
+        });
+
+        document.querySelectorAll('#mv-editor-status-tabs .edit-tab').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#mv-editor-status-tabs .edit-tab').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                mvEditorStatus = btn.dataset.edstatus;
+            });
+        });
+
+        function setMvEditorStatus(status) {
+            mvEditorStatus = status || 'watched';
+            document.querySelectorAll('#mv-editor-status-tabs .edit-tab').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.edstatus === mvEditorStatus);
+            });
+        }
+
         async function loadMediaList(type) {
             const listEl = document.getElementById(type === 'book' ? 'books-list' : 'movies-list');
             listEl.innerHTML = '<div style="color:#aaa;font-size:0.8rem;padding:0.5rem 0">loading...</div>';
-            const { data } = await db.from('media').select('id, title, rating, date').eq('type', type).order('date', { ascending: false });
+            let query = db.from('media').select('id, title, rating, date, status').eq('type', type).order('date', { ascending: false });
+            if (type === 'movie') query = query.eq('status', mvActiveStatus);
+            const { data } = await query;
             listEl.innerHTML = '';
             (data || []).forEach(item => {
                 const row = document.createElement('div');
@@ -2039,6 +2078,7 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
             document.getElementById(`${p}-notes`).value = data.notes || '';
             setEditRating(p, data.rating || 0);
             document.getElementById(`${p}-date`).value = data.date || '';
+            if (type === 'movie') setMvEditorStatus(data.status || 'watched');
             document.getElementById(`${p}-delete-btn`).style.display = '';
             document.getElementById(`${p}-search-section`).style.display = 'none';
             const listKey = type === 'book' ? 'books' : 'movies';
@@ -2060,13 +2100,14 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
                 const notes = document.getElementById(`${p}-notes`).value.trim() || null;
                 const rating = editRatings[p] || null;
                 const date = document.getElementById(`${p}-date`).value || null;
+                const status = type === 'movie' ? mvEditorStatus : 'watched';
                 let error;
                 if (!currentMediaId) {
-                    const { data: ins, error: e } = await adminDb.from('media').insert({ type, title, cover_url: currentMediaCoverUrl || null, notes, rating, date }).select('id').single();
+                    const { data: ins, error: e } = await adminDb.from('media').insert({ type, title, cover_url: currentMediaCoverUrl || null, notes, rating, date, status }).select('id').single();
                     error = e;
                     if (!error && ins) { currentMediaId = ins.id; document.getElementById(`${p}-delete-btn`).style.display = ''; }
                 } else {
-                    const { data: updated, error: updErr } = await adminDb.from('media').update({ title, notes, rating, date }).eq('id', currentMediaId).select('id');
+                    const { data: updated, error: updErr } = await adminDb.from('media').update({ title, notes, rating, date, status }).eq('id', currentMediaId).select('id');
                     error = updErr || (!updated?.length ? { message: 'update blocked — run auth_update_media RLS policy in Supabase' } : null);
                 }
                 if (error) console.error(`${p} save error:`, error);
@@ -2488,7 +2529,8 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
             document.getElementById(`${p}-title`).value = item.title || '';
             document.getElementById(`${p}-notes`).value = '';
             setEditRating(p, 0);
-            document.getElementById(`${p}-date`).value = new Date().toISOString().slice(0,10);
+            document.getElementById(`${p}-date`).value = mvActiveStatus === 'want' ? '' : new Date().toISOString().slice(0,10);
+            if (type === 'movie') setMvEditorStatus(mvActiveStatus);
             document.getElementById(`${p}-delete-btn`).style.display = 'none';
             document.getElementById(`${p}-search-section`).style.display = 'none';
             const listKey = type === 'book' ? 'books' : 'movies';
