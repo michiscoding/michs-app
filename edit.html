@@ -2611,7 +2611,7 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
             document.getElementById(`${p}-notes`).value = '';
             setEditRating(p, 0);
             const activeStatus = type === 'tv' ? tvActiveStatus : mvActiveStatus;
-            document.getElementById(`${p}-date`).value = activeStatus === 'want' ? '' : new Date().toISOString().slice(0,10);
+            document.getElementById(`${p}-date`).value = '';
             if (type === 'movie') setMvEditorStatus(mvActiveStatus);
             if (type === 'tv') setTvEditorStatus(tvActiveStatus);
             document.getElementById(`${p}-delete-btn`).style.display = 'none';
