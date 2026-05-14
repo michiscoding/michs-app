@@ -1172,8 +1172,40 @@
         }
 
         // --- powerapps ---
-        let paMediaFiles = [], paSelectedTags = new Set(), paCurrentSlug = null, paExistingMedia = [];
-        let paCurrentNotes = [], paDeletedNoteIds = new Set(), paRemovedMedia = new Set();
+        let paMedia = [], paSelectedTags = new Set(), paCurrentSlug = null;
+        let paCurrentNotes = [], paDeletedNoteIds = new Set();
+
+        function renderPaMedia() {
+            const previews = document.getElementById('pa-media-previews');
+            previews.innerHTML = '';
+            paMedia.forEach((item, i) => {
+                const wrap = document.createElement('div');
+                wrap.className = 'media-thumb-wrap';
+                const isVid = item.type === 'new' ? item.file.type.startsWith('video/') : /\.(mp4|webm|mov)$/i.test(item.path);
+                let el;
+                if (isVid) {
+                    el = document.createElement('video');
+                    el.src = item.type === 'new' ? item.src : MEDIA_BASE + item.path;
+                    el.muted = true; el.autoplay = true; el.loop = true; el.playsInline = true;
+                } else {
+                    el = document.createElement('img');
+                    el.src = item.type === 'new' ? item.src : MEDIA_BASE + item.path;
+                    el.alt = '';
+                }
+                el.className = 'media-thumb';
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button'; removeBtn.className = 'remove-btn'; removeBtn.textContent = '×';
+                removeBtn.addEventListener('click', () => { paMedia.splice(i, 1); renderPaMedia(); });
+                const prevBtn = document.createElement('button');
+                prevBtn.type = 'button'; prevBtn.className = 'photo-move-btn photo-move-prev'; prevBtn.textContent = '←'; prevBtn.disabled = i === 0;
+                prevBtn.addEventListener('click', () => { [paMedia[i], paMedia[i-1]] = [paMedia[i-1], paMedia[i]]; renderPaMedia(); });
+                const nextBtn = document.createElement('button');
+                nextBtn.type = 'button'; nextBtn.className = 'photo-move-btn photo-move-next'; nextBtn.textContent = '→'; nextBtn.disabled = i === paMedia.length - 1;
+                nextBtn.addEventListener('click', () => { [paMedia[i], paMedia[i+1]] = [paMedia[i+1], paMedia[i]]; renderPaMedia(); });
+                wrap.appendChild(el); wrap.appendChild(removeBtn); wrap.appendChild(prevBtn); wrap.appendChild(nextBtn);
+                previews.appendChild(wrap);
+            });
+        }
         const PA_LANGS = [
             {id:'powerfx',label:'PowerFx'},{id:'javascript',label:'JavaScript'},{id:'typescript',label:'TypeScript'},
             {id:'html',label:'HTML'},{id:'css',label:'CSS'},{id:'csharp',label:'C#'},
@@ -1303,31 +1335,8 @@
         });
 
         function addPaNewFile(file) {
-            paMediaFiles.push(file);
-            const previews = document.getElementById('pa-media-previews');
-            const url = URL.createObjectURL(file);
-            const wrap = document.createElement('div');
-            wrap.className = 'media-thumb-wrap';
-            let el;
-            if (file.type.startsWith('video/')) {
-                el = document.createElement('video');
-                el.src = url; el.muted = true; el.autoplay = true; el.loop = true; el.playsInline = true;
-            } else {
-                el = document.createElement('img');
-                el.src = url; el.alt = '';
-            }
-            el.className = 'media-thumb';
-            const removeBtn = document.createElement('button');
-            removeBtn.type = 'button';
-            removeBtn.className = 'remove-btn';
-            removeBtn.textContent = '×';
-            removeBtn.addEventListener('click', () => {
-                paMediaFiles = paMediaFiles.filter(f => f !== file);
-                wrap.remove();
-            });
-            wrap.appendChild(el);
-            wrap.appendChild(removeBtn);
-            previews.appendChild(wrap);
+            paMedia.push({ type: 'new', file, src: URL.createObjectURL(file) });
+            renderPaMedia();
         }
 
         const paListView = document.getElementById('pa-list-view');
@@ -1353,34 +1362,9 @@
             const { data, error } = await db.from('powerapps').select('*').eq('slug', slug).single();
             if (error || !data) return;
             paCurrentSlug = slug;
-            paExistingMedia = data.media || [];
-            paMediaFiles = [];
-            paRemovedMedia = new Set();
+            paMedia = (data.media || []).map(path => ({ type: 'existing', path }));
             document.getElementById('pa-media-input').value = '';
-            const previews = document.getElementById('pa-media-previews');
-            previews.innerHTML = '';
-            paExistingMedia.forEach(path => {
-                const src = MEDIA_BASE + path;
-                let el;
-                if (/\.(mp4|webm|mov)$/i.test(path)) {
-                    el = document.createElement('video');
-                    el.src = src; el.muted = true; el.autoplay = true; el.loop = true; el.playsInline = true;
-                } else {
-                    el = document.createElement('img');
-                    el.src = src; el.alt = '';
-                }
-                el.className = 'media-thumb';
-                const wrap = document.createElement('div');
-                wrap.className = 'media-thumb-wrap';
-                const removeBtn = document.createElement('button');
-                removeBtn.type = 'button';
-                removeBtn.className = 'remove-btn';
-                removeBtn.textContent = '×';
-                removeBtn.addEventListener('click', () => { paRemovedMedia.add(path); wrap.remove(); });
-                wrap.appendChild(el);
-                wrap.appendChild(removeBtn);
-                previews.appendChild(wrap);
-            });
+            renderPaMedia();
             document.getElementById('pa-title').value = data.title || '';
             const paWhat = document.getElementById('pa-what');
             const paHow = document.getElementById('pa-how');
@@ -1417,14 +1401,20 @@
             const btn = document.getElementById('pa-save-btn');
             btn.textContent = 'saving...'; btn.disabled = true;
             const newSlug = slugify(title);
-            let mediaPaths = paExistingMedia.filter(p => !paRemovedMedia.has(p));
-            for (let i = 0; i < paMediaFiles.length; i++) {
-                const file = paMediaFiles[i];
-                const ext = file.name.split('.').pop() || 'jpg';
-                const filename = paMediaFiles.length === 1 ? `${newSlug}.${ext}` : `${newSlug}-${i+1}.${ext}`;
-                const path = `powerapps/${filename}`;
-                const { error } = await adminDb.storage.from('media').upload(path, file, { upsert: true, contentType: mimeType(file) });
-                if (!error) mediaPaths.push(path);
+            let newFileIdx = 0;
+            const mediaPaths = [];
+            for (let i = 0; i < paMedia.length; i++) {
+                const item = paMedia[i];
+                if (item.type === 'existing') {
+                    mediaPaths.push(item.path);
+                } else {
+                    const ext = item.file.name.split('.').pop() || 'jpg';
+                    const filename = `${newSlug}-${newFileIdx + 1}.${ext}`;
+                    const path = `powerapps/${filename}`;
+                    const { error } = await adminDb.storage.from('media').upload(path, item.file, { upsert: true, contentType: mimeType(item.file) });
+                    if (!error) { paMedia[i] = { type: 'existing', path }; mediaPaths.push(path); }
+                    newFileIdx++;
+                }
             }
             const what = document.getElementById('pa-what').value;
             const how = document.getElementById('pa-how').value;
@@ -1442,7 +1432,6 @@
                 btn.textContent = 'error';
             } else {
                 paCurrentSlug = newSlug;
-                paExistingMedia = mediaPaths;
                 if (paDeletedNoteIds.size > 0) {
                     await adminDb.from('powerapps_notes').delete().in('id', [...paDeletedNoteIds]);
                     paDeletedNoteIds.clear();
