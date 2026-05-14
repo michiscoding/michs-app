@@ -69,8 +69,8 @@
         <div id="photo-strip">
             <div id="photo-previews"></div>
             <div id="entry-add-btns">
-                <button type="button" id="music-add-btn">+ add music</button>
-                <button type="button" id="thought-add-btn">+ add thought</button>
+                <span role="button" tabindex="0" id="music-add-btn">+ add music</span>
+                <span role="button" tabindex="0" id="thought-add-btn">+ add thought</span>
                 <label id="photo-add-btn" for="photo-input">+ add photos</label>
             </div>
             <input type="file" id="photo-input" accept="image/*,video/*" multiple>
@@ -234,7 +234,7 @@
         ['music', 'thought'].forEach(name => {
             const btn = document.getElementById(`${name}-add-btn`);
             const field = document.getElementById(`${name}-input`);
-            btn.addEventListener('click', () => {
+            function handleToggle() {
                 const shown = document.getElementById(`${name}-field-group`).style.display !== 'none';
                 if (shown && !field.value.trim()) {
                     setFieldVisible(name, false);
@@ -242,7 +242,9 @@
                     setFieldVisible(name, true);
                     field.focus();
                 }
-            });
+            }
+            btn.addEventListener('click', handleToggle);
+            btn.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleToggle(); } });
             field.addEventListener('input', () => updateToggleBtn(name));
         });
 

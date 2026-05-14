@@ -225,8 +225,6 @@ body.dark .entry-nav-btn:hover { color: #ccc; }
     padding: 0;
     font-family: inherit;
     width: fit-content;
-    -webkit-appearance: none;
-    appearance: none;
 }
 
 #photo-input { display: none; }
