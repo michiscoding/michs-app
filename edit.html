@@ -789,8 +789,8 @@
             const thoughtVal = entryData?.thought || '';
             document.getElementById('music-input').value = musicVal;
             document.getElementById('thought-input').value = thoughtVal;
-            document.getElementById('music-field-group').style.display = musicVal ? '' : 'none';
-            document.getElementById('thought-field-group').style.display = thoughtVal ? '' : 'none';
+            setEntryFieldVisible('music', !!musicVal);
+            setEntryFieldVisible('thought', !!thoughtVal);
 
             const prevDate = prevRows?.[0]?.date;
             const nextDate = nextRows?.[0]?.date;
@@ -827,10 +827,10 @@
                 currentDate = null;
                 photos = [];
                 photoPreviews.innerHTML = '';
-                document.getElementById('music-field-group').style.display = 'none';
-                document.getElementById('thought-field-group').style.display = 'none';
                 document.getElementById('music-input').value = '';
                 document.getElementById('thought-input').value = '';
+                setEntryFieldVisible('music', false);
+                setEntryFieldVisible('thought', false);
                 return;
             }
 
@@ -903,13 +903,31 @@
 
         loadEntries();
 
-        document.getElementById('music-add-btn').addEventListener('click', () => {
-            document.getElementById('music-field-group').style.display = '';
-            document.getElementById('music-input').focus();
-        });
-        document.getElementById('thought-add-btn').addEventListener('click', () => {
-            document.getElementById('thought-field-group').style.display = '';
-            document.getElementById('thought-input').focus();
+        function setEntryFieldVisible(name, visible) {
+            document.getElementById(`${name}-field-group`).style.display = visible ? '' : 'none';
+            updateEntryToggleBtn(name);
+        }
+
+        function updateEntryToggleBtn(name) {
+            const field = document.getElementById(`${name}-input`);
+            const btn = document.getElementById(`${name}-add-btn`);
+            const shown = document.getElementById(`${name}-field-group`).style.display !== 'none';
+            btn.textContent = (shown && !field.value.trim()) ? `- add ${name}` : `+ add ${name}`;
+        }
+
+        ['music', 'thought'].forEach(name => {
+            const btn = document.getElementById(`${name}-add-btn`);
+            const field = document.getElementById(`${name}-input`);
+            btn.addEventListener('click', () => {
+                const shown = document.getElementById(`${name}-field-group`).style.display !== 'none';
+                if (shown && !field.value.trim()) {
+                    setEntryFieldVisible(name, false);
+                } else if (!shown) {
+                    setEntryFieldVisible(name, true);
+                    field.focus();
+                }
+            });
+            field.addEventListener('input', () => updateEntryToggleBtn(name));
         });
 
         // --- tabs ---

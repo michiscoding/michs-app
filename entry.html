@@ -59,11 +59,20 @@
         </div>
         <textarea aria-label="entry content"></textarea>
 
-        <input type="text" id="music-input" placeholder="music url (spotify / youtube)...">
+        <div id="music-field-group" style="display:none">
+            <input type="text" id="music-input" placeholder="music url (spotify / youtube)...">
+        </div>
+        <div id="thought-field-group" style="display:none">
+            <input type="text" id="thought-input" placeholder="a quote or thought for today...">
+        </div>
 
         <div id="photo-strip">
             <div id="photo-previews"></div>
-            <label id="photo-add-btn" for="photo-input">+ add photos</label>
+            <div id="entry-add-btns">
+                <button type="button" id="music-add-btn">+ add music</button>
+                <button type="button" id="thought-add-btn">+ add thought</button>
+                <label id="photo-add-btn" for="photo-input">+ add photos</label>
+            </div>
             <input type="file" id="photo-input" accept="image/*,video/*" multiple>
         </div>
 
@@ -118,13 +127,18 @@
                 photos = [];
 
                 const [{ data: entryData }, { data: photoData }, { data: prevRows }, { data: nextRows }] = await Promise.all([
-                    db.from('entries').select('content, music_url').eq('date', date).single(),
+                    db.from('entries').select('content, music_url, thought').eq('date', date).single(),
                     db.from('entry_photos').select('storage_path').eq('entry_date', date),
                     db.from('entries').select('date').lt('date', date).order('date', { ascending: false }).limit(1),
                     db.from('entries').select('date').gt('date', date).order('date', { ascending: true }).limit(1)
                 ]);
 
-                document.getElementById('music-input').value = entryData?.music_url || '';
+                const musicVal = entryData?.music_url || '';
+                const thoughtVal = entryData?.thought || '';
+                document.getElementById('music-input').value = musicVal;
+                document.getElementById('thought-input').value = thoughtVal;
+                setFieldVisible('music', !!musicVal);
+                setFieldVisible('thought', !!thoughtVal);
                 if (entryData?.content) {
                     textarea.value = entryData.content;
                     requestAnimationFrame(() => { textarea.style.height = 'auto'; textarea.style.height = textarea.scrollHeight + 'px'; });
@@ -199,6 +213,33 @@
             return name.toLowerCase().replace(/[^a-z0-9.\-_]/g, '-');
         }
 
+        function setFieldVisible(name, visible) {
+            document.getElementById(`${name}-field-group`).style.display = visible ? '' : 'none';
+            updateToggleBtn(name);
+        }
+
+        function updateToggleBtn(name) {
+            const field = document.getElementById(`${name}-input`);
+            const btn = document.getElementById(`${name}-add-btn`);
+            const shown = document.getElementById(`${name}-field-group`).style.display !== 'none';
+            btn.textContent = (shown && !field.value.trim()) ? `- add ${name}` : `+ add ${name}`;
+        }
+
+        ['music', 'thought'].forEach(name => {
+            const btn = document.getElementById(`${name}-add-btn`);
+            const field = document.getElementById(`${name}-input`);
+            btn.addEventListener('click', () => {
+                const shown = document.getElementById(`${name}-field-group`).style.display !== 'none';
+                if (shown && !field.value.trim()) {
+                    setFieldVisible(name, false);
+                } else if (!shown) {
+                    setFieldVisible(name, true);
+                    field.focus();
+                }
+            });
+            field.addEventListener('input', () => updateToggleBtn(name));
+        });
+
         textarea.addEventListener('input', () => {
             if (textarea.scrollHeight > textarea.clientHeight) textarea.style.height = textarea.scrollHeight + 'px';
         });
@@ -220,7 +261,8 @@
             }
 
             const musicUrl = document.getElementById('music-input').value.trim() || null;
-            const { error } = await adminDb.from('entries').upsert({ date, content: textarea.value, music_url: musicUrl }, { onConflict: 'date' });
+            const thought = document.getElementById('thought-input').value.trim() || null;
+            const { error } = await adminDb.from('entries').upsert({ date, content: textarea.value, music_url: musicUrl, thought }, { onConflict: 'date' });
             if (error) {
                 btn.textContent = 'error — check console';
                 console.error(error);
