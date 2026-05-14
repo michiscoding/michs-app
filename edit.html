@@ -194,6 +194,12 @@
     </nav>
 
 
+    <div id="media-preview-lb" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:1000;align-items:center;justify-content:center;">
+        <button type="button" id="media-preview-close" style="position:absolute;top:1rem;right:1.2rem;background:none;border:none;color:rgba(255,255,255,0.7);font-size:1.8rem;cursor:pointer;line-height:1;padding:0.2rem 0.4rem;">×</button>
+        <img id="media-preview-img" style="max-width:92vw;max-height:92vh;object-fit:contain;display:none;border-radius:4px;">
+        <video id="media-preview-vid" style="max-width:92vw;max-height:92vh;object-fit:contain;display:none;border-radius:4px;" controls autoplay loop playsinline></video>
+    </div>
+
     <div class="entry-container" id="list-view">
         <button type="button" id="list-back-btn" class="list-back-btn" aria-label="back">←</button>
         <div class="edit-tabs">
@@ -1171,6 +1177,31 @@
             return res.ok ? `/${path}` : null;
         }
 
+        // --- media preview lightbox ---
+        const mediaPreviewLb = document.getElementById('media-preview-lb');
+        const mediaPreviewImg = document.getElementById('media-preview-img');
+        const mediaPreviewVid = document.getElementById('media-preview-vid');
+
+        function openMediaPreview(src, isVid) {
+            mediaPreviewLb.style.display = 'flex';
+            if (isVid) {
+                mediaPreviewVid.src = src; mediaPreviewVid.style.display = '';
+                mediaPreviewImg.style.display = 'none';
+            } else {
+                mediaPreviewImg.src = src; mediaPreviewImg.style.display = '';
+                mediaPreviewVid.style.display = 'none'; mediaPreviewVid.src = '';
+            }
+        }
+
+        function closeMediaPreview() {
+            mediaPreviewLb.style.display = 'none';
+            mediaPreviewVid.src = '';
+        }
+
+        document.getElementById('media-preview-close').addEventListener('click', closeMediaPreview);
+        mediaPreviewLb.addEventListener('click', e => { if (e.target === mediaPreviewLb) closeMediaPreview(); });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape' && mediaPreviewLb.style.display !== 'none') closeMediaPreview(); });
+
         // --- powerapps ---
         let paMedia = [], paSelectedTags = new Set(), paCurrentSlug = null;
         let paCurrentNotes = [], paDeletedNoteIds = new Set();
@@ -1182,17 +1213,18 @@
                 const wrap = document.createElement('div');
                 wrap.className = 'media-thumb-wrap';
                 const isVid = item.type === 'new' ? item.file.type.startsWith('video/') : /\.(mp4|webm|mov)$/i.test(item.path);
+                const src = item.type === 'new' ? item.src : MEDIA_BASE + item.path;
                 let el;
                 if (isVid) {
                     el = document.createElement('video');
-                    el.src = item.type === 'new' ? item.src : MEDIA_BASE + item.path;
-                    el.muted = true; el.autoplay = true; el.loop = true; el.playsInline = true;
+                    el.src = src; el.muted = true; el.autoplay = true; el.loop = true; el.playsInline = true;
                 } else {
                     el = document.createElement('img');
-                    el.src = item.type === 'new' ? item.src : MEDIA_BASE + item.path;
-                    el.alt = '';
+                    el.src = src; el.alt = '';
                 }
                 el.className = 'media-thumb';
+                el.style.cursor = 'zoom-in';
+                el.addEventListener('click', () => openMediaPreview(src, isVid));
                 const removeBtn = document.createElement('button');
                 removeBtn.type = 'button'; removeBtn.className = 'remove-btn'; removeBtn.textContent = '×';
                 removeBtn.addEventListener('click', () => { paMedia.splice(i, 1); renderPaMedia(); });
