@@ -228,6 +228,10 @@
                     <label class="field-label" for="music-input">music</label>
                     <input type="text" id="music-input" placeholder="spotify or youtube url...">
                 </div>
+                <div class="field-group">
+                    <label class="field-label" for="thought-input">thought</label>
+                    <input type="text" id="thought-input" placeholder="a quote or thought for today...">
+                </div>
                 <div id="photo-strip">
                     <div id="photo-previews"></div>
                     <label id="photo-add-btn" for="photo-input">+ add photos</label>
@@ -764,7 +768,7 @@
         async function openEntry(file) {
             const date = file.name;
             const [{ data: entryData }, { data: photoData }, { data: prevRows }, { data: nextRows }] = await Promise.all([
-                db.from('entries').select('content, music_url').eq('date', date).single(),
+                db.from('entries').select('content, music_url, thought').eq('date', date).single(),
                 db.from('entry_photos').select('storage_path').eq('entry_date', date),
                 db.from('entries').select('date').lt('date', date).order('date', { ascending: false }).limit(1),
                 db.from('entries').select('date').gt('date', date).order('date', { ascending: true }).limit(1)
@@ -777,6 +781,7 @@
             editorTitle.textContent = `${months[parseInt(mm)-1]} ${parseInt(dd)} ${yyyy}`;
             editorTextarea.value = entryData?.content || '';
             document.getElementById('music-input').value = entryData?.music_url || '';
+            document.getElementById('thought-input').value = entryData?.thought || '';
 
             const prevDate = prevRows?.[0]?.date;
             const nextDate = nextRows?.[0]?.date;
@@ -860,8 +865,9 @@
             }
 
             const musicUrl = document.getElementById('music-input').value.trim() || null;
+            const thought = document.getElementById('thought-input').value.trim() || null;
             const { error } = await adminDb.from('entries').upsert(
-                { date: currentDate, content: editorTextarea.value, music_url: musicUrl },
+                { date: currentDate, content: editorTextarea.value, music_url: musicUrl, thought },
                 { onConflict: 'date' }
             );
             if (error) {
