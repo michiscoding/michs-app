@@ -542,13 +542,17 @@
                 <div id="jj-entries-list"></div>
             </div>
             <div id="jj-editor-view" style="display:none">
-                <div class="field-group">
+                <div class="field-group" id="jj-existing-date-group">
                     <span class="field-label">date</span>
                     <div class="entry-day-nav">
                         <button type="button" id="jj-prev-btn" class="entry-nav-btn entry-nav-hidden">←</button>
                         <span id="jj-editor-title" contenteditable="true" spellcheck="false"></span>
                         <button type="button" id="jj-next-btn" class="entry-nav-btn entry-nav-hidden">→</button>
                     </div>
+                </div>
+                <div class="field-group" id="jj-new-date-group" style="display:none">
+                    <label class="field-label" for="jj-new-date">date</label>
+                    <input type="date" id="jj-new-date">
                 </div>
                 <div class="field-group">
                     <label class="field-label" for="jj-textarea">notes</label>
@@ -2884,6 +2888,8 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
             prevBtn.onclick = prevDate ? () => openJJEntry(prevDate) : null;
             nextBtn.onclick = nextDate ? () => openJJEntry(nextDate) : null;
 
+            document.getElementById('jj-existing-date-group').style.display = '';
+            document.getElementById('jj-new-date-group').style.display = 'none';
             setSiteLink(`https://michiscoding.github.io/jiu-jitsu/view.html?date=${date}`);
             backContext = 'jj';
             jjListView.style.display = 'none';
@@ -2896,18 +2902,14 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
         }
 
         document.getElementById('jj-new-btn').addEventListener('click', () => {
-            const d = new Date();
-            const mm = String(d.getMonth()+1).padStart(2,'0');
-            const dd = String(d.getDate()).padStart(2,'0');
-            const yy = String(d.getFullYear()).slice(2);
             jjCurrentDate = null;
-            jjEditorTitle.textContent = `${mm}${dd}${yy}`;
+            document.getElementById('jj-existing-date-group').style.display = 'none';
+            document.getElementById('jj-new-date-group').style.display = '';
+            document.getElementById('jj-new-date').value = new Date().toISOString().slice(0,10);
             jjTextarea.value = '';
             jjTextarea.style.height = '';
             document.getElementById('jj-techniques').value = '';
             document.getElementById('jj-partners').value = '';
-            document.getElementById('jj-prev-btn').classList.add('entry-nav-hidden');
-            document.getElementById('jj-next-btn').classList.add('entry-nav-hidden');
             setSiteLink('https://michiscoding.github.io/training.html');
             backContext = 'jj';
             jjListView.style.display = 'none';
@@ -2922,8 +2924,7 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
         });
 
         document.getElementById('jj-save-btn').addEventListener('click', async () => {
-            const code = jjEditorTitle.textContent.trim();
-            const date = jjCodeToIso(code);
+            const date = jjCurrentDate || document.getElementById('jj-new-date').value;
             if (!date) return;
             const adminDb = await getAdminClient();
             if (!adminDb) return;
