@@ -918,7 +918,13 @@
             const field = document.getElementById(`${name}-input`);
             const btn = document.getElementById(`${name}-add-btn`);
             const shown = document.getElementById(`${name}-field-group`).style.display !== 'none';
-            btn.textContent = (shown && !field.value.trim()) ? `- add ${name}` : `+ add ${name}`;
+            if (!shown) {
+                btn.style.display = ''; btn.textContent = `+ add ${name}`;
+            } else if (!field.value.trim()) {
+                btn.style.display = ''; btn.textContent = `- add ${name}`;
+            } else {
+                btn.style.display = 'none';
+            }
         }
 
         ['music', 'thought'].forEach(name => {
