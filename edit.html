@@ -224,17 +224,21 @@
                     <label class="field-label" for="editor-textarea">entry</label>
                     <textarea id="editor-textarea"></textarea>
                 </div>
-                <div class="field-group">
+                <div id="music-field-group" class="field-group" style="display:none">
                     <label class="field-label" for="music-input">music</label>
                     <input type="text" id="music-input" placeholder="spotify or youtube url...">
                 </div>
-                <div class="field-group">
+                <div id="thought-field-group" class="field-group" style="display:none">
                     <label class="field-label" for="thought-input">thought</label>
                     <input type="text" id="thought-input" placeholder="a quote or thought for today...">
                 </div>
                 <div id="photo-strip">
                     <div id="photo-previews"></div>
-                    <label id="photo-add-btn" for="photo-input">+ add photos</label>
+                    <div id="entry-add-btns">
+                        <button type="button" id="music-add-btn">+ add music</button>
+                        <button type="button" id="thought-add-btn">+ add thought</button>
+                        <label id="photo-add-btn" for="photo-input">+ add photos</label>
+                    </div>
                     <input type="file" id="photo-input" accept="image/*,video/*" multiple>
                 </div>
                 <div class="editor-actions">
@@ -780,8 +784,13 @@
             const [yyyy, mm, dd] = date.split('-');
             editorTitle.textContent = `${months[parseInt(mm)-1]} ${parseInt(dd)} ${yyyy}`;
             editorTextarea.value = entryData?.content || '';
-            document.getElementById('music-input').value = entryData?.music_url || '';
-            document.getElementById('thought-input').value = entryData?.thought || '';
+
+            const musicVal = entryData?.music_url || '';
+            const thoughtVal = entryData?.thought || '';
+            document.getElementById('music-input').value = musicVal;
+            document.getElementById('thought-input').value = thoughtVal;
+            document.getElementById('music-field-group').style.display = musicVal ? '' : 'none';
+            document.getElementById('thought-field-group').style.display = thoughtVal ? '' : 'none';
 
             const prevDate = prevRows?.[0]?.date;
             const nextDate = nextRows?.[0]?.date;
@@ -818,6 +827,10 @@
                 currentDate = null;
                 photos = [];
                 photoPreviews.innerHTML = '';
+                document.getElementById('music-field-group').style.display = 'none';
+                document.getElementById('thought-field-group').style.display = 'none';
+                document.getElementById('music-input').value = '';
+                document.getElementById('thought-input').value = '';
                 return;
             }
 
@@ -889,6 +902,15 @@
         });
 
         loadEntries();
+
+        document.getElementById('music-add-btn').addEventListener('click', () => {
+            document.getElementById('music-field-group').style.display = '';
+            document.getElementById('music-input').focus();
+        });
+        document.getElementById('thought-add-btn').addEventListener('click', () => {
+            document.getElementById('thought-field-group').style.display = '';
+            document.getElementById('thought-input').focus();
+        });
 
         // --- tabs ---
         const tabEntries = document.getElementById('tab-entries');
