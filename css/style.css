@@ -214,12 +214,11 @@ body.dark .entry-nav-btn:hover { color: #ccc; }
     margin-top: 0.25rem;
 }
 
-#training-field-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
-}
+#entry-carousel { overflow: hidden; width: 100%; }
+#entry-carousel-track { display: flex; transition: transform 0.35s ease; }
+.entry-slide { flex: 0 0 100%; width: 100%; min-width: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.entry-field-label { font-size: 0.72rem; font-weight: 600; color: #aaa; text-transform: lowercase; letter-spacing: 0.04em; margin-bottom: 0.1rem; }
+body.dark .entry-field-label { color: #555; }
 
 #photo-add-btn, #music-add-btn, #thought-add-btn, #training-add-btn {
     font-size: 0.8rem;

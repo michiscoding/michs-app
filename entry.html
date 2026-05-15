@@ -57,19 +57,28 @@
             <h1 id="date-label" contenteditable="true" spellcheck="false">new entry</h1>
             <button type="button" id="entry-next-btn" class="entry-nav-btn entry-nav-hidden">→</button>
         </div>
-        <textarea aria-label="entry content"></textarea>
+
+        <div id="entry-carousel">
+            <div id="entry-carousel-track">
+                <div class="entry-slide">
+                    <textarea aria-label="entry content"></textarea>
+                </div>
+                <div class="entry-slide" id="training-slide">
+                    <label class="entry-field-label">notes</label>
+                    <textarea id="training-notes"></textarea>
+                    <label class="entry-field-label">techniques</label>
+                    <input type="text" id="training-techniques" placeholder="comma separated...">
+                    <label class="entry-field-label">partners</label>
+                    <input type="text" id="training-partners" placeholder="comma separated...">
+                </div>
+            </div>
+        </div>
 
         <div id="music-field-group" style="display:none">
             <input type="text" id="music-input" placeholder="music url (spotify / youtube)...">
         </div>
         <div id="thought-field-group" style="display:none">
             <input type="text" id="thought-input" placeholder="a quote or thought for today...">
-        </div>
-
-        <div id="training-field-group" style="display:none">
-            <textarea id="training-notes" placeholder="notes..."></textarea>
-            <input type="text" id="training-techniques" placeholder="techniques (comma separated)...">
-            <input type="text" id="training-partners" placeholder="partners (comma separated)...">
         </div>
 
         <div id="photo-strip">
@@ -154,8 +163,7 @@
                 document.getElementById('training-notes').value = trainingNotes;
                 document.getElementById('training-techniques').value = trainingTech;
                 document.getElementById('training-partners').value = trainingPartners;
-                const hasTraining = !!(trainingNotes || trainingTech || trainingPartners);
-                setTrainingVisible(hasTraining);
+                slideCarousel(0);
                 if (entryData?.content) {
                     textarea.value = entryData.content;
                     requestAnimationFrame(() => { textarea.style.height = 'auto'; textarea.style.height = textarea.scrollHeight + 'px'; });
@@ -241,6 +249,8 @@
             const shown = document.getElementById(`${name}-field-group`).style.display !== 'none';
             if (!shown) {
                 btn.style.display = ''; btn.textContent = `+ add ${name}`;
+            } else if (field.value.trim()) {
+                btn.style.display = 'none';
             } else {
                 btn.style.display = ''; btn.textContent = `- add ${name}`;
             }
@@ -252,33 +262,25 @@
                       document.getElementById('training-partners').value.trim());
         }
 
-        function updateTrainingBtn() {
-            const btn = document.getElementById('training-add-btn');
-            const shown = document.getElementById('training-field-group').style.display !== 'none';
-            btn.style.display = '';
-            btn.textContent = shown ? '- add training' : '+ add training';
-        }
+        let carouselSlide = 0;
 
-        function setTrainingVisible(visible) {
-            document.getElementById('training-field-group').style.display = visible ? '' : 'none';
-            updateTrainingBtn();
+        function slideCarousel(idx) {
+            carouselSlide = idx;
+            document.getElementById('entry-carousel-track').style.transform = `translateX(-${idx * 100}%)`;
+            document.getElementById('training-add-btn').textContent = idx === 1 ? '- add training' : '+ add training';
         }
 
         const trainingBtn = document.getElementById('training-add-btn');
         function handleTrainingToggle() {
-            const shown = document.getElementById('training-field-group').style.display !== 'none';
-            if (shown && !trainingHasContent()) {
-                setTrainingVisible(false);
-            } else if (!shown) {
-                setTrainingVisible(true);
+            if (carouselSlide === 1 && !trainingHasContent()) {
+                slideCarousel(0);
+            } else if (carouselSlide === 0) {
+                slideCarousel(1);
                 document.getElementById('training-notes').focus();
             }
         }
         trainingBtn.addEventListener('click', handleTrainingToggle);
         trainingBtn.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleTrainingToggle(); } });
-        ['training-notes', 'training-techniques', 'training-partners'].forEach(id => {
-            document.getElementById(id).addEventListener('input', updateTrainingBtn);
-        });
 
         document.getElementById('training-notes').addEventListener('input', function() {
             if (this.scrollHeight > this.clientHeight) this.style.height = this.scrollHeight + 'px';
