@@ -73,6 +73,10 @@
                 </div>
             </div>
         </div>
+        <div id="carousel-nav">
+            <span role="button" tabindex="0" id="carousel-nav-back">← entry</span>
+            <span role="button" tabindex="0" id="carousel-nav-fwd">training →</span>
+        </div>
 
         <div id="music-field-group" style="display:none">
             <input type="text" id="music-input" placeholder="music url (spotify / youtube)...">
@@ -266,13 +270,16 @@
 
         function updateTrainingBtn() {
             const btn = document.getElementById('training-add-btn');
-            if (carouselSlide === 0) {
-                btn.style.display = ''; btn.textContent = '+ add training';
-            } else if (trainingHasContent()) {
-                btn.style.display = 'none';
-            } else {
-                btn.style.display = ''; btn.textContent = '- add training';
-            }
+            const back = document.getElementById('carousel-nav-back');
+            const fwd = document.getElementById('carousel-nav-fwd');
+            const hasTraining = trainingHasContent();
+            // + add training: only on slide 0 with no training
+            btn.style.display = (carouselSlide === 0 && !hasTraining) ? '' : 'none';
+            if (carouselSlide === 0 && !hasTraining) btn.textContent = '+ add training';
+            // ← entry: only on slide 1
+            back.style.display = carouselSlide === 1 ? '' : 'none';
+            // training →: only on slide 0 with existing training
+            fwd.style.display = (carouselSlide === 0 && hasTraining) ? '' : 'none';
         }
 
         function slideCarousel(idx) {
@@ -292,6 +299,9 @@
         }
         trainingBtn.addEventListener('click', handleTrainingToggle);
         trainingBtn.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleTrainingToggle(); } });
+
+        document.getElementById('carousel-nav-back').addEventListener('click', () => slideCarousel(0));
+        document.getElementById('carousel-nav-fwd').addEventListener('click', () => slideCarousel(1));
         ['training-notes', 'training-techniques', 'training-partners'].forEach(id => {
             document.getElementById(id).addEventListener('input', updateTrainingBtn);
         });

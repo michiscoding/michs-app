@@ -214,6 +214,11 @@ body.dark .entry-nav-btn:hover { color: #ccc; }
     margin-top: 0.25rem;
 }
 
+#carousel-nav { display: flex; justify-content: space-between; margin-top: 0.4rem; min-height: 1.2rem; }
+#carousel-nav-back, #carousel-nav-fwd { font-size: 0.75rem; color: #bbb; cursor: pointer; user-select: none; }
+#carousel-nav-back:hover, #carousel-nav-fwd:hover { color: #555; }
+body.dark #carousel-nav-back, body.dark #carousel-nav-fwd { color: #444; }
+body.dark #carousel-nav-back:hover, body.dark #carousel-nav-fwd:hover { color: #aaa; }
 #entry-carousel { overflow: hidden; width: 100%; }
 #entry-carousel-track { display: flex; transition: transform 0.35s ease; }
 .entry-slide { flex: 0 0 100%; width: 100%; min-width: 0; display: flex; flex-direction: column; gap: 0.5rem; }
