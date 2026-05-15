@@ -264,10 +264,21 @@
 
         let carouselSlide = 0;
 
+        function updateTrainingBtn() {
+            const btn = document.getElementById('training-add-btn');
+            if (carouselSlide === 0) {
+                btn.style.display = ''; btn.textContent = '+ add training';
+            } else if (trainingHasContent()) {
+                btn.style.display = 'none';
+            } else {
+                btn.style.display = ''; btn.textContent = '- add training';
+            }
+        }
+
         function slideCarousel(idx) {
             carouselSlide = idx;
             document.getElementById('entry-carousel-track').style.transform = `translateX(-${idx * 100}%)`;
-            document.getElementById('training-add-btn').textContent = idx === 1 ? '- add training' : '+ add training';
+            updateTrainingBtn();
         }
 
         const trainingBtn = document.getElementById('training-add-btn');
@@ -281,6 +292,9 @@
         }
         trainingBtn.addEventListener('click', handleTrainingToggle);
         trainingBtn.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleTrainingToggle(); } });
+        ['training-notes', 'training-techniques', 'training-partners'].forEach(id => {
+            document.getElementById(id).addEventListener('input', updateTrainingBtn);
+        });
 
         document.getElementById('training-notes').addEventListener('input', function() {
             if (this.scrollHeight > this.clientHeight) this.style.height = this.scrollHeight + 'px';
