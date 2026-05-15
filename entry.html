@@ -192,6 +192,7 @@
 
                 siteLink.href = `https://michiscoding.github.io/entries/view.html?date=${date}`;
 
+                requestAnimationFrame(updateCarouselHeight);
                 fadeIn();
             };
             if (animate) { fadeOut(doLoad); } else { await doLoad(); }
@@ -282,9 +283,16 @@
             fwd.style.display = (carouselSlide === 0 && hasTraining) ? '' : 'none';
         }
 
+        function updateCarouselHeight() {
+            const carousel = document.getElementById('entry-carousel');
+            const slides = document.querySelectorAll('.entry-slide');
+            carousel.style.height = slides[carouselSlide].scrollHeight + 'px';
+        }
+
         function slideCarousel(idx) {
             carouselSlide = idx;
             document.getElementById('entry-carousel-track').style.transform = `translateX(-${idx * 100}%)`;
+            requestAnimationFrame(updateCarouselHeight);
             updateTrainingBtn();
         }
 
@@ -308,6 +316,7 @@
 
         document.getElementById('training-notes').addEventListener('input', function() {
             if (this.scrollHeight > this.clientHeight) this.style.height = this.scrollHeight + 'px';
+            updateCarouselHeight();
         });
 
         ['music', 'thought'].forEach(name => {
@@ -329,6 +338,7 @@
 
         textarea.addEventListener('input', () => {
             if (textarea.scrollHeight > textarea.clientHeight) textarea.style.height = textarea.scrollHeight + 'px';
+            updateCarouselHeight();
         });
 
         document.getElementById('post-btn').addEventListener('click', async () => {
