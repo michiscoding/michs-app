@@ -214,7 +214,14 @@ body.dark .entry-nav-btn:hover { color: #ccc; }
     margin-top: 0.25rem;
 }
 
-#photo-add-btn, #music-add-btn, #thought-add-btn {
+#training-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+#photo-add-btn, #music-add-btn, #thought-add-btn, #training-add-btn {
     font-size: 0.8rem;
     font-weight: 600;
     color: #888;

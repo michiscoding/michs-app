@@ -66,11 +66,18 @@
             <input type="text" id="thought-input" placeholder="a quote or thought for today...">
         </div>
 
+        <div id="training-field-group" style="display:none">
+            <textarea id="training-notes" placeholder="notes..."></textarea>
+            <input type="text" id="training-techniques" placeholder="techniques (comma separated)...">
+            <input type="text" id="training-partners" placeholder="partners (comma separated)...">
+        </div>
+
         <div id="photo-strip">
             <div id="photo-previews"></div>
             <div id="entry-add-btns">
                 <span role="button" tabindex="0" id="music-add-btn">+ add music</span>
                 <span role="button" tabindex="0" id="thought-add-btn">+ add thought</span>
+                <span role="button" tabindex="0" id="training-add-btn">+ add training</span>
                 <label id="photo-add-btn" for="photo-input">+ add photos</label>
             </div>
             <input type="file" id="photo-input" accept="image/*,video/*" multiple>
@@ -126,11 +133,12 @@
                 textarea.style.height = '';
                 photos = [];
 
-                const [{ data: entryData }, { data: photoData }, { data: prevRows }, { data: nextRows }] = await Promise.all([
+                const [{ data: entryData }, { data: photoData }, { data: prevRows }, { data: nextRows }, { data: jjData }] = await Promise.all([
                     db.from('entries').select('content, music_url, thought').eq('date', date).single(),
                     db.from('entry_photos').select('storage_path').eq('entry_date', date),
                     db.from('entries').select('date').lt('date', date).order('date', { ascending: false }).limit(1),
-                    db.from('entries').select('date').gt('date', date).order('date', { ascending: true }).limit(1)
+                    db.from('entries').select('date').gt('date', date).order('date', { ascending: true }).limit(1),
+                    db.from('jiu_jitsu').select('content, techniques, partners').eq('date', date).maybeSingle()
                 ]);
 
                 const musicVal = entryData?.music_url || '';
@@ -139,6 +147,15 @@
                 document.getElementById('thought-input').value = thoughtVal;
                 setFieldVisible('music', !!musicVal);
                 setFieldVisible('thought', !!thoughtVal);
+
+                const trainingNotes = jjData?.content || '';
+                const trainingTech = (jjData?.techniques || []).join(', ');
+                const trainingPartners = (jjData?.partners || []).join(', ');
+                document.getElementById('training-notes').value = trainingNotes;
+                document.getElementById('training-techniques').value = trainingTech;
+                document.getElementById('training-partners').value = trainingPartners;
+                const hasTraining = !!(trainingNotes || trainingTech || trainingPartners);
+                setTrainingVisible(hasTraining);
                 if (entryData?.content) {
                     textarea.value = entryData.content;
                     requestAnimationFrame(() => { textarea.style.height = 'auto'; textarea.style.height = textarea.scrollHeight + 'px'; });
@@ -231,6 +248,49 @@
             }
         }
 
+        function trainingHasContent() {
+            return !!(document.getElementById('training-notes').value.trim() ||
+                      document.getElementById('training-techniques').value.trim() ||
+                      document.getElementById('training-partners').value.trim());
+        }
+
+        function updateTrainingBtn() {
+            const btn = document.getElementById('training-add-btn');
+            const shown = document.getElementById('training-field-group').style.display !== 'none';
+            if (!shown) {
+                btn.style.display = ''; btn.textContent = '+ add training';
+            } else if (!trainingHasContent()) {
+                btn.style.display = ''; btn.textContent = '- add training';
+            } else {
+                btn.style.display = 'none';
+            }
+        }
+
+        function setTrainingVisible(visible) {
+            document.getElementById('training-field-group').style.display = visible ? '' : 'none';
+            updateTrainingBtn();
+        }
+
+        const trainingBtn = document.getElementById('training-add-btn');
+        function handleTrainingToggle() {
+            const shown = document.getElementById('training-field-group').style.display !== 'none';
+            if (shown && !trainingHasContent()) {
+                setTrainingVisible(false);
+            } else if (!shown) {
+                setTrainingVisible(true);
+                document.getElementById('training-notes').focus();
+            }
+        }
+        trainingBtn.addEventListener('click', handleTrainingToggle);
+        trainingBtn.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleTrainingToggle(); } });
+        ['training-notes', 'training-techniques', 'training-partners'].forEach(id => {
+            document.getElementById(id).addEventListener('input', updateTrainingBtn);
+        });
+
+        document.getElementById('training-notes').addEventListener('input', function() {
+            if (this.scrollHeight > this.clientHeight) this.style.height = this.scrollHeight + 'px';
+        });
+
         ['music', 'thought'].forEach(name => {
             const btn = document.getElementById(`${name}-add-btn`);
             const field = document.getElementById(`${name}-input`);
@@ -286,6 +346,16 @@
             }
 
             renderAllPhotos();
+
+            if (trainingHasContent()) {
+                const techniques = document.getElementById('training-techniques').value.split(',').map(s => s.trim()).filter(Boolean);
+                const partners = document.getElementById('training-partners').value.split(',').map(s => s.trim()).filter(Boolean);
+                await adminDb.from('jiu_jitsu').upsert(
+                    { date, content: document.getElementById('training-notes').value, techniques, partners },
+                    { onConflict: 'date' }
+                );
+            }
+
             btn.textContent = 'saved!';
             setTimeout(() => btn.textContent = 'save', 2000);
         });
