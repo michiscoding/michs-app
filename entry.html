@@ -241,10 +241,8 @@
             const shown = document.getElementById(`${name}-field-group`).style.display !== 'none';
             if (!shown) {
                 btn.style.display = ''; btn.textContent = `+ add ${name}`;
-            } else if (!field.value.trim()) {
-                btn.style.display = ''; btn.textContent = `- add ${name}`;
             } else {
-                btn.style.display = 'none';
+                btn.style.display = ''; btn.textContent = `- add ${name}`;
             }
         }
 
@@ -257,13 +255,8 @@
         function updateTrainingBtn() {
             const btn = document.getElementById('training-add-btn');
             const shown = document.getElementById('training-field-group').style.display !== 'none';
-            if (!shown) {
-                btn.style.display = ''; btn.textContent = '+ add training';
-            } else if (!trainingHasContent()) {
-                btn.style.display = ''; btn.textContent = '- add training';
-            } else {
-                btn.style.display = 'none';
-            }
+            btn.style.display = '';
+            btn.textContent = shown ? '- add training' : '+ add training';
         }
 
         function setTrainingVisible(visible) {

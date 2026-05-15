@@ -915,16 +915,10 @@
         }
 
         function updateEntryToggleBtn(name) {
-            const field = document.getElementById(`${name}-input`);
             const btn = document.getElementById(`${name}-add-btn`);
             const shown = document.getElementById(`${name}-field-group`).style.display !== 'none';
-            if (!shown) {
-                btn.style.display = ''; btn.textContent = `+ add ${name}`;
-            } else if (!field.value.trim()) {
-                btn.style.display = ''; btn.textContent = `- add ${name}`;
-            } else {
-                btn.style.display = 'none';
-            }
+            btn.style.display = '';
+            btn.textContent = shown ? `- add ${name}` : `+ add ${name}`;
         }
 
         ['music', 'thought'].forEach(name => {
