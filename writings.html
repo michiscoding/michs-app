@@ -313,7 +313,7 @@
                     if (adminDb) {
                         const path = `attachments/${slug}/${f.name}`;
                         const { error } = await adminDb.storage.from('media').upload(path, f, { upsert: true, contentType: mimeType(f) });
-                        if (!error) url = `${SUPABASE_URL}/storage/v1/object/public/media/${path}`;
+                        if (!error) url = MEDIA_BASE + path;
                     }
                 }
                 if (url) {

@@ -602,8 +602,6 @@
 <script src="js/supabase.js"></script>
 <script src="js/app.js"></script>
     <script>
-        const MEDIA_BASE = SUPABASE_URL + '/storage/v1/object/public/media/';
-
         const siteLink = document.getElementById('site-link');
         function setBackVisible(visible) {
             backBtn.style.visibility = visible ? 'visible' : 'hidden';
@@ -1578,7 +1576,7 @@
                     if (adminDb) {
                         const path = `attachments/${rCurrentSlug}/${f.name}`;
                         const { error } = await adminDb.storage.from('media').upload(path, f, { upsert: true, contentType: mimeType(f) });
-                        if (!error) url = `${SUPABASE_URL}/storage/v1/object/public/media/${path}`;
+                        if (!error) url = MEDIA_BASE + path;
                     }
                 }
                 if (url) rUploadedFiles.push({ file: f, url });
