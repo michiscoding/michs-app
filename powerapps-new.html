@@ -248,8 +248,8 @@
                 const ext = file.name.split('.').pop() || 'jpg';
                 const filename = mediaFiles.length === 1 ? `${slug}.${ext}` : `${slug}-${i+1}.${ext}`;
                 const path = `powerapps/${filename}`;
-                const { error } = await adminDb.storage.from('media').upload(path, file, { upsert: true });
-                if (!error) mediaPaths.push(path);
+                const ok = await uploadToR2(path, file, mimeType(file));
+                if (ok) mediaPaths.push(path);
             }
 
             const { error } = await adminDb.from('powerapps').upsert(

@@ -351,8 +351,8 @@
                 const p = photos[i];
                 if (p.type !== 'new') continue;
                 const path = `entry-photos/${date}/${p.name}`;
-                const { error } = await adminDb.storage.from('media').upload(path, p.file, { upsert: true, contentType: p.file.type });
-                if (!error) photos[i] = { type: 'existing', storage_path: path, src: MEDIA_BASE + path };
+                const ok = await uploadToR2(path, p.file);
+                if (ok) photos[i] = { type: 'existing', storage_path: path, src: MEDIA_BASE + path };
             }
 
             const musicUrl = document.getElementById('music-input').value.trim() || null;

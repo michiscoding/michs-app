@@ -312,8 +312,8 @@
                     const adminDb = await getAdminClient();
                     if (adminDb) {
                         const path = `attachments/${slug}/${f.name}`;
-                        const { error } = await adminDb.storage.from('media').upload(path, f, { upsert: true, contentType: mimeType(f) });
-                        if (!error) url = MEDIA_BASE + path;
+                        const ok = await uploadToR2(path, f, mimeType(f));
+                        if (ok) url = MEDIA_BASE + path;
                     }
                 }
                 if (url) {

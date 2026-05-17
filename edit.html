@@ -877,8 +877,8 @@
                 const p = photos[i];
                 if (p.type !== 'new') continue;
                 const path = `entry-photos/${currentDate}/${p.name}`;
-                const { error } = await adminDb.storage.from('media').upload(path, p.file, { upsert: true, contentType: mimeType(p.file) });
-                if (!error) photos[i] = { type: 'existing', storage_path: path, src: MEDIA_BASE + path };
+                const ok = await uploadToR2(path, p.file, mimeType(p.file));
+                if (ok) photos[i] = { type: 'existing', storage_path: path, src: MEDIA_BASE + path };
             }
 
             const musicUrl = document.getElementById('music-input').value.trim() || null;
@@ -1443,8 +1443,8 @@
                     const ext = item.file.name.split('.').pop() || 'jpg';
                     const filename = `${newSlug}-${newFileIdx + 1}.${ext}`;
                     const path = `powerapps/${filename}`;
-                    const { error } = await adminDb.storage.from('media').upload(path, item.file, { upsert: true, contentType: mimeType(item.file) });
-                    if (!error) { paMedia[i] = { type: 'existing', path }; mediaPaths.push(path); }
+                    const ok = await uploadToR2(path, item.file, mimeType(item.file));
+                    if (ok) { paMedia[i] = { type: 'existing', path }; mediaPaths.push(path); }
                     newFileIdx++;
                 }
             }
@@ -1474,8 +1474,8 @@
                     if (note._file) {
                         const ext = note._file.name.split('.').pop() || 'bin';
                         const path = `powerapps-notes/${newSlug}-${Date.now()}-${i}.${ext}`;
-                        const { error: upErr } = await adminDb.storage.from('media').upload(path, note._file, { upsert: true, contentType: note._file.type });
-                        if (!upErr) { file_path = path; paCurrentNotes[i].file_path = path; paCurrentNotes[i]._file = null; }
+                        const ok = await uploadToR2(path, note._file);
+                        if (ok) { file_path = path; paCurrentNotes[i].file_path = path; paCurrentNotes[i]._file = null; }
                     }
                     const row = { record_slug: newSlug, type: note.type, language: note.language || null, content: note.content || '', file_path, description: note.description || '', sort_order: i };
                     if (note.id) {
@@ -1575,8 +1575,8 @@
                     const adminDb = await getAdminClient();
                     if (adminDb) {
                         const path = `attachments/${rCurrentSlug}/${f.name}`;
-                        const { error } = await adminDb.storage.from('media').upload(path, f, { upsert: true, contentType: mimeType(f) });
-                        if (!error) url = MEDIA_BASE + path;
+                        const ok = await uploadToR2(path, f, mimeType(f));
+                        if (ok) url = MEDIA_BASE + path;
                     }
                 }
                 if (url) rUploadedFiles.push({ file: f, url });
@@ -2419,8 +2419,8 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
                 if (photo.type !== 'new') continue;
                 const ext = photo.file.name.split('.').pop() || 'jpg';
                 const path = `food/${currentFoodId}/${Date.now()}-${i}.${ext}`;
-                const { error: uploadErr } = await adminDb.storage.from('media').upload(path, photo.file, { upsert: false, contentType: mimeType(photo.file) });
-                if (!uploadErr) {
+                const uploadOk = await uploadToR2(path, photo.file, mimeType(photo.file));
+                if (uploadOk) {
                     const { data: inserted } = await adminDb.from('food_photos').insert({ food_id: currentFoodId, storage_path: path }).select().single();
                     if (inserted) { photo.type = 'existing'; photo.id = inserted.id; photo.storage_path = path; }
                 }
@@ -2547,8 +2547,8 @@ if (new URLSearchParams(location.search).get('theme') === 'dark') {
                 if (photo.type !== 'new') continue;
                 const ext = photo.file.name.split('.').pop() || 'jpg';
                 const path = `venues/${currentVenueId}/${Date.now()}-${i}.${ext}`;
-                const { error: uploadErr } = await adminDb.storage.from('media').upload(path, photo.file, { upsert: false, contentType: mimeType(photo.file) });
-                if (!uploadErr) {
+                const uploadOk = await uploadToR2(path, photo.file, mimeType(photo.file));
+                if (uploadOk) {
                     const { data: inserted } = await adminDb.from('venue_photos').insert({ venue_id: currentVenueId, storage_path: path }).select().single();
                     if (inserted) { photo.type = 'existing'; photo.id = inserted.id; photo.storage_path = path; }
                 }
