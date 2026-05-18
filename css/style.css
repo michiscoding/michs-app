@@ -197,6 +197,7 @@ body.dark #history-btn:hover { color: #aaa; }
 body.dark #browse-filters select { border-bottom-color: #333; color: #666; }
 
 .entry-year-label { font-size: 0.7rem; font-weight: 600; color: #bbb; letter-spacing: 0.08em; text-transform: uppercase; margin: 1.5rem 0 0.5rem; }
+.entry-year-months { display: grid; grid-template-columns: repeat(3, auto); gap: 1.25rem 2.5rem; margin-bottom: 0.5rem; justify-content: start; }
 .entry-month-row { display: block; margin-bottom: 1.1rem; }
 .entry-month-name { display: block; font-size: 0.72rem; color: #bbb; letter-spacing: 0.02em; margin-bottom: 0.35rem; }
 .entry-day-chips { display: grid; grid-template-columns: repeat(7, 1.8rem); row-gap: 0.1rem; }

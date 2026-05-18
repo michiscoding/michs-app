@@ -395,6 +395,9 @@
                 yearEl.className = 'entry-year-label';
                 yearEl.textContent = yyyy;
                 list.appendChild(yearEl);
+                const monthsGrid = document.createElement('div');
+                monthsGrid.className = 'entry-year-months';
+                list.appendChild(monthsGrid);
                 for (const mm of Object.keys(groups[yyyy]).sort().reverse()) {
                     const row = document.createElement('div');
                     row.className = 'entry-month-row';
@@ -426,7 +429,7 @@
                         grid.appendChild(cell);
                     }
                     row.appendChild(grid);
-                    list.appendChild(row);
+                    monthsGrid.appendChild(row);
                 }
             }
         }
