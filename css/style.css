@@ -220,7 +220,7 @@ body.dark .entry-nav-btn:hover { color: #ccc; }
 body.dark #carousel-nav-back, body.dark #carousel-nav-fwd { color: #444; }
 body.dark #carousel-nav-back:hover, body.dark #carousel-nav-fwd:hover { color: #aaa; }
 #entry-carousel { overflow: hidden; width: 100%; height: 100px; }
-#entry-carousel-track { display: flex; transition: transform 0.35s ease; }
+#entry-carousel-track { display: flex; transition: transform 0.35s ease; align-items: flex-start; }
 .entry-slide { flex: 0 0 100%; width: 100%; min-width: 0; display: flex; flex-direction: column; gap: 0.5rem; }
 .entry-field-label { font-size: 0.72rem; font-weight: 600; color: #aaa; text-transform: lowercase; letter-spacing: 0.04em; margin-bottom: 0.1rem; }
 body.dark .entry-field-label { color: #555; }
