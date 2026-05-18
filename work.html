@@ -299,8 +299,8 @@
                     el.style.display = show ? 'block' : 'none';
                     if (show) revealTab(el);
                 });
-                document.getElementById('pa-new-btn').style.display = tab.dataset.subtab === 'powerapps' ? '' : 'none';
-                document.getElementById('r-new-btn').style.display = tab.dataset.subtab === 'writings' ? '' : 'none';
+                document.getElementById('pa-new-btn').style.display = tab.dataset.subtab === 'powerapps' ? 'inline' : 'none';
+                document.getElementById('r-new-btn').style.display = tab.dataset.subtab === 'writings' ? 'inline' : 'none';
                 if (paEditorView.style.display === 'block') {
                     paEditorView.style.display = 'none';
                     paListView.style.display = 'block';
