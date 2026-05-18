@@ -128,12 +128,13 @@
             <button type="button" class="edit-tab active" data-subtab="powerapps">powerapps</button>
             <button type="button" class="edit-tab" data-subtab="writings">records</button>
             <button type="button" class="edit-tab" data-subtab="resume">resume</button>
+            <button type="button" class="btn-inline subtab-new-btn" id="pa-new-btn">+ new powerapps entry</button>
+            <button type="button" class="btn-inline subtab-new-btn" id="r-new-btn" hidden>+ new record</button>
         </div>
 
         <div id="subtab-powerapps">
             <div id="pa-list-view">
                 <div id="pa-records-list"></div>
-                <button type="button" class="btn-inline" id="pa-new-btn">+ new powerapps entry</button>
             </div>
             <div id="pa-editor-view">
                 <div class="field-group">
@@ -177,10 +178,9 @@
             </div>
         </div>
 
-        <div id="subtab-writings" style="display:none">
+        <div id="subtab-writings">
             <div id="r-list-view">
                 <div id="r-records-list"></div>
-                <button type="button" class="btn-inline" id="r-new-btn">+ new record</button>
             </div>
             <div id="r-editor-view">
                 <div class="field-group">
@@ -220,7 +220,7 @@
             </div>
         </div>
 
-        <div id="subtab-resume" style="display:none">
+        <div id="subtab-resume">
             <div class="field-group">
                 <label class="field-label">experience</label>
                 <textarea id="exp-blurb" placeholder="e.g. creating power platform solutions for RSM since 2023..."></textarea>
@@ -299,6 +299,8 @@
                     el.style.display = show ? 'block' : 'none';
                     if (show) revealTab(el);
                 });
+                document.getElementById('pa-new-btn').style.display = tab.dataset.subtab === 'powerapps' ? '' : 'none';
+                document.getElementById('r-new-btn').style.display = tab.dataset.subtab === 'writings' ? '' : 'none';
                 if (paEditorView.style.display === 'block') {
                     paEditorView.style.display = 'none';
                     paListView.style.display = 'block';
