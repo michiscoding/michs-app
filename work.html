@@ -132,6 +132,7 @@
 
         <div id="subtab-powerapps">
             <div id="pa-list-view">
+                <button type="button" class="btn-app" id="pa-new-btn">+ new</button>
                 <div id="pa-records-list"></div>
             </div>
             <div id="pa-editor-view">
@@ -178,6 +179,7 @@
 
         <div id="subtab-writings" style="display:none">
             <div id="r-list-view">
+                <button type="button" class="btn-app" id="r-new-btn">+ new</button>
                 <div id="r-records-list"></div>
             </div>
             <div id="r-editor-view">
@@ -361,6 +363,24 @@
         const paListView = document.getElementById('pa-list-view');
         const paEditorView = document.getElementById('pa-editor-view');
         paEditorView.style.display = 'none';
+
+        document.getElementById('pa-new-btn').addEventListener('click', () => {
+            paCurrentSlug = null;
+            paMedia = []; paSelectedTags = new Set(); paDeletedNoteIds = new Set(); paCurrentNotes = [];
+            document.getElementById('pa-title').value = '';
+            document.getElementById('pa-what').value = '';
+            document.getElementById('pa-how').value = '';
+            document.getElementById('pa-media-previews').innerHTML = '';
+            document.getElementById('pa-notes-list').innerHTML = '';
+            document.querySelectorAll('.tag-pill').forEach(p => p.classList.remove('selected'));
+            setSiteLink('https://michiscoding.github.io/powerapps.html');
+            backContext = 'pa';
+            paListView.style.display = 'none';
+            paEditorView.style.display = 'block';
+            revealTab(paEditorView);
+            setBackVisible(true);
+            document.getElementById('pa-title').focus();
+        });
 
         function renderPaMedia() {
             const previews = document.getElementById('pa-media-previews');
@@ -551,7 +571,7 @@
 
         document.getElementById('pa-save-btn').addEventListener('click', async () => {
             const title = document.getElementById('pa-title').value.trim();
-            if (!title || !paCurrentSlug) return;
+            if (!title) return;
             const adminDb = await getAdminClient();
             if (!adminDb) return;
             const btn = document.getElementById('pa-save-btn');
@@ -633,6 +653,23 @@
         const rListView = document.getElementById('r-list-view');
         const rEditorView = document.getElementById('r-editor-view');
         rEditorView.style.display = 'none';
+
+        document.getElementById('r-new-btn').addEventListener('click', () => {
+            rCurrentSlug = null;
+            rUploadedFiles = []; rDeletedUrls = [];
+            document.getElementById('r-title').value = '';
+            document.getElementById('r-body').value = '';
+            document.getElementById('r-tags').value = '';
+            document.getElementById('r-attachment-url').value = '';
+            renderRAttachList();
+            setSiteLink('https://michiscoding.github.io/records.html');
+            backContext = 'r';
+            rListView.style.display = 'none';
+            rEditorView.style.display = 'block';
+            revealTab(rEditorView);
+            setBackVisible(true);
+            document.getElementById('r-title').focus();
+        });
 
         const rLinkPopup = document.getElementById('r-link-popup');
         const rLpText = document.getElementById('r-lp-text');
@@ -810,7 +847,7 @@
 
         document.getElementById('r-save-btn').addEventListener('click', async () => {
             const title = document.getElementById('r-title').value.trim();
-            if (!title || !rCurrentSlug) return;
+            if (!title) return;
             const adminDb = await getAdminClient(); if (!adminDb) return;
             const btn = document.getElementById('r-save-btn');
             btn.textContent = 'saving...'; btn.disabled = true;

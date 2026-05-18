@@ -63,6 +63,18 @@
         </div>
 
         <button type="button" id="post-btn" class="btn-app">save</button>
+
+        <div id="browse-section">
+            <button type="button" id="browse-toggle">past entries ↓</button>
+            <div id="browse-panel" style="display:none">
+                <div id="browse-filters">
+                    <select id="browse-year-filter" aria-label="filter by year"></select>
+                    <select id="browse-month-filter" aria-label="filter by month"></select>
+                    <button type="button" id="browse-filter-clear">×</button>
+                </div>
+                <div id="browse-list"></div>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -353,6 +365,112 @@
 
             btn.textContent = 'saved!';
             setTimeout(() => btn.textContent = 'save', 2000);
+        });
+
+        // --- browse past entries ---
+        const browseMonths = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+        let allBrowseFiles = [];
+        let browseLoaded = false;
+
+        function renderBrowseList() {
+            const yr = document.getElementById('browse-year-filter').value;
+            const mo = document.getElementById('browse-month-filter').value;
+            const list = document.getElementById('browse-list');
+            list.innerHTML = '';
+            const filtered = allBrowseFiles.filter(f => {
+                const [yyyy, mm] = f.split('-');
+                return (yr === 'all' || yyyy === yr) && (mo === 'all' || mm === mo);
+            });
+            const groups = {};
+            for (const d of filtered) {
+                const [yyyy, mm] = d.split('-');
+                if (!groups[yyyy]) groups[yyyy] = {};
+                if (!groups[yyyy][mm]) groups[yyyy][mm] = [];
+                groups[yyyy][mm].push(d);
+            }
+            for (const yyyy of Object.keys(groups).sort().reverse()) {
+                const yearEl = document.createElement('div');
+                yearEl.className = 'entry-year-label';
+                yearEl.textContent = yyyy;
+                list.appendChild(yearEl);
+                for (const mm of Object.keys(groups[yyyy]).sort().reverse()) {
+                    const row = document.createElement('div');
+                    row.className = 'entry-month-row';
+                    const monthName = document.createElement('span');
+                    monthName.className = 'entry-month-name';
+                    monthName.textContent = browseMonths[parseInt(mm) - 1];
+                    row.appendChild(monthName);
+                    const chips = document.createElement('div');
+                    chips.className = 'entry-day-chips';
+                    const sorted = groups[yyyy][mm].slice().sort((a, b) => parseInt(b.split('-')[2]) - parseInt(a.split('-')[2]));
+                    for (const d of sorted) {
+                        const dd = parseInt(d.split('-')[2]);
+                        const chip = document.createElement('button');
+                        chip.type = 'button'; chip.className = 'entry-day-chip'; chip.textContent = dd;
+                        chip.addEventListener('click', () => {
+                            dateLabel.textContent = isoToCode(d);
+                            loadEntryForDate(d, true);
+                            document.getElementById('browse-panel').style.display = 'none';
+                            document.getElementById('browse-toggle').textContent = 'past entries ↓';
+                        });
+                        chips.appendChild(chip);
+                    }
+                    row.appendChild(chips);
+                    list.appendChild(row);
+                }
+            }
+        }
+
+        function rebuildBrowseMonthFilter() {
+            const yr = document.getElementById('browse-year-filter').value;
+            const mf = document.getElementById('browse-month-filter');
+            const seenMo = new Set();
+            mf.innerHTML = '<option value="all">month</option>';
+            allBrowseFiles.forEach(d => {
+                const [yyyy, mm] = d.split('-');
+                if ((yr === 'all' || yyyy === yr) && !seenMo.has(mm)) {
+                    seenMo.add(mm);
+                    const opt = document.createElement('option');
+                    opt.value = mm; opt.textContent = browseMonths[parseInt(mm) - 1];
+                    mf.appendChild(opt);
+                }
+            });
+        }
+
+        document.getElementById('browse-year-filter').addEventListener('change', () => { rebuildBrowseMonthFilter(); renderBrowseList(); });
+        document.getElementById('browse-month-filter').addEventListener('change', renderBrowseList);
+        document.getElementById('browse-filter-clear').addEventListener('click', () => {
+            document.getElementById('browse-year-filter').value = 'all';
+            rebuildBrowseMonthFilter(); renderBrowseList();
+        });
+
+        async function loadBrowse() {
+            const { data } = await db.from('entries').select('date').order('date', { ascending: false });
+            if (!data) return;
+            allBrowseFiles = data.map(r => r.date);
+            const yf = document.getElementById('browse-year-filter');
+            const seenYr = new Set();
+            yf.innerHTML = '<option value="all">year</option>';
+            allBrowseFiles.forEach(d => {
+                const [yyyy] = d.split('-');
+                if (!seenYr.has(yyyy)) {
+                    seenYr.add(yyyy);
+                    const opt = document.createElement('option');
+                    opt.value = yyyy; opt.textContent = yyyy;
+                    yf.appendChild(opt);
+                }
+            });
+            rebuildBrowseMonthFilter();
+            renderBrowseList();
+        }
+
+        document.getElementById('browse-toggle').addEventListener('click', () => {
+            const panel = document.getElementById('browse-panel');
+            const btn = document.getElementById('browse-toggle');
+            const open = panel.style.display === 'none';
+            panel.style.display = open ? '' : 'none';
+            btn.textContent = open ? 'past entries ↑' : 'past entries ↓';
+            if (open && !browseLoaded) { browseLoaded = true; loadBrowse(); }
         });
     </script>
 </body>

@@ -40,6 +40,22 @@
 
     </div>
 
+    <div class="entry-container" id="retag-section">
+        <h2 style="font-size:1rem;font-weight:700;margin-bottom:1rem">manage photos</h2>
+        <div id="retag-subtabs">
+            <button type="button" class="retag-subtab active" data-filter="all">all</button>
+            <button type="button" class="retag-subtab" data-filter="home">home</button>
+            <button type="button" class="retag-subtab" data-filter="nature">nature</button>
+            <button type="button" class="retag-subtab" data-filter="jiu-jitsu">jiu jitsu</button>
+            <button type="button" class="retag-subtab" data-filter="vsco">vsco</button>
+            <button type="button" class="retag-subtab" data-filter="friends">friends</button>
+            <button type="button" class="retag-subtab" data-filter="me">me</button>
+            <button type="button" class="retag-subtab" data-filter="tattoos">tattoos</button>
+            <button type="button" id="retag-save-btn" class="btn-app">save</button>
+        </div>
+        <div id="retag-grid"></div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/exifr@7/dist/lite.umd.js"></script>
@@ -47,5 +63,114 @@
     <script src="js/app.js"></script>
     <script src="js/nav.js"></script>
     <script src="js/visuals.js"></script>
+    <script>
+        const ALL_TAGS = ['home', 'nature', 'jiu-jitsu', 'vsco', 'friends', 'me', 'tattoos'];
+        const retagGrid = document.getElementById('retag-grid');
+        const retagSaveBtn = document.getElementById('retag-save-btn');
+        let retagPhotos = [];
+        let deletedPhotoIds = new Set();
+        let retagActiveFilter = 'all';
+
+        function applyRetagFilter() {
+            retagGrid.style.opacity = '0';
+            setTimeout(() => {
+                retagGrid.querySelectorAll('.retag-card').forEach(card => {
+                    const tags = JSON.parse(card.dataset.tags || '[]');
+                    card.style.display = retagActiveFilter === 'all' || tags.includes(retagActiveFilter) ? '' : 'none';
+                });
+                requestAnimationFrame(() => requestAnimationFrame(() => { retagGrid.style.opacity = '1'; }));
+            }, 250);
+        }
+
+        document.querySelectorAll('.retag-subtab').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.retag-subtab').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                retagActiveFilter = btn.dataset.filter;
+                applyRetagFilter();
+            });
+        });
+
+        async function loadRetag() {
+            retagGrid.innerHTML = '<p style="opacity:0.4;font-size:0.85rem">loading...</p>';
+            const { data, error } = await db.from('photos').select('*').order('date', { ascending: false });
+            if (error || !data) { retagGrid.innerHTML = '<p style="opacity:0.4;font-size:0.85rem">none yet</p>'; return; }
+            retagPhotos = data.map(p => ({ ...p, tags: p.tags || [] }));
+            deletedPhotoIds = new Set();
+            retagGrid.innerHTML = '';
+            retagActiveFilter = 'all';
+            document.querySelectorAll('.retag-subtab').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
+            const ICON_MUTED = `<svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15" stroke="white" stroke-width="2" stroke-linecap="round"/><line x1="17" y1="9" x2="23" y2="15" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>`;
+            const ICON_SOUND = `<svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/></svg>`;
+            retagPhotos.forEach((photo, idx) => {
+                const card = document.createElement('div');
+                card.className = 'retag-card';
+                const src = photo.storage_path.startsWith('http') ? photo.storage_path : MEDIA_BASE + photo.storage_path;
+                const isVid = /\.(mp4|webm|mov)$/i.test(photo.storage_path) || photo.storage_path.includes('cloudinary.com');
+                const img = document.createElement(isVid ? 'video' : 'img');
+                img.src = src;
+                if (isVid) { img.muted = true; img.autoplay = true; img.loop = true; img.playsInline = true; }
+                const delBtn = document.createElement('button');
+                delBtn.type = 'button'; delBtn.className = 'remove-btn'; delBtn.textContent = '×';
+                delBtn.addEventListener('click', () => { deletedPhotoIds.add(photo.id); card.remove(); });
+                const picker = document.createElement('div');
+                picker.className = 'tag-picker';
+                const currentTags = new Set(photo.tags);
+                ALL_TAGS.forEach(tag => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'tag-btn' + (currentTags.has(tag) ? ' active' : '');
+                    btn.textContent = tag;
+                    btn.addEventListener('click', () => {
+                        if (currentTags.has(tag)) { currentTags.delete(tag); btn.classList.remove('active'); }
+                        else { currentTags.add(tag); btn.classList.add('active'); }
+                        retagPhotos[idx].tags = [...currentTags];
+                    });
+                    picker.appendChild(btn);
+                });
+                const dateInput = document.createElement('input');
+                dateInput.type = 'date'; dateInput.className = 'date-input'; dateInput.value = photo.date || '';
+                dateInput.addEventListener('change', () => { retagPhotos[idx].date = dateInput.value; });
+                picker.appendChild(dateInput);
+                card.dataset.tags = JSON.stringify(photo.tags);
+                const imgWrap = document.createElement('div');
+                imgWrap.className = 'retag-img-wrap';
+                if (isVid) {
+                    img.addEventListener('loadeddata', () => imgWrap.classList.add('loaded'), { once: true });
+                } else {
+                    if (img.complete && img.naturalWidth) { imgWrap.classList.add('loaded'); }
+                    else { img.addEventListener('load', () => imgWrap.classList.add('loaded'), { once: true }); }
+                }
+                imgWrap.appendChild(img); imgWrap.appendChild(delBtn);
+                if (isVid) {
+                    const soundBtn = document.createElement('button');
+                    soundBtn.type = 'button'; soundBtn.className = 'sound-btn'; soundBtn.innerHTML = ICON_MUTED;
+                    soundBtn.addEventListener('click', e => {
+                        e.stopPropagation(); img.muted = !img.muted;
+                        soundBtn.innerHTML = img.muted ? ICON_MUTED : ICON_SOUND;
+                    });
+                    imgWrap.appendChild(soundBtn);
+                }
+                imgWrap.appendChild(picker);
+                card.appendChild(imgWrap);
+                retagGrid.appendChild(card);
+            });
+            applyRetagFilter();
+        }
+
+        retagSaveBtn.addEventListener('click', async () => {
+            const adminDb = await getAdminClient();
+            if (!adminDb) return;
+            retagSaveBtn.textContent = 'saving...'; retagSaveBtn.disabled = true;
+            for (const id of deletedPhotoIds) { await adminDb.from('photos').delete().eq('id', id); }
+            for (const photo of retagPhotos.filter(p => !deletedPhotoIds.has(p.id))) {
+                await adminDb.from('photos').update({ tags: photo.tags, date: photo.date }).eq('id', photo.id);
+            }
+            retagSaveBtn.textContent = 'saved!'; deletedPhotoIds = new Set();
+            setTimeout(() => { retagSaveBtn.textContent = 'save'; retagSaveBtn.disabled = false; }, 2000);
+        });
+
+        loadRetag();
+    </script>
 </body>
 </html>
