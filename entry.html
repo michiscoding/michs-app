@@ -15,40 +15,6 @@
 
 <body>
 
-    <div class="top-bar">
-      <a href="https://michiscoding.github.io/home.html" id="site-link" target="_blank" rel="noopener" aria-label="go to site">
-        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-          <circle cx="12" cy="12" r="3"/>
-        </svg>
-      </a>
-      <button type="button" id="burger-btn" class="burger-btn" aria-label="menu">
-        <svg id="burger-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-          <line x1="3" y1="6" x2="21" y2="6"/>
-          <line x1="3" y1="12" x2="21" y2="12"/>
-          <line x1="3" y1="18" x2="21" y2="18"/>
-        </svg>
-        <svg id="close-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-          <line x1="4" y1="4" x2="20" y2="20"/>
-          <line x1="20" y1="4" x2="4" y2="20"/>
-        </svg>
-      </button>
-    </div>
-        <nav class="nav-menu">
-        <ul>
-            <li><a href="entry.html">entry</a></li>
-            <li><a href="visuals.html">visuals</a></li>
-            <li><span class="nav-toggle" id="work-toggle">work</span>
-                <ul class="nav-sub" id="work-sub">
-                    <li><a href="powerapps-new.html">powerapps</a></li>
-                    <li><a href="writings.html">records</a></li>
-                </ul>
-            </li>
-            <li><a href="edit.html">edit</a></li>
-
-            <li><button type="button" id="dark-toggle" aria-label="toggle dark mode"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button></li>
-        </ul>
-    </nav>
 
 
     <div class="entry-container">
@@ -103,12 +69,13 @@
     <script src="js/supabase.js"></script>
     <script src="js/upload.js"></script>
     <script src="js/app.js"></script>
+    <script src="js/nav.js"></script>
     <script>
         const textarea = document.querySelector('textarea');
         const dateLabel = document.getElementById('date-label');
         const photoInput = document.getElementById('photo-input');
         const photoPreviews = document.getElementById('photo-previews');
-        const siteLink = document.getElementById('site-link');
+        const siteLinks = document.querySelectorAll('.app-site-link');
         const _d = new Date();
         const DEFAULT_CODE = `${String(_d.getMonth()+1).padStart(2,'0')}${String(_d.getDate()).padStart(2,'0')}${String(_d.getFullYear()).slice(2)}`;
         dateLabel.textContent = DEFAULT_CODE;
@@ -189,7 +156,7 @@
                 prevBtn.onclick = prevDate ? () => { dateLabel.textContent = isoToCode(prevDate); loadEntryForDate(prevDate, true); } : null;
                 nextBtn.onclick = nextDate ? () => { dateLabel.textContent = isoToCode(nextDate); loadEntryForDate(nextDate, true); } : null;
 
-                siteLink.href = `https://michiscoding.github.io/entries/view.html?date=${date}`;
+                siteLinks.forEach(l => l.href = `https://michiscoding.github.io/entries/view.html?date=${date}`);
 
                 requestAnimationFrame(updateCarouselHeight);
                 fadeIn();

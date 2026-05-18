@@ -1,0 +1,968 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <title>consumption</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="mishi">
+    <style>
+        .c-search-row { display: flex; gap: 0.5rem; margin-bottom: 0.6rem; margin-top: 0.25rem; }
+        .c-search-row input { flex: 1; background: #ededed; border: none; border-radius: 8px; padding: 0.5rem 0.85rem; font-family: inherit; font-size: 0.85rem; color: #111; outline: none; }
+        body.dark .c-search-row input { background: #2a2a2a; color: #ddd; }
+        .c-search-row .btn-app { padding: 0.5rem 0.85rem; font-size: 0.82rem; white-space: nowrap; }
+        .c-search-results { margin-bottom: 0.5rem; }
+        .c-list-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #ccc; margin: 0.85rem 0 0.4rem; }
+        body.dark .c-list-label { color: #444; }
+
+        .browse-tag-pills { display: flex; flex-wrap: wrap; gap: 0.3rem; margin: 0.4rem 0 0.85rem; }
+        .browse-tag-pill { background: none; border: 1px solid #e0e0e0; border-radius: 999px; padding: 0.18rem 0.65rem; font-family: inherit; font-size: 0.68rem; font-weight: 600; color: #aaa; cursor: pointer; transition: all 0.12s; }
+        .browse-tag-pill.active { background: #222; border-color: #222; color: #fff; }
+        body.dark .browse-tag-pill { border-color: #2a2a2a; color: #555; }
+        body.dark .browse-tag-pill.active { background: #ddd; border-color: #ddd; color: #111; }
+        .browse-alpha-label { font-size: 0.58rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #ccc; margin: 0.9rem 0 0.15rem; pointer-events: none; }
+        body.dark .browse-alpha-label { color: #383838; }
+        .c-results-section-label { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #ccc; margin: 0.6rem 0 0.2rem; }
+        .c-results-section-label:first-child { margin-top: 0; }
+        body.dark .c-results-section-label { color: #444; }
+
+        .edit-star-row { display: flex; gap: 0.25rem; }
+        .edit-star { position: relative; background: none; border: none; font-size: 1.5rem; color: #ddd; cursor: pointer; padding: 0; line-height: 1; transition: color 0.1s; }
+        .edit-star.filled { color: #f5a623; }
+        .edit-star.half-filled { color: #ddd; }
+        .edit-star.half-filled::after { content: '★'; position: absolute; left: 0; top: 0; width: 50%; overflow: hidden; color: #f5a623; pointer-events: none; }
+        body.dark .edit-star { color: #444; }
+        body.dark .edit-star.filled, body.dark .edit-star.half-filled::after { color: #f5a623; }
+
+        .media-scroll-row { display: flex; gap: 0.5rem; overflow-x: auto; margin-top: 0.75rem; scrollbar-width: none; -ms-overflow-style: none; }
+        .media-scroll-row::-webkit-scrollbar { display: none; }
+        .media-thumb-wrap { position: relative; flex: 0 0 auto; width: 140px; }
+        .media-thumb { width: 140px; height: 110px; object-fit: cover; border-radius: 8px; display: block; }
+
+        .attach-remove-btn { background: none; border: none; color: #ccc; cursor: pointer; font-size: 1rem; line-height: 1; padding: 0; flex-shrink: 0; }
+        .attach-remove-btn:hover { color: #555; }
+    </style>
+</head>
+
+<body>
+
+    <div class="entry-container" id="list-view">
+        <button type="button" id="list-back-btn" class="list-back-btn" aria-label="back">←</button>
+
+        <div class="edit-tabs edit-subtabs" id="consumption-subtabs">
+            <button type="button" class="edit-tab active" data-csub="books">books</button>
+            <button type="button" class="edit-tab" data-csub="movies">movies</button>
+            <button type="button" class="edit-tab" data-csub="tv">tv</button>
+            <button type="button" class="edit-tab" data-csub="food">food</button>
+            <button type="button" class="edit-tab" data-csub="venues">venues</button>
+        </div>
+
+        <div id="csub-books">
+            <div id="bk-search-section">
+                <div class="c-search-row">
+                    <input type="text" id="bk-search-input" placeholder="search books to add...">
+                    <button type="button" id="bk-search-btn" class="btn-app">search</button>
+                </div>
+                <div class="c-search-results" id="bk-search-results"></div>
+            </div>
+            <div class="c-list-label">your books</div>
+            <div id="books-list-view"><div id="books-list"></div></div>
+            <div id="books-editor-view" style="display:none">
+                <div class="field-group"><label class="field-label">title</label><input type="text" id="bk-title" autocomplete="off"></div>
+                <div class="field-group"><label class="field-label">notes</label><textarea id="bk-notes" placeholder="thoughts..."></textarea></div>
+                <div class="field-group"><label class="field-label">rating</label><div class="edit-star-row" id="bk-stars"><button type="button" class="edit-star" data-prefix="bk" data-val="1">★</button><button type="button" class="edit-star" data-prefix="bk" data-val="2">★</button><button type="button" class="edit-star" data-prefix="bk" data-val="3">★</button><button type="button" class="edit-star" data-prefix="bk" data-val="4">★</button><button type="button" class="edit-star" data-prefix="bk" data-val="5">★</button></div></div>
+                <div class="field-group"><label class="field-label">date</label><input type="date" id="bk-date"></div>
+                <div class="editor-actions">
+                    <button type="button" id="bk-delete-btn" class="danger-btn">delete</button>
+                    <button type="button" id="bk-save-btn" class="btn-app">save</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="csub-movies" style="display:none">
+            <div id="mv-search-section">
+                <div class="c-search-row">
+                    <input type="text" id="mv-search-input" placeholder="search movies to add...">
+                    <button type="button" id="mv-search-btn" class="btn-app">search</button>
+                </div>
+                <div class="c-search-results" id="mv-search-results"></div>
+            </div>
+            <div class="edit-tabs edit-subtabs" id="mv-status-tabs">
+                <button type="button" class="edit-tab active" data-mvstatus="watched">watched</button>
+                <button type="button" class="edit-tab" data-mvstatus="want">watchlist</button>
+            </div>
+            <div id="movies-list-view"><div id="movies-list"></div></div>
+            <div id="movies-editor-view" style="display:none">
+                <div class="field-group"><label class="field-label">title</label><input type="text" id="mv-title" autocomplete="off"></div>
+                <div class="field-group"><label class="field-label">status</label>
+                    <div class="edit-tabs edit-subtabs" id="mv-editor-status-tabs">
+                        <button type="button" class="edit-tab active" data-edstatus="watched">watched</button>
+                        <button type="button" class="edit-tab" data-edstatus="want">watchlist</button>
+                    </div>
+                </div>
+                <div class="field-group"><label class="field-label">notes</label><textarea id="mv-notes" placeholder="thoughts..."></textarea></div>
+                <div class="field-group"><label class="field-label">rating</label><div class="edit-star-row" id="mv-stars"><button type="button" class="edit-star" data-prefix="mv" data-val="1">★</button><button type="button" class="edit-star" data-prefix="mv" data-val="2">★</button><button type="button" class="edit-star" data-prefix="mv" data-val="3">★</button><button type="button" class="edit-star" data-prefix="mv" data-val="4">★</button><button type="button" class="edit-star" data-prefix="mv" data-val="5">★</button></div></div>
+                <div class="field-group"><label class="field-label">date watched</label><input type="date" id="mv-date"></div>
+                <div class="editor-actions">
+                    <button type="button" id="mv-delete-btn" class="danger-btn">delete</button>
+                    <button type="button" id="mv-save-btn" class="btn-app">save</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="csub-tv" style="display:none">
+            <div id="tv-search-section">
+                <div class="c-search-row">
+                    <input type="text" id="tv-search-input" placeholder="search shows to add...">
+                    <button type="button" id="tv-search-btn" class="btn-app">search</button>
+                </div>
+                <div class="c-search-results" id="tv-search-results"></div>
+            </div>
+            <div class="edit-tabs edit-subtabs" id="tv-status-tabs">
+                <button type="button" class="edit-tab active" data-tvstatus="watching">watching</button>
+                <button type="button" class="edit-tab" data-tvstatus="watched">watched</button>
+                <button type="button" class="edit-tab" data-tvstatus="want">want to watch</button>
+            </div>
+            <div id="tv-list-view"><div id="tv-list"></div></div>
+            <div id="tv-editor-view" style="display:none">
+                <div class="field-group"><label class="field-label">title</label><input type="text" id="tv-title" autocomplete="off"></div>
+                <div class="field-group"><label class="field-label">status</label>
+                    <div class="edit-tabs edit-subtabs" id="tv-editor-status-tabs">
+                        <button type="button" class="edit-tab active" data-edtvstatus="watching">watching</button>
+                        <button type="button" class="edit-tab" data-edtvstatus="watched">watched</button>
+                        <button type="button" class="edit-tab" data-edtvstatus="want">want to watch</button>
+                    </div>
+                </div>
+                <div class="field-group"><label class="field-label">notes</label><textarea id="tv-notes" placeholder="thoughts..."></textarea></div>
+                <div class="field-group"><label class="field-label">rating</label><div class="edit-star-row" id="tv-stars"><button type="button" class="edit-star" data-prefix="tv" data-val="1">★</button><button type="button" class="edit-star" data-prefix="tv" data-val="2">★</button><button type="button" class="edit-star" data-prefix="tv" data-val="3">★</button><button type="button" class="edit-star" data-prefix="tv" data-val="4">★</button><button type="button" class="edit-star" data-prefix="tv" data-val="5">★</button></div></div>
+                <div class="field-group"><label class="field-label">date finished</label><input type="date" id="tv-date"></div>
+                <div class="editor-actions">
+                    <button type="button" id="tv-delete-btn" class="danger-btn">delete</button>
+                    <button type="button" id="tv-save-btn" class="btn-app">save</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="csub-food" style="display:none">
+            <div id="fd-search-section">
+                <div class="c-search-row">
+                    <input type="text" id="fd-search-input" placeholder="search restaurants to add...">
+                    <button type="button" id="fd-search-btn" class="btn-app">search</button>
+                </div>
+                <div class="c-search-results" id="fd-search-results"></div>
+            </div>
+            <div class="c-list-label">your food</div>
+            <div id="food-list-view"><div id="food-list"></div></div>
+            <div id="food-editor-view" style="display:none">
+                <div class="field-group"><label class="field-label">name</label><input type="text" id="fd-name" autocomplete="off"></div>
+                <div class="field-group"><label class="field-label">location</label><input type="text" id="fd-location" autocomplete="off"></div>
+                <div class="field-group"><label class="field-label">tags</label><input type="text" id="fd-tags" placeholder="e.g. sushi, date night, midtown" autocomplete="off"></div>
+                <div class="field-group"><label class="field-label">notes</label><textarea id="fd-notes" placeholder="thoughts..."></textarea></div>
+                <div class="field-group"><label class="field-label">rating</label><div class="edit-star-row" id="fd-stars"><button type="button" class="edit-star" data-prefix="fd" data-val="1">★</button><button type="button" class="edit-star" data-prefix="fd" data-val="2">★</button><button type="button" class="edit-star" data-prefix="fd" data-val="3">★</button><button type="button" class="edit-star" data-prefix="fd" data-val="4">★</button><button type="button" class="edit-star" data-prefix="fd" data-val="5">★</button></div></div>
+                <div class="field-group">
+                    <label class="field-label">dates</label>
+                    <div id="fd-dates-container"></div>
+                    <button type="button" class="toolbar-btn" id="fd-add-date-btn">+ add date</button>
+                </div>
+                <div class="field-group">
+                    <label class="field-label">photos</label>
+                    <input type="file" id="fd-photo-input" accept="image/*" multiple style="display:none">
+                    <div id="fd-photos-strip" class="media-scroll-row"></div>
+                    <button type="button" class="toolbar-btn" id="fd-photo-btn">+ add photos</button>
+                </div>
+                <div class="editor-actions">
+                    <button type="button" id="fd-delete-btn" class="danger-btn">delete</button>
+                    <button type="button" id="fd-save-btn" class="btn-app">save</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="csub-venues" style="display:none">
+            <div id="vn-search-section">
+                <div class="c-search-row">
+                    <input type="text" id="vn-search-input" placeholder="search clubs, bars, venues to add...">
+                    <button type="button" id="vn-search-btn" class="btn-app">search</button>
+                </div>
+                <div class="c-search-results" id="vn-search-results"></div>
+            </div>
+            <div class="c-list-label">your venues</div>
+            <div id="venue-list-view"><div id="venue-list"></div></div>
+            <div id="venue-editor-view" style="display:none">
+                <div class="field-group"><label class="field-label">name</label><input type="text" id="vn-name" autocomplete="off"></div>
+                <div class="field-group"><label class="field-label">location</label><input type="text" id="vn-location" autocomplete="off"></div>
+                <div class="field-group"><label class="field-label">tags</label><input type="text" id="vn-tags" placeholder="e.g. techno, rooftop, chelsea" autocomplete="off"></div>
+                <div class="field-group"><label class="field-label">notes</label><textarea id="vn-notes" placeholder="thoughts..."></textarea></div>
+                <div class="field-group"><label class="field-label">rating</label><div class="edit-star-row" id="vn-stars"><button type="button" class="edit-star" data-prefix="vn" data-val="1">★</button><button type="button" class="edit-star" data-prefix="vn" data-val="2">★</button><button type="button" class="edit-star" data-prefix="vn" data-val="3">★</button><button type="button" class="edit-star" data-prefix="vn" data-val="4">★</button><button type="button" class="edit-star" data-prefix="vn" data-val="5">★</button></div></div>
+                <div class="field-group">
+                    <label class="field-label">dates</label>
+                    <div id="vn-dates-container"></div>
+                    <button type="button" class="toolbar-btn" id="vn-add-date-btn">+ add date</button>
+                </div>
+                <div class="field-group">
+                    <label class="field-label">photos</label>
+                    <input type="file" id="vn-photo-input" accept="image/*" multiple style="display:none">
+                    <div id="vn-photos-strip" class="media-scroll-row"></div>
+                    <button type="button" class="toolbar-btn" id="vn-photo-btn">+ add photos</button>
+                </div>
+                <div class="editor-actions">
+                    <button type="button" id="vn-delete-btn" class="danger-btn">delete</button>
+                    <button type="button" id="vn-save-btn" class="btn-app">save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase.js"></script>
+    <script src="js/upload.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/nav.js"></script>
+    <script>
+        const backBtn = document.getElementById('list-back-btn');
+
+        function setBackVisible(visible) { backBtn.style.visibility = visible ? 'visible' : 'hidden'; }
+
+        function revealTab(el) {
+            el.style.opacity = '0';
+            requestAnimationFrame(() => requestAnimationFrame(() => { el.style.opacity = '1'; }));
+        }
+
+        function mimeType(file) {
+            if (file.type) return file.type;
+            const ext = file.name.split('.').pop().toLowerCase();
+            return { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', svg: 'image/svg+xml', webp: 'image/webp' }[ext] || 'application/octet-stream';
+        }
+
+        // subtabs
+        const csubEls = {
+            books: document.getElementById('csub-books'),
+            movies: document.getElementById('csub-movies'),
+            tv: document.getElementById('csub-tv'),
+            food: document.getElementById('csub-food'),
+            venues: document.getElementById('csub-venues'),
+        };
+        let activeCsub = 'books';
+        let booksLoaded = false, moviesLoaded = false, tvLoaded = false, foodLoaded = false, venueLoaded = false;
+
+        document.querySelectorAll('#consumption-subtabs .edit-tab').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#consumption-subtabs .edit-tab').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                activeCsub = btn.dataset.csub;
+                Object.entries(csubEls).forEach(([k, el]) => { el.style.display = k === activeCsub ? 'block' : 'none'; });
+                if (activeCsub === 'books' && !booksLoaded) { booksLoaded = true; loadMediaList('book'); }
+                if (activeCsub === 'movies' && !moviesLoaded) { moviesLoaded = true; loadMediaList('movie'); }
+                if (activeCsub === 'tv' && !tvLoaded) { tvLoaded = true; loadMediaList('tv'); }
+                if (activeCsub === 'food' && !foodLoaded) { foodLoaded = true; loadFoodList(); }
+                if (activeCsub === 'venues' && !venueLoaded) { venueLoaded = true; loadVenueList(); }
+                collapseMediaEditors();
+            });
+        });
+
+        function collapseMediaEditors() {
+            ['books','movies','tv'].forEach(t => {
+                document.getElementById(`${t}-editor-view`).style.display = 'none';
+                document.getElementById(`${t}-list-view`).style.display = '';
+            });
+            document.getElementById('food-editor-view').style.display = 'none';
+            document.getElementById('food-list-view').style.display = '';
+            document.getElementById('venue-editor-view').style.display = 'none';
+            document.getElementById('venue-list-view').style.display = '';
+            ['bk','mv','tv','fd','vn'].forEach(p => {
+                const sec = document.getElementById(`${p}-search-section`);
+                if (sec) sec.style.display = '';
+                const res = document.getElementById(`${p}-search-results`);
+                if (res) res.innerHTML = '';
+            });
+            setBackVisible(false);
+        }
+
+        backBtn.addEventListener('click', () => { collapseMediaEditors(); });
+
+        // --- star ratings ---
+        const editRatings = { bk: 0, mv: 0, tv: 0, fd: 0, vn: 0 };
+
+        function setEditRating(prefix, val) {
+            editRatings[prefix] = val;
+            document.querySelectorAll(`.edit-star[data-prefix="${prefix}"]`).forEach(btn => {
+                const btnVal = parseInt(btn.dataset.val);
+                btn.classList.remove('filled', 'half-filled');
+                if (val >= btnVal) btn.classList.add('filled');
+                else if (val >= btnVal - 0.5) btn.classList.add('half-filled');
+            });
+        }
+
+        document.querySelectorAll('.edit-star').forEach(btn => {
+            btn.addEventListener('click', e => {
+                const prefix = btn.dataset.prefix;
+                const rect = btn.getBoundingClientRect();
+                const isLeft = e.clientX - rect.left < rect.width / 2;
+                const fullVal = parseInt(btn.dataset.val);
+                const val = isLeft ? fullVal - 0.5 : fullVal;
+                setEditRating(prefix, editRatings[prefix] === val ? 0 : val);
+            });
+        });
+
+        // --- movie status ---
+        let mvActiveStatus = 'watched', mvEditorStatus = 'watched';
+        document.querySelectorAll('#mv-status-tabs .edit-tab').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#mv-status-tabs .edit-tab').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                mvActiveStatus = btn.dataset.mvstatus;
+                moviesLoaded = false; loadMediaList('movie');
+            });
+        });
+        document.querySelectorAll('#mv-editor-status-tabs .edit-tab').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#mv-editor-status-tabs .edit-tab').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                mvEditorStatus = btn.dataset.edstatus;
+            });
+        });
+        function setMvEditorStatus(status) {
+            mvEditorStatus = status || 'watched';
+            document.querySelectorAll('#mv-editor-status-tabs .edit-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.edstatus === mvEditorStatus));
+            const isWatchlist = mvEditorStatus === 'want';
+            document.getElementById('mv-stars').closest('.field-group').style.display = isWatchlist ? 'none' : '';
+            document.getElementById('mv-date').closest('.field-group').style.display = isWatchlist ? 'none' : '';
+        }
+
+        // --- tv status ---
+        let tvActiveStatus = 'watching', tvEditorStatus = 'watching';
+        document.querySelectorAll('#tv-status-tabs .edit-tab').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#tv-status-tabs .edit-tab').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                tvActiveStatus = btn.dataset.tvstatus;
+                tvLoaded = false; loadMediaList('tv');
+            });
+        });
+        document.querySelectorAll('#tv-editor-status-tabs .edit-tab').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#tv-editor-status-tabs .edit-tab').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                tvEditorStatus = btn.dataset.edtvstatus;
+                setTvEditorStatus(tvEditorStatus);
+            });
+        });
+        function setTvEditorStatus(status) {
+            tvEditorStatus = status || 'watching';
+            document.querySelectorAll('#tv-editor-status-tabs .edit-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.edtvstatus === tvEditorStatus));
+            const hideFields = tvEditorStatus === 'want';
+            document.getElementById('tv-stars').closest('.field-group').style.display = hideFields ? 'none' : '';
+            document.getElementById('tv-date').closest('.field-group').style.display = hideFields ? 'none' : '';
+        }
+
+        // --- media list ---
+        let currentMediaId = null, currentMediaType = null, currentMediaCoverUrl = null;
+
+        async function loadMediaList(type) {
+            const listId = type === 'book' ? 'books-list' : type === 'tv' ? 'tv-list' : 'movies-list';
+            const listEl = document.getElementById(listId);
+            listEl.innerHTML = '<div style="color:#aaa;font-size:0.8rem;padding:0.5rem 0">loading...</div>';
+            let query = db.from('media').select('id, title, rating, date, status').eq('type', type).order('date', { ascending: false });
+            if (type === 'movie') query = query.eq('status', mvActiveStatus);
+            if (type === 'tv') query = query.eq('status', tvActiveStatus);
+            const { data } = await query;
+            listEl.innerHTML = '';
+            (data || []).forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'blog-record'; row.style.cursor = 'pointer';
+                row.innerHTML = `<div class="blog-details-1">${item.title}</div>${item.date ? `<div class="blog-details-2">${item.date.slice(0,7)}${item.rating ? ' · ' + '★'.repeat(item.rating) : ''}</div>` : ''}`;
+                row.addEventListener('click', () => openMediaEditor(item.id, type));
+                listEl.appendChild(row);
+            });
+        }
+
+        async function openMediaEditor(id, type) {
+            const { data } = await db.from('media').select('*').eq('id', id).single();
+            if (!data) return;
+            currentMediaId = id; currentMediaType = type;
+            const p = type === 'book' ? 'bk' : type === 'tv' ? 'tv' : 'mv';
+            const listKey = type === 'book' ? 'books' : type === 'tv' ? 'tv' : 'movies';
+            document.getElementById(`${p}-title`).value = data.title || '';
+            document.getElementById(`${p}-notes`).value = data.notes || '';
+            setEditRating(p, data.rating || 0);
+            document.getElementById(`${p}-date`).value = data.date || '';
+            if (type === 'movie') setMvEditorStatus(data.status || 'watched');
+            if (type === 'tv') setTvEditorStatus(data.status || 'watching');
+            document.getElementById(`${p}-delete-btn`).style.display = '';
+            document.getElementById(`${p}-search-section`).style.display = 'none';
+            document.getElementById(`${listKey}-list-view`).style.display = 'none';
+            document.getElementById(`${listKey}-editor-view`).style.display = '';
+            revealTab(document.getElementById(`${listKey}-editor-view`));
+            setBackVisible(true);
+        }
+
+        ['bk', 'mv', 'tv'].forEach(p => {
+            const type = p === 'bk' ? 'book' : p === 'tv' ? 'tv' : 'movie';
+            const listKey = p === 'bk' ? 'books' : p === 'tv' ? 'tv' : 'movies';
+            document.getElementById(`${p}-save-btn`).addEventListener('click', async () => {
+                const btn = document.getElementById(`${p}-save-btn`);
+                const adminDb = await getAdminClient(); if (!adminDb) return;
+                btn.textContent = 'saving...'; btn.disabled = true;
+                const title = document.getElementById(`${p}-title`).value.trim();
+                const notes = document.getElementById(`${p}-notes`).value.trim() || null;
+                const rating = editRatings[p] || null;
+                const date = document.getElementById(`${p}-date`).value || null;
+                const status = type === 'movie' ? mvEditorStatus : type === 'tv' ? tvEditorStatus : 'watched';
+                let error;
+                if (!currentMediaId) {
+                    const { data: ins, error: e } = await adminDb.from('media').insert({ type, title, cover_url: currentMediaCoverUrl || null, notes, rating, date, status }).select('id').single();
+                    error = e;
+                    if (!error && ins) { currentMediaId = ins.id; document.getElementById(`${p}-delete-btn`).style.display = ''; }
+                } else {
+                    const { data: updated, error: updErr } = await adminDb.from('media').update({ title, notes, rating, date, status }).eq('id', currentMediaId).select('id');
+                    error = updErr || (!updated?.length ? { message: 'update blocked — check RLS policy' } : null);
+                }
+                if (error) console.error(`${p} save error:`, error);
+                btn.textContent = error ? 'error' : 'saved!';
+                if (error) btn.title = error.message || 'unknown error';
+                setTimeout(() => { btn.textContent = 'save'; btn.title = ''; btn.disabled = false; }, error ? 5000 : 2000);
+                if (!error) {
+                    if (type === 'book') { booksLoaded = false; loadMediaList('book'); }
+                    else if (type === 'tv') { tvLoaded = false; loadMediaList('tv'); }
+                    else { moviesLoaded = false; loadMediaList('movie'); }
+                }
+            });
+            let deletePending = false, deleteTimer = null;
+            document.getElementById(`${p}-delete-btn`).addEventListener('click', async () => {
+                if (!currentMediaId) return;
+                const btn = document.getElementById(`${p}-delete-btn`);
+                if (!deletePending) { deletePending = true; btn.textContent = 'sure?'; deleteTimer = setTimeout(() => { deletePending = false; btn.textContent = 'delete'; }, 3000); return; }
+                clearTimeout(deleteTimer); deletePending = false;
+                const adminDb = await getAdminClient(); if (!adminDb) return;
+                btn.textContent = 'deleting...';
+                await adminDb.from('media').delete().eq('id', currentMediaId);
+                currentMediaId = null;
+                document.getElementById(`${listKey}-editor-view`).style.display = 'none';
+                document.getElementById(`${listKey}-list-view`).style.display = '';
+                setBackVisible(false);
+                if (type === 'book') { booksLoaded = false; loadMediaList('book'); }
+                else if (type === 'tv') { tvLoaded = false; loadMediaList('tv'); }
+                else { moviesLoaded = false; loadMediaList('movie'); }
+            });
+        });
+
+        // --- food photos ---
+        let fdPhotos = [], fdDeletedPhotoIds = new Set();
+
+        function renderFdPhotos() {
+            const strip = document.getElementById('fd-photos-strip');
+            strip.innerHTML = '';
+            fdPhotos.forEach((photo, i) => {
+                const src = photo.type === 'existing' ? MEDIA_BASE + photo.storage_path : URL.createObjectURL(photo.file);
+                const wrap = document.createElement('div');
+                wrap.className = 'media-thumb-wrap';
+                const img = document.createElement('img');
+                img.src = src; img.className = 'media-thumb'; img.alt = '';
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button'; removeBtn.className = 'remove-btn'; removeBtn.textContent = '×';
+                removeBtn.addEventListener('click', () => {
+                    if (photo.type === 'existing') fdDeletedPhotoIds.add(photo.id);
+                    fdPhotos.splice(i, 1); renderFdPhotos();
+                });
+                wrap.appendChild(img); wrap.appendChild(removeBtn);
+                strip.appendChild(wrap);
+            });
+        }
+
+        function addFdDateRow(value = '') {
+            const container = document.getElementById('fd-dates-container');
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex;align-items:center;gap:0.5rem;margin-bottom:0.4rem;';
+            const input = document.createElement('input');
+            input.type = 'date'; input.className = 'fd-date-input';
+            input.style.cssText = 'flex:1;background:#ededed;border:none;border-radius:8px;padding:0.5rem 0.75rem;color:#111;outline:none;box-sizing:border-box;font-family:inherit;font-size:inherit;';
+            input.value = value;
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button'; removeBtn.className = 'attach-remove-btn'; removeBtn.textContent = '×';
+            removeBtn.addEventListener('click', () => row.remove());
+            row.appendChild(input); row.appendChild(removeBtn);
+            container.appendChild(row);
+        }
+
+        document.getElementById('fd-add-date-btn').addEventListener('click', () => addFdDateRow());
+        document.getElementById('fd-photo-btn').addEventListener('click', () => document.getElementById('fd-photo-input').click());
+        document.getElementById('fd-photo-input').addEventListener('change', e => {
+            Array.from(e.target.files).forEach(file => fdPhotos.push({ type: 'new', file }));
+            renderFdPhotos(); e.target.value = '';
+        });
+
+        // --- venue photos ---
+        let vnPhotos = [], vnDeletedPhotoIds = new Set();
+
+        function renderVnPhotos() {
+            const strip = document.getElementById('vn-photos-strip');
+            strip.innerHTML = '';
+            vnPhotos.forEach((photo, i) => {
+                const src = photo.type === 'existing' ? MEDIA_BASE + photo.storage_path : URL.createObjectURL(photo.file);
+                const wrap = document.createElement('div');
+                wrap.className = 'media-thumb-wrap';
+                const img = document.createElement('img');
+                img.src = src; img.className = 'media-thumb'; img.alt = '';
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button'; removeBtn.className = 'remove-btn'; removeBtn.textContent = '×';
+                removeBtn.addEventListener('click', () => {
+                    if (photo.type === 'existing') vnDeletedPhotoIds.add(photo.id);
+                    vnPhotos.splice(i, 1); renderVnPhotos();
+                });
+                wrap.appendChild(img); wrap.appendChild(removeBtn);
+                strip.appendChild(wrap);
+            });
+        }
+
+        function addVnDateRow(value = '') {
+            const container = document.getElementById('vn-dates-container');
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex;align-items:center;gap:0.5rem;margin-bottom:0.4rem;';
+            const input = document.createElement('input');
+            input.type = 'date'; input.className = 'vn-date-input';
+            input.style.cssText = 'flex:1;background:#ededed;border:none;border-radius:8px;padding:0.5rem 0.75rem;color:#111;outline:none;box-sizing:border-box;font-family:inherit;font-size:inherit;';
+            input.value = value;
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button'; removeBtn.className = 'attach-remove-btn'; removeBtn.textContent = '×';
+            removeBtn.addEventListener('click', () => row.remove());
+            row.appendChild(input); row.appendChild(removeBtn);
+            container.appendChild(row);
+        }
+
+        document.getElementById('vn-add-date-btn').addEventListener('click', () => addVnDateRow());
+        document.getElementById('vn-photo-btn').addEventListener('click', () => document.getElementById('vn-photo-input').click());
+        document.getElementById('vn-photo-input').addEventListener('change', e => {
+            Array.from(e.target.files).forEach(file => vnPhotos.push({ type: 'new', file }));
+            renderVnPhotos(); e.target.value = '';
+        });
+
+        function autoResizeNotes(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
+        document.getElementById('fd-notes').addEventListener('input', function() { autoResizeNotes(this); });
+        document.getElementById('vn-notes').addEventListener('input', function() { autoResizeNotes(this); });
+
+        // --- browse list helper ---
+        let foodAllRecords = [], activeFdTagFilter = 'all';
+        let venueAllRecords = [], activeVnTagFilter = 'all';
+
+        function renderBrowseList(listEl, data, activeTag, onTagChange, onItemClick) {
+            listEl.innerHTML = '';
+            if (!data.length) { listEl.innerHTML = '<div style="color:#aaa;font-size:0.8rem;padding:0.5rem 0">none yet</div>'; return; }
+            const allTags = [...new Set(data.flatMap(d => d.tags || []))].sort();
+            if (allTags.length) {
+                const pillsEl = document.createElement('div');
+                pillsEl.className = 'browse-tag-pills';
+                ['all', ...allTags].forEach(tag => {
+                    const pill = document.createElement('button');
+                    pill.type = 'button';
+                    pill.className = 'browse-tag-pill' + (activeTag === tag ? ' active' : '');
+                    pill.textContent = tag;
+                    pill.addEventListener('click', () => onTagChange(tag));
+                    pillsEl.appendChild(pill);
+                });
+                listEl.appendChild(pillsEl);
+            }
+            const filtered = activeTag === 'all' ? data : data.filter(d => d.tags?.includes(activeTag));
+            if (!filtered.length) { const empty = document.createElement('div'); empty.style.cssText = 'color:#aaa;font-size:0.8rem;padding:0.35rem 0'; empty.textContent = 'nothing with that tag'; listEl.appendChild(empty); return; }
+            const groups = {};
+            filtered.forEach(item => {
+                const ch = (item.name?.[0] || '#').toUpperCase();
+                const key = /[A-Z]/.test(ch) ? ch : '#';
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(item);
+            });
+            const keys = Object.keys(groups).filter(k => k !== '#').sort();
+            if (groups['#']) keys.push('#');
+            keys.forEach(letter => {
+                const hdr = document.createElement('div');
+                hdr.className = 'browse-alpha-label'; hdr.textContent = letter;
+                listEl.appendChild(hdr);
+                groups[letter].forEach(item => {
+                    const row = document.createElement('div');
+                    row.className = 'blog-record'; row.style.cursor = 'pointer';
+                    row.innerHTML = `<div class="blog-details-1">${item.name}</div>${item.location || item.date ? `<div class="blog-details-2">${[item.location, item.date?.slice(0,7)].filter(Boolean).join(' · ')}${item.rating ? ' · ' + '★'.repeat(Math.round(item.rating)) : ''}</div>` : ''}`;
+                    row.addEventListener('click', () => onItemClick(item.id));
+                    listEl.appendChild(row);
+                });
+            });
+        }
+
+        // --- food ---
+        let currentFoodId = null, currentFoodPlaceId = null, currentFoodNewPhotoUrl = null;
+
+        function renderFoodBrowseList() {
+            renderBrowseList(document.getElementById('food-list'), foodAllRecords, activeFdTagFilter, tag => { activeFdTagFilter = tag; renderFoodBrowseList(); }, id => openFoodEditor(id));
+        }
+
+        async function loadFoodList() {
+            document.getElementById('food-list').innerHTML = '<div style="color:#aaa;font-size:0.8rem;padding:0.5rem 0">loading...</div>';
+            const { data } = await db.from('food').select('id, name, rating, date, location, tags').order('name', { ascending: true });
+            foodAllRecords = data || []; activeFdTagFilter = 'all'; renderFoodBrowseList();
+        }
+
+        async function openFoodEditor(id) {
+            const [{ data }, { data: foodPhotos }] = await Promise.all([
+                db.from('food').select('*').eq('id', id).single(),
+                db.from('food_photos').select('id, storage_path').eq('food_id', id)
+            ]);
+            if (!data) return;
+            currentFoodId = id;
+            fdPhotos = (foodPhotos || []).map(p => ({ type: 'existing', id: p.id, storage_path: p.storage_path }));
+            fdDeletedPhotoIds = new Set();
+            document.getElementById('fd-name').value = data.name || '';
+            document.getElementById('fd-location').value = data.location || '';
+            document.getElementById('fd-tags').value = (data.tags || []).join(', ');
+            document.getElementById('fd-notes').value = data.notes || '';
+            setEditRating('fd', data.rating || 0);
+            document.getElementById('fd-dates-container').innerHTML = '';
+            const dates = data.dates?.length ? data.dates : [data.date || ''];
+            dates.forEach(d => addFdDateRow(d));
+            renderFdPhotos();
+            document.getElementById('fd-delete-btn').style.display = '';
+            document.getElementById('fd-search-section').style.display = 'none';
+            document.getElementById('food-list-view').style.display = 'none';
+            document.getElementById('food-editor-view').style.display = '';
+            autoResizeNotes(document.getElementById('fd-notes'));
+            revealTab(document.getElementById('food-editor-view'));
+            setBackVisible(true);
+        }
+
+        document.getElementById('fd-save-btn').addEventListener('click', async () => {
+            const btn = document.getElementById('fd-save-btn');
+            const adminDb = await getAdminClient(); if (!adminDb) return;
+            btn.textContent = 'saving...'; btn.disabled = true;
+            const dates = Array.from(document.querySelectorAll('#fd-dates-container .fd-date-input')).map(i => i.value).filter(Boolean);
+            const tags = document.getElementById('fd-tags').value.split(',').map(t => t.trim()).filter(Boolean);
+            if (!currentFoodId) {
+                const { data: ins, error: insertErr } = await adminDb.from('food').insert({ name: document.getElementById('fd-name').value.trim(), location: document.getElementById('fd-location').value.trim() || null, notes: document.getElementById('fd-notes').value.trim() || null, rating: editRatings.fd || null, dates: dates.length ? dates : null, date: dates[0] || null, tags: tags.length ? tags : null, photo_url: currentFoodNewPhotoUrl || null, place_id: currentFoodPlaceId || null }).select('id').single();
+                if (insertErr) { console.error('food insert error:', insertErr); btn.textContent = 'error'; setTimeout(() => { btn.textContent = 'save'; btn.disabled = false; }, 2000); return; }
+                currentFoodId = ins.id;
+                document.getElementById('fd-delete-btn').style.display = '';
+                btn.textContent = 'saved!'; setTimeout(() => { btn.textContent = 'save'; btn.disabled = false; }, 2000);
+                foodLoaded = false; loadFoodList(); return;
+            }
+            for (const photoId of fdDeletedPhotoIds) await adminDb.from('food_photos').delete().eq('id', photoId);
+            fdDeletedPhotoIds.clear();
+            for (let i = 0; i < fdPhotos.length; i++) {
+                const photo = fdPhotos[i]; if (photo.type !== 'new') continue;
+                const ext = photo.file.name.split('.').pop() || 'jpg';
+                const path = `food/${currentFoodId}/${Date.now()}-${i}.${ext}`;
+                const uploadOk = await uploadToR2(path, photo.file, mimeType(photo.file));
+                if (uploadOk) { const { data: inserted } = await adminDb.from('food_photos').insert({ food_id: currentFoodId, storage_path: path }).select().single(); if (inserted) { photo.type = 'existing'; photo.id = inserted.id; photo.storage_path = path; } }
+            }
+            const { data: updFood, error: updFoodErr } = await adminDb.from('food').update({ name: document.getElementById('fd-name').value.trim(), location: document.getElementById('fd-location').value.trim() || null, notes: document.getElementById('fd-notes').value.trim() || null, rating: editRatings.fd || null, dates: dates.length ? dates : null, date: dates[0] || null, tags: tags.length ? tags : null }).eq('id', currentFoodId).select('id');
+            const foodSaveErr = updFoodErr || (!updFood?.length ? { message: 'update blocked — check RLS policy' } : null);
+            if (foodSaveErr) console.error('food save error:', foodSaveErr);
+            btn.textContent = foodSaveErr ? 'error' : 'saved!';
+            if (foodSaveErr) btn.title = foodSaveErr.message || 'unknown error';
+            setTimeout(() => { btn.textContent = 'save'; btn.title = ''; btn.disabled = false; }, foodSaveErr ? 5000 : 2000);
+            if (!foodSaveErr) { foodLoaded = false; loadFoodList(); }
+        });
+
+        let fdDeletePending = false, fdDeleteTimer = null;
+        document.getElementById('fd-delete-btn').addEventListener('click', async () => {
+            if (!currentFoodId) return;
+            const btn = document.getElementById('fd-delete-btn');
+            if (!fdDeletePending) { fdDeletePending = true; btn.textContent = 'sure?'; fdDeleteTimer = setTimeout(() => { fdDeletePending = false; btn.textContent = 'delete'; }, 3000); return; }
+            clearTimeout(fdDeleteTimer); fdDeletePending = false;
+            const adminDb = await getAdminClient(); if (!adminDb) return;
+            btn.textContent = 'deleting...';
+            await adminDb.from('food').delete().eq('id', currentFoodId);
+            currentFoodId = null;
+            document.getElementById('food-editor-view').style.display = 'none';
+            document.getElementById('food-list-view').style.display = '';
+            setBackVisible(false); foodLoaded = false; loadFoodList();
+        });
+
+        // --- venues ---
+        let currentVenueId = null, currentVenuePlaceId = null, currentVenueNewPhotoUrl = null;
+
+        function renderVenueBrowseList() {
+            renderBrowseList(document.getElementById('venue-list'), venueAllRecords, activeVnTagFilter, tag => { activeVnTagFilter = tag; renderVenueBrowseList(); }, id => openVenueEditor(id));
+        }
+
+        async function loadVenueList() {
+            document.getElementById('venue-list').innerHTML = '<div style="color:#aaa;font-size:0.8rem;padding:0.5rem 0">loading...</div>';
+            const { data } = await db.from('venues').select('id, name, rating, date, location, tags').order('name', { ascending: true });
+            venueAllRecords = data || []; activeVnTagFilter = 'all'; renderVenueBrowseList();
+        }
+
+        async function openVenueEditor(id) {
+            const [{ data }, { data: venuePhotos }] = await Promise.all([
+                db.from('venues').select('*').eq('id', id).single(),
+                db.from('venue_photos').select('id, storage_path').eq('venue_id', id)
+            ]);
+            if (!data) return;
+            currentVenueId = id;
+            vnPhotos = (venuePhotos || []).map(p => ({ type: 'existing', id: p.id, storage_path: p.storage_path }));
+            vnDeletedPhotoIds = new Set();
+            document.getElementById('vn-name').value = data.name || '';
+            document.getElementById('vn-location').value = data.location || '';
+            document.getElementById('vn-tags').value = (data.tags || []).join(', ');
+            document.getElementById('vn-notes').value = data.notes || '';
+            setEditRating('vn', data.rating || 0);
+            document.getElementById('vn-dates-container').innerHTML = '';
+            const dates = data.dates?.length ? data.dates : [data.date || ''];
+            dates.forEach(d => addVnDateRow(d));
+            renderVnPhotos();
+            document.getElementById('vn-delete-btn').style.display = '';
+            document.getElementById('vn-search-section').style.display = 'none';
+            document.getElementById('venue-list-view').style.display = 'none';
+            document.getElementById('venue-editor-view').style.display = '';
+            autoResizeNotes(document.getElementById('vn-notes'));
+            revealTab(document.getElementById('venue-editor-view'));
+            setBackVisible(true);
+        }
+
+        document.getElementById('vn-save-btn').addEventListener('click', async () => {
+            const btn = document.getElementById('vn-save-btn');
+            const adminDb = await getAdminClient(); if (!adminDb) return;
+            btn.textContent = 'saving...'; btn.disabled = true;
+            const dates = Array.from(document.querySelectorAll('#vn-dates-container .vn-date-input')).map(i => i.value).filter(Boolean);
+            const tags = document.getElementById('vn-tags').value.split(',').map(t => t.trim()).filter(Boolean);
+            if (!currentVenueId) {
+                const { data: ins, error: insertErr } = await adminDb.from('venues').insert({ name: document.getElementById('vn-name').value.trim(), location: document.getElementById('vn-location').value.trim() || null, notes: document.getElementById('vn-notes').value.trim() || null, rating: editRatings.vn || null, dates: dates.length ? dates : null, date: dates[0] || null, tags: tags.length ? tags : null, photo_url: currentVenueNewPhotoUrl || null, place_id: currentVenuePlaceId || null }).select('id').single();
+                if (insertErr) { console.error('venue insert error:', insertErr); btn.textContent = 'error'; setTimeout(() => { btn.textContent = 'save'; btn.disabled = false; }, 2000); return; }
+                currentVenueId = ins.id;
+                document.getElementById('vn-delete-btn').style.display = '';
+                btn.textContent = 'saved!'; setTimeout(() => { btn.textContent = 'save'; btn.disabled = false; }, 2000);
+                venueLoaded = false; loadVenueList(); return;
+            }
+            for (const photoId of vnDeletedPhotoIds) await adminDb.from('venue_photos').delete().eq('id', photoId);
+            vnDeletedPhotoIds.clear();
+            for (let i = 0; i < vnPhotos.length; i++) {
+                const photo = vnPhotos[i]; if (photo.type !== 'new') continue;
+                const ext = photo.file.name.split('.').pop() || 'jpg';
+                const path = `venues/${currentVenueId}/${Date.now()}-${i}.${ext}`;
+                const uploadOk = await uploadToR2(path, photo.file, mimeType(photo.file));
+                if (uploadOk) { const { data: inserted } = await adminDb.from('venue_photos').insert({ venue_id: currentVenueId, storage_path: path }).select().single(); if (inserted) { photo.type = 'existing'; photo.id = inserted.id; photo.storage_path = path; } }
+            }
+            const { data: updVenue, error: updVenueErr } = await adminDb.from('venues').update({ name: document.getElementById('vn-name').value.trim(), location: document.getElementById('vn-location').value.trim() || null, notes: document.getElementById('vn-notes').value.trim() || null, rating: editRatings.vn || null, dates: dates.length ? dates : null, date: dates[0] || null, tags: tags.length ? tags : null }).eq('id', currentVenueId).select('id');
+            const venueSaveErr = updVenueErr || (!updVenue?.length ? { message: 'update blocked — check RLS policy' } : null);
+            if (venueSaveErr) console.error('venue save error:', venueSaveErr);
+            btn.textContent = venueSaveErr ? 'error' : 'saved!';
+            if (venueSaveErr) btn.title = venueSaveErr.message || 'unknown error';
+            setTimeout(() => { btn.textContent = 'save'; btn.title = ''; btn.disabled = false; }, venueSaveErr ? 5000 : 2000);
+            if (!venueSaveErr) { venueLoaded = false; loadVenueList(); }
+        });
+
+        let vnDeletePending = false, vnDeleteTimer = null;
+        document.getElementById('vn-delete-btn').addEventListener('click', async () => {
+            if (!currentVenueId) return;
+            const btn = document.getElementById('vn-delete-btn');
+            if (!vnDeletePending) { vnDeletePending = true; btn.textContent = 'sure?'; vnDeleteTimer = setTimeout(() => { vnDeletePending = false; btn.textContent = 'delete'; }, 3000); return; }
+            clearTimeout(vnDeleteTimer); vnDeletePending = false;
+            const adminDb = await getAdminClient(); if (!adminDb) return;
+            btn.textContent = 'deleting...';
+            await adminDb.from('venues').delete().eq('id', currentVenueId);
+            currentVenueId = null;
+            document.getElementById('venue-editor-view').style.display = 'none';
+            document.getElementById('venue-list-view').style.display = '';
+            setBackVisible(false); venueLoaded = false; loadVenueList();
+        });
+
+        // --- search ---
+        const GOOGLE_KEY = 'AIzaSyCt9_PogrDmDY1ndTit3F7WF69iLey2eQ4';
+        const TMDB_KEY = 'f5d9b09b51d41795b664c7762eaa85ff';
+
+        function renderCSearchResults(prefix, items, onSelect) {
+            const el = document.getElementById(`${prefix}-search-results`);
+            if (!items.length) { el.innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.4rem 0">no results</div>'; return; }
+            el.innerHTML = '';
+            items.forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'blog-record'; row.style.cursor = 'pointer';
+                row.innerHTML = `<div class="blog-details-1">${item.title}</div>${item.sub ? `<div class="blog-details-2">${item.sub}</div>` : ''}`;
+                row.addEventListener('click', () => { el.innerHTML = ''; onSelect(item); });
+                el.appendChild(row);
+            });
+        }
+
+        async function searchBooksC(q) {
+            const el = document.getElementById('bk-search-results');
+            el.innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.4rem 0">searching...</div>';
+            try {
+                const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=6&key=${GOOGLE_KEY}`);
+                const data = await res.json();
+                renderCSearchResults('bk', (data.items || []).map(b => {
+                    const info = b.volumeInfo;
+                    return { title: info.title, sub: [info.authors?.[0], info.publishedDate?.slice(0,4)].filter(Boolean).join(' · '), cover: info.imageLinks?.thumbnail?.replace('http://','https://') || '' };
+                }), item => openMediaEditorForAdd('book', item));
+            } catch(e) { document.getElementById('bk-search-results').innerHTML = `<div style="font-size:0.8rem;color:#aaa;padding:0.4rem 0">error: ${e.message}</div>`; }
+        }
+
+        async function searchMoviesC(q) {
+            const el = document.getElementById('mv-search-results');
+            el.innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.4rem 0">searching...</div>';
+            try {
+                const res = await fetch(`https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(q)}&api_key=${TMDB_KEY}&language=en-US`);
+                const data = await res.json();
+                renderCSearchResults('mv', (data.results || []).slice(0,6).map(m => ({ title: m.title, sub: m.release_date?.slice(0,4) || '', cover: m.poster_path ? `https://image.tmdb.org/t/p/w185${m.poster_path}` : '' })), item => openMediaEditorForAdd('movie', item));
+            } catch(e) { document.getElementById('mv-search-results').innerHTML = `<div style="font-size:0.8rem;color:#aaa;padding:0.4rem 0">error: ${e.message}</div>`; }
+        }
+
+        async function searchTVC(q) {
+            const el = document.getElementById('tv-search-results');
+            el.innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.4rem 0">searching...</div>';
+            try {
+                const res = await fetch(`https://api.themoviedb.org/3/search/tv?query=${encodeURIComponent(q)}&api_key=${TMDB_KEY}&language=en-US`);
+                const data = await res.json();
+                renderCSearchResults('tv', (data.results || []).slice(0,6).map(s => ({ title: s.name, sub: s.first_air_date?.slice(0,4) || '', cover: s.poster_path ? `https://image.tmdb.org/t/p/w185${s.poster_path}` : '' })), item => openMediaEditorForAdd('tv', item));
+            } catch(e) { document.getElementById('tv-search-results').innerHTML = `<div style="font-size:0.8rem;color:#aaa;padding:0.4rem 0">error: ${e.message}</div>`; }
+        }
+
+        async function searchFoodC(q) {
+            const el = document.getElementById('fd-search-results');
+            el.innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.4rem 0">searching...</div>';
+            const qLow = q.toLowerCase();
+            const yours = foodAllRecords.filter(r => r.name?.toLowerCase().includes(qLow) || r.location?.toLowerCase().includes(qLow));
+            let places = [];
+            try {
+                const res = await fetch('https://places.googleapis.com/v1/places:searchText', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': GOOGLE_KEY, 'X-Goog-FieldMask': 'places.id,places.displayName,places.shortFormattedAddress,places.photos' }, body: JSON.stringify({ textQuery: q, pageSize: 5 }) });
+                const data = await res.json();
+                places = data.places || [];
+            } catch(e) {}
+            el.innerHTML = '';
+            if (!yours.length && !places.length) { el.innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.4rem 0">no results</div>'; return; }
+            if (yours.length) {
+                const lbl = document.createElement('div'); lbl.className = 'c-results-section-label'; lbl.textContent = 'yours'; el.appendChild(lbl);
+                yours.slice(0,4).forEach(item => {
+                    const row = document.createElement('div'); row.className = 'blog-record'; row.style.cursor = 'pointer';
+                    row.innerHTML = `<div class="blog-details-1">${item.name}</div>${item.location ? `<div class="blog-details-2">${item.location}</div>` : ''}`;
+                    row.addEventListener('click', () => { el.innerHTML = ''; openFoodEditor(item.id); });
+                    el.appendChild(row);
+                });
+            }
+            if (places.length) {
+                const lbl = document.createElement('div'); lbl.className = 'c-results-section-label'; lbl.textContent = 'add new'; el.appendChild(lbl);
+                places.forEach(p => {
+                    const item = { title: p.displayName?.text || '', sub: p.shortFormattedAddress || '', placeId: p.id, photoName: p.photos?.[0]?.name };
+                    const row = document.createElement('div'); row.className = 'blog-record'; row.style.cursor = 'pointer';
+                    row.innerHTML = `<div class="blog-details-1">${item.title}</div>${item.sub ? `<div class="blog-details-2">${item.sub}</div>` : ''}`;
+                    row.addEventListener('click', () => { el.innerHTML = ''; openFoodEditorForAdd(item); });
+                    el.appendChild(row);
+                });
+            }
+        }
+
+        async function searchVenuesC(q) {
+            const el = document.getElementById('vn-search-results');
+            el.innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.4rem 0">searching...</div>';
+            const qLow = q.toLowerCase();
+            const yours = venueAllRecords.filter(r => r.name?.toLowerCase().includes(qLow) || r.location?.toLowerCase().includes(qLow));
+            let places = [];
+            try {
+                const res = await fetch('https://places.googleapis.com/v1/places:searchText', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': GOOGLE_KEY, 'X-Goog-FieldMask': 'places.id,places.displayName,places.shortFormattedAddress,places.photos' }, body: JSON.stringify({ textQuery: q, pageSize: 5 }) });
+                const data = await res.json();
+                places = data.places || [];
+            } catch(e) {}
+            el.innerHTML = '';
+            if (!yours.length && !places.length) { el.innerHTML = '<div style="font-size:0.8rem;color:#aaa;padding:0.4rem 0">no results</div>'; return; }
+            if (yours.length) {
+                const lbl = document.createElement('div'); lbl.className = 'c-results-section-label'; lbl.textContent = 'yours'; el.appendChild(lbl);
+                yours.slice(0,4).forEach(item => {
+                    const row = document.createElement('div'); row.className = 'blog-record'; row.style.cursor = 'pointer';
+                    row.innerHTML = `<div class="blog-details-1">${item.name}</div>${item.location ? `<div class="blog-details-2">${item.location}</div>` : ''}`;
+                    row.addEventListener('click', () => { el.innerHTML = ''; openVenueEditor(item.id); });
+                    el.appendChild(row);
+                });
+            }
+            if (places.length) {
+                const lbl = document.createElement('div'); lbl.className = 'c-results-section-label'; lbl.textContent = 'add new'; el.appendChild(lbl);
+                places.forEach(p => {
+                    const item = { title: p.displayName?.text || '', sub: p.shortFormattedAddress || '', placeId: p.id, photoName: p.photos?.[0]?.name };
+                    const row = document.createElement('div'); row.className = 'blog-record'; row.style.cursor = 'pointer';
+                    row.innerHTML = `<div class="blog-details-1">${item.title}</div>${item.sub ? `<div class="blog-details-2">${item.sub}</div>` : ''}`;
+                    row.addEventListener('click', () => { el.innerHTML = ''; openVenueEditorForAdd(item); });
+                    el.appendChild(row);
+                });
+            }
+        }
+
+        function openMediaEditorForAdd(type, item) {
+            const p = type === 'book' ? 'bk' : type === 'tv' ? 'tv' : 'mv';
+            const listKey = type === 'book' ? 'books' : type === 'tv' ? 'tv' : 'movies';
+            currentMediaId = null; currentMediaType = type; currentMediaCoverUrl = item.cover || null;
+            document.getElementById(`${p}-title`).value = item.title || '';
+            document.getElementById(`${p}-notes`).value = '';
+            setEditRating(p, 0);
+            document.getElementById(`${p}-date`).value = '';
+            if (type === 'movie') setMvEditorStatus(mvActiveStatus);
+            if (type === 'tv') setTvEditorStatus(tvActiveStatus);
+            document.getElementById(`${p}-delete-btn`).style.display = 'none';
+            document.getElementById(`${p}-search-section`).style.display = 'none';
+            document.getElementById(`${listKey}-list-view`).style.display = 'none';
+            document.getElementById(`${listKey}-editor-view`).style.display = '';
+            revealTab(document.getElementById(`${listKey}-editor-view`));
+            setBackVisible(true);
+        }
+
+        async function openFoodEditorForAdd(item) {
+            currentFoodId = null; currentFoodPlaceId = item.placeId || null; currentFoodNewPhotoUrl = null;
+            if (item.photoName) currentFoodNewPhotoUrl = `https://places.googleapis.com/v1/${item.photoName}/media?maxWidthPx=800&key=${GOOGLE_KEY}`;
+            fdPhotos = []; fdDeletedPhotoIds = new Set();
+            document.getElementById('fd-name').value = item.title || '';
+            document.getElementById('fd-location').value = item.sub || '';
+            document.getElementById('fd-tags').value = ''; document.getElementById('fd-notes').value = '';
+            setEditRating('fd', 0);
+            document.getElementById('fd-dates-container').innerHTML = '';
+            addFdDateRow(new Date().toISOString().slice(0,10));
+            renderFdPhotos();
+            document.getElementById('fd-delete-btn').style.display = 'none';
+            document.getElementById('fd-search-section').style.display = 'none';
+            document.getElementById('food-list-view').style.display = 'none';
+            document.getElementById('food-editor-view').style.display = '';
+            revealTab(document.getElementById('food-editor-view')); setBackVisible(true);
+        }
+
+        async function openVenueEditorForAdd(item) {
+            currentVenueId = null; currentVenuePlaceId = item.placeId || null; currentVenueNewPhotoUrl = null;
+            if (item.photoName) currentVenueNewPhotoUrl = `https://places.googleapis.com/v1/${item.photoName}/media?maxWidthPx=800&key=${GOOGLE_KEY}`;
+            vnPhotos = []; vnDeletedPhotoIds = new Set();
+            document.getElementById('vn-name').value = item.title || ''; document.getElementById('vn-location').value = item.sub || '';
+            document.getElementById('vn-tags').value = ''; document.getElementById('vn-notes').value = '';
+            setEditRating('vn', 0);
+            document.getElementById('vn-dates-container').innerHTML = '';
+            addVnDateRow(new Date().toISOString().slice(0,10));
+            renderVnPhotos();
+            document.getElementById('vn-delete-btn').style.display = 'none';
+            document.getElementById('vn-search-section').style.display = 'none';
+            document.getElementById('venue-list-view').style.display = 'none';
+            document.getElementById('venue-editor-view').style.display = '';
+            revealTab(document.getElementById('venue-editor-view')); setBackVisible(true);
+        }
+
+        document.getElementById('bk-search-btn').addEventListener('click', () => { const q = document.getElementById('bk-search-input').value.trim(); if (q) searchBooksC(q); });
+        document.getElementById('bk-search-input').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('bk-search-btn').click(); });
+        document.getElementById('mv-search-btn').addEventListener('click', () => { const q = document.getElementById('mv-search-input').value.trim(); if (q) searchMoviesC(q); });
+        document.getElementById('mv-search-input').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('mv-search-btn').click(); });
+        document.getElementById('tv-search-btn').addEventListener('click', () => { const q = document.getElementById('tv-search-input').value.trim(); if (q) searchTVC(q); });
+        document.getElementById('tv-search-input').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('tv-search-btn').click(); });
+        document.getElementById('fd-search-btn').addEventListener('click', () => { const q = document.getElementById('fd-search-input').value.trim(); if (q) searchFoodC(q); });
+        document.getElementById('fd-search-input').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('fd-search-btn').click(); });
+        let fdSearchDebounce = null;
+        document.getElementById('fd-search-input').addEventListener('input', () => {
+            clearTimeout(fdSearchDebounce);
+            const q = document.getElementById('fd-search-input').value.trim();
+            if (!q) { document.getElementById('fd-search-results').innerHTML = ''; return; }
+            fdSearchDebounce = setTimeout(() => searchFoodC(q), 400);
+        });
+        document.getElementById('vn-search-btn').addEventListener('click', () => { const q = document.getElementById('vn-search-input').value.trim(); if (q) searchVenuesC(q); });
+        document.getElementById('vn-search-input').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('vn-search-btn').click(); });
+        let vnSearchDebounce = null;
+        document.getElementById('vn-search-input').addEventListener('input', () => {
+            clearTimeout(vnSearchDebounce);
+            const q = document.getElementById('vn-search-input').value.trim();
+            if (!q) { document.getElementById('vn-search-results').innerHTML = ''; return; }
+            vnSearchDebounce = setTimeout(() => searchVenuesC(q), 400);
+        });
+
+        // load books on init
+        loadMediaList('book');
+        booksLoaded = true;
+    </script>
+</body>
+</html>

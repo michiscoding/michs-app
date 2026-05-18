@@ -1,0 +1,950 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <title>work</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="mishi">
+    <style>
+        .text-toolbar { display: flex; gap: 0.4rem; margin-bottom: 0.4rem; }
+        .toolbar-btn {
+            background: none; border: 1px solid #ddd; border-radius: 4px;
+            padding: 0.2rem 0.65rem; font-size: 0.72rem; font-family: inherit;
+            font-weight: 600; letter-spacing: 0.03em; color: #999; cursor: pointer;
+            transition: color 0.15s, border-color 0.15s;
+        }
+        .toolbar-btn:hover { color: #333; border-color: #aaa; }
+        body.dark .toolbar-btn { border-color: #333; color: #555; }
+        body.dark .toolbar-btn:hover { color: #ccc; border-color: #666; }
+
+        .link-popup { display: none; align-items: center; gap: 0.5rem; margin-bottom: 0.6rem; flex-wrap: wrap; }
+        .link-popup input {
+            border: none; border-bottom: 1px solid #ddd; background: none;
+            outline: none; font-family: inherit; font-size: 0.85rem;
+            padding: 0.2rem 0; color: #333; flex: 1; min-width: 80px;
+        }
+        body.dark .link-popup input { border-bottom-color: #444; color: #ccc; }
+        .lp-insert {
+            background: #222; color: #fff; border: none; border-radius: 4px;
+            padding: 0.25rem 0.7rem; font-family: inherit; font-size: 0.75rem;
+            font-weight: 600; cursor: pointer;
+        }
+        .lp-cancel { background: none; border: none; color: #bbb; cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 0; }
+        .lp-cancel:hover { color: #555; }
+
+        .attach-section { margin-top: 0.75rem; }
+        #r-attach-input { display: none; }
+        .attach-file-row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: #666; margin-top: 0.5rem; }
+        .attach-file-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .attach-insert-btn {
+            background: none; border: 1px solid #ddd; border-radius: 4px;
+            padding: 0.15rem 0.55rem; font-size: 0.7rem; font-family: inherit;
+            font-weight: 600; color: #888; cursor: pointer; white-space: nowrap;
+        }
+        .attach-insert-btn:hover { color: #111; border-color: #aaa; }
+        .attach-remove-btn { background: none; border: none; color: #ccc; cursor: pointer; font-size: 1rem; line-height: 1; padding: 0; flex-shrink: 0; }
+        .attach-remove-btn:hover { color: #555; }
+        #r-create-attach-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+            padding: 1.5rem; opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+        }
+        #r-create-attach-overlay.open { opacity: 1; pointer-events: auto; }
+        #r-create-attach-modal {
+            background: #fff; border-radius: 12px; padding: 1.75rem;
+            width: 100%; max-width: 640px; max-height: 85vh;
+            display: flex; flex-direction: column; gap: 0.75rem;
+            box-shadow: 0 16px 48px rgba(0,0,0,0.25);
+        }
+        body.dark #r-create-attach-modal { background: #1a1a1a; }
+        #r-attach-title {
+            width: 100%; background: none; border: none;
+            border-bottom: 1px solid #ddd; outline: none;
+            font-family: inherit; font-size: 1rem; font-weight: 600;
+            padding: 0.2rem 0; color: #111;
+        }
+        #r-attach-body {
+            width: 100%; flex: 1; min-height: 280px; background: none;
+            border: 1px solid #ddd; border-radius: 6px; outline: none;
+            font-family: inherit; font-size: 0.85rem; line-height: 1.65;
+            padding: 0.75rem; color: #111; resize: none; overflow-y: auto;
+        }
+        .r-attach-actions { display: flex; gap: 0.5rem; }
+        body.dark #r-attach-title { border-bottom-color: #444; color: #ccc; }
+        body.dark #r-attach-body { border-color: #444; color: #ccc; background: #111; }
+
+        .media-scroll-row {
+            display: flex; gap: 0.5rem; overflow-x: auto;
+            margin-top: 0.75rem; scrollbar-width: none; -ms-overflow-style: none;
+        }
+        .media-scroll-row::-webkit-scrollbar { display: none; }
+        .media-thumb-wrap { position: relative; flex: 0 0 auto; width: 140px; }
+        .media-thumb { width: 140px; height: 110px; object-fit: cover; border-radius: 8px; display: block; }
+
+        /* PA technical notes */
+        .pa-note-block { border: 1px solid #e8e8e8; border-radius: 8px; padding: 0.85rem 0.9rem; margin-bottom: 0.6rem; }
+        body.dark .pa-note-block { border-color: #252525; }
+        .pa-note-header { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.6rem; }
+        .pa-note-type-badge { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: #bbb; }
+        body.dark .pa-note-type-badge { color: #444; }
+        .pa-note-lang-select { background: none; border: 1px solid #e0e0e0; border-radius: 5px; padding: 0.18rem 0.45rem; font-family: inherit; font-size: 0.71rem; color: #666; outline: none; cursor: pointer; }
+        body.dark .pa-note-lang-select { border-color: #333; color: #888; background: #1a1a1a; }
+        .pa-note-spacer { flex: 1; }
+        .pa-note-move-btn { background: none; border: none; font-size: 0.85rem; color: #ccc; cursor: pointer; padding: 0.1rem 0.2rem; line-height: 1; }
+        .pa-note-move-btn:hover:not(:disabled) { color: #555; }
+        .pa-note-move-btn:disabled { opacity: 0.25; cursor: default; }
+        body.dark .pa-note-move-btn { color: #444; }
+        body.dark .pa-note-move-btn:hover:not(:disabled) { color: #aaa; }
+        .pa-note-del-btn { background: none; border: none; font-size: 1rem; color: #ccc; cursor: pointer; padding: 0.1rem 0.25rem; line-height: 1; margin-left: 0.15rem; }
+        .pa-note-del-btn:hover { color: #e55; }
+        .pa-note-code-ta { width: 100%; font-family: 'Courier New', Courier, monospace; font-size: 0.8rem; line-height: 1.55; border: 1px solid #e8e8e8; border-radius: 6px; padding: 0.55rem 0.75rem; resize: none; outline: none; background: #f9f9f9; color: #222; overflow: hidden; min-height: 60px; }
+        body.dark .pa-note-code-ta { border-color: #252525; background: #111; color: #ccc; }
+        .pa-note-attach-preview { width: 100%; max-height: 180px; object-fit: contain; border-radius: 6px; display: block; margin-bottom: 0.5rem; background: #f5f5f5; }
+        body.dark .pa-note-attach-preview { background: #1a1a1a; }
+        .pa-note-desc-ta { width: 100%; font-family: inherit; font-size: 0.83rem; line-height: 1.6; border: 1px solid #e8e8e8; border-radius: 6px; padding: 0.5rem 0.75rem; resize: none; outline: none; background: none; color: #444; margin-top: 0.5rem; overflow: hidden; min-height: 38px; }
+        body.dark .pa-note-desc-ta { border-color: #252525; color: #aaa; }
+        .pa-notes-add-row { display: flex; gap: 0.45rem; margin-top: 0.35rem; }
+        .pa-notes-add-row .btn-app { font-size: 0.75rem; padding: 0.3rem 0.7rem; }
+    </style>
+</head>
+
+<body>
+
+    <div id="media-preview-lb" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:1000;align-items:center;justify-content:center;">
+        <button type="button" id="media-preview-close" style="position:absolute;top:1rem;right:1.2rem;background:none;border:none;color:rgba(255,255,255,0.7);font-size:1.8rem;cursor:pointer;line-height:1;padding:0.2rem 0.4rem;">×</button>
+        <img id="media-preview-img" style="max-width:92vw;max-height:92vh;object-fit:contain;display:none;border-radius:4px;">
+        <video id="media-preview-vid" style="max-width:92vw;max-height:92vh;object-fit:contain;display:none;border-radius:4px;" controls autoplay loop playsinline></video>
+    </div>
+
+    <div class="entry-container" id="list-view">
+        <button type="button" id="list-back-btn" class="list-back-btn" aria-label="back">←</button>
+        <div class="edit-tabs edit-subtabs">
+            <button type="button" class="edit-tab active" data-subtab="powerapps">powerapps</button>
+            <button type="button" class="edit-tab" data-subtab="writings">records</button>
+            <button type="button" class="edit-tab" data-subtab="resume">resume</button>
+        </div>
+
+        <div id="subtab-powerapps">
+            <div id="pa-list-view">
+                <div id="pa-records-list"></div>
+            </div>
+            <div id="pa-editor-view">
+                <div class="field-group">
+                    <label class="field-label">title</label>
+                    <input type="text" id="pa-title" placeholder="e.g. approval flow" autocomplete="off">
+                </div>
+                <div class="field-group">
+                    <label class="field-label">type</label>
+                    <div class="tag-pills">
+                        <button type="button" class="tag-pill" data-tag="flows">flows</button>
+                        <button type="button" class="tag-pill" data-tag="pages">pages</button>
+                        <button type="button" class="tag-pill" data-tag="apps">apps</button>
+                    </div>
+                </div>
+                <div class="field-group">
+                    <label class="field-label">media</label>
+                    <input type="file" id="pa-media-input" accept="image/*,video/*" multiple aria-label="media files">
+                    <button type="button" class="btn-app" onclick="document.getElementById('pa-media-input').click()">choose files</button>
+                    <div id="pa-media-previews" class="media-scroll-row"></div>
+                </div>
+                <div class="field-group">
+                    <label class="field-label">what it does</label>
+                    <textarea id="pa-what" placeholder="describe what this does..."></textarea>
+                </div>
+                <div class="field-group">
+                    <label class="field-label">how it works</label>
+                    <textarea id="pa-how" placeholder="describe the technical build..."></textarea>
+                </div>
+                <div class="field-group">
+                    <label class="field-label">technical notes</label>
+                    <div id="pa-notes-list"></div>
+                    <div class="pa-notes-add-row">
+                        <button type="button" id="pa-add-code-btn" class="btn-app">+ code block</button>
+                        <button type="button" id="pa-add-attach-btn" class="btn-app">+ attachment</button>
+                    </div>
+                </div>
+                <div class="editor-actions">
+                    <button type="button" id="pa-delete-btn" class="danger-btn">delete</button>
+                    <button type="button" id="pa-save-btn" class="btn-app">save</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="subtab-writings" style="display:none">
+            <div id="r-list-view">
+                <div id="r-records-list"></div>
+            </div>
+            <div id="r-editor-view">
+                <div class="field-group">
+                    <label class="field-label">title</label>
+                    <input type="text" id="r-title" placeholder="title" autocomplete="off">
+                </div>
+                <div class="field-group">
+                    <div class="text-toolbar">
+                        <button type="button" class="toolbar-btn" id="r-link-btn">link ↗</button>
+                    </div>
+                    <div class="link-popup" id="r-link-popup">
+                        <input type="text" id="r-lp-text" placeholder="link text">
+                        <input type="text" id="r-lp-url" placeholder="url or /path">
+                        <button type="button" class="lp-insert" id="r-lp-insert">insert</button>
+                        <button type="button" class="lp-cancel" id="r-lp-cancel">×</button>
+                    </div>
+                    <textarea id="r-body" placeholder="write here..."></textarea>
+                </div>
+                <div class="field-group">
+                    <label class="field-label">tags</label>
+                    <input type="text" id="r-tags" placeholder="comma separated" autocomplete="off">
+                </div>
+                <div class="field-group">
+                    <label class="field-label">attachment url</label>
+                    <input type="text" id="r-attachment-url" placeholder="/reports/... or supabase url" autocomplete="off">
+                    <div class="attach-section">
+                        <input type="file" id="r-attach-input" multiple>
+                        <div id="r-attach-list"></div>
+                        <button type="button" class="toolbar-btn" id="r-attach-pick-btn">+ upload files</button>
+                        <button type="button" class="toolbar-btn" id="r-create-attach-btn">+ create attachment</button>
+                    </div>
+                </div>
+                <div class="editor-actions">
+                    <button type="button" id="r-delete-btn" class="danger-btn">delete</button>
+                    <button type="button" id="r-save-btn" class="btn-app">save</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="subtab-resume" style="display:none">
+            <div class="field-group">
+                <label class="field-label">experience</label>
+                <textarea id="exp-blurb" placeholder="e.g. creating power platform solutions for RSM since 2023..."></textarea>
+            </div>
+            <div class="field-group">
+                <label class="field-label">education</label>
+                <div id="edu-blocks"></div>
+                <button type="button" id="add-edu-btn" aria-label="add school">+ add school</button>
+            </div>
+            <div class="field-group">
+                <label class="field-label">certifications</label>
+                <textarea id="certs" placeholder="Microsoft Certified: Power Platform Developer Associate"></textarea>
+            </div>
+            <button type="button" id="resume-save-btn" class="btn-app">save</button>
+        </div>
+    </div>
+
+    <div id="r-create-attach-overlay">
+        <div id="r-create-attach-modal">
+            <input type="text" id="r-attach-title" placeholder="title" autocomplete="off">
+            <textarea id="r-attach-body" placeholder="paste content here..."></textarea>
+            <div class="r-attach-actions">
+                <button type="button" class="lp-insert" id="r-attach-create-btn">create & attach</button>
+                <button type="button" class="lp-cancel" id="r-attach-cancel-btn">×</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase.js"></script>
+    <script src="js/upload.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/nav.js"></script>
+    <script>
+        const backBtn = document.getElementById('list-back-btn');
+        let backContext = null;
+
+        function setBackVisible(visible) {
+            backBtn.style.visibility = visible ? 'visible' : 'hidden';
+        }
+
+        function setSiteLink(url) {
+            document.querySelectorAll('.app-site-link').forEach(l => l.href = url || 'https://michiscoding.github.io/home.html');
+        }
+
+        function revealTab(el) {
+            el.style.opacity = '0';
+            requestAnimationFrame(() => requestAnimationFrame(() => { el.style.opacity = '1'; }));
+        }
+
+        function mimeType(file) {
+            if (file.type) return file.type;
+            const ext = file.name.split('.').pop().toLowerCase();
+            return { html: 'text/html', htm: 'text/html', pdf: 'application/pdf', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', svg: 'image/svg+xml', webp: 'image/webp' }[ext] || 'application/octet-stream';
+        }
+
+        function slugify(title) {
+            return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        }
+
+        // --- subtabs ---
+        const subtabEls = {
+            powerapps: document.getElementById('subtab-powerapps'),
+            writings: document.getElementById('subtab-writings'),
+            resume: document.getElementById('subtab-resume'),
+        };
+        const subtabs = document.querySelectorAll('.edit-subtabs .edit-tab');
+        let paListLoaded = false, rListLoaded = false, resumeLoaded = false;
+
+        subtabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                subtabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                Object.entries(subtabEls).forEach(([k, el]) => {
+                    const show = k === tab.dataset.subtab;
+                    el.style.display = show ? 'block' : 'none';
+                    if (show) revealTab(el);
+                });
+                if (paEditorView.style.display === 'block') {
+                    paEditorView.style.display = 'none';
+                    paListView.style.display = 'block';
+                    paCurrentSlug = null;
+                }
+                if (rEditorView.style.display === 'block') {
+                    rEditorView.style.display = 'none';
+                    rListView.style.display = 'block';
+                    rCurrentSlug = null;
+                }
+                setBackVisible(false);
+                if (tab.dataset.subtab === 'powerapps' && !paListLoaded) { paListLoaded = true; loadPaList(); }
+                if (tab.dataset.subtab === 'writings' && !rListLoaded) { rListLoaded = true; loadRList(); }
+                if (tab.dataset.subtab === 'resume') {
+                    loadResume();
+                    requestAnimationFrame(() => requestAnimationFrame(() => {
+                        ['exp-blurb', 'certs'].forEach(id => {
+                            const ta = document.getElementById(id);
+                            ta.style.height = 'auto';
+                            ta.style.height = ta.scrollHeight + 'px';
+                        });
+                    }));
+                }
+            });
+        });
+
+        backBtn.addEventListener('click', () => {
+            setBackVisible(false);
+            if (backContext === 'pa') {
+                paEditorView.style.display = 'none';
+                paListView.style.display = 'block';
+                revealTab(paListView);
+                paCurrentSlug = null;
+            } else if (backContext === 'r') {
+                rEditorView.style.display = 'none';
+                rListView.style.display = 'block';
+                revealTab(rListView);
+                rCurrentSlug = null;
+            }
+            backContext = null;
+        });
+
+        // --- media preview lightbox ---
+        const mediaPreviewLb = document.getElementById('media-preview-lb');
+        const mediaPreviewImg = document.getElementById('media-preview-img');
+        const mediaPreviewVid = document.getElementById('media-preview-vid');
+
+        function openMediaPreview(src, isVid) {
+            mediaPreviewLb.style.display = 'flex';
+            if (isVid) { mediaPreviewVid.src = src; mediaPreviewVid.style.display = ''; mediaPreviewImg.style.display = 'none'; }
+            else { mediaPreviewImg.src = src; mediaPreviewImg.style.display = ''; mediaPreviewVid.style.display = 'none'; mediaPreviewVid.src = ''; }
+        }
+
+        function closeMediaPreview() { mediaPreviewLb.style.display = 'none'; mediaPreviewVid.src = ''; }
+        document.getElementById('media-preview-close').addEventListener('click', closeMediaPreview);
+        mediaPreviewLb.addEventListener('click', e => { if (e.target === mediaPreviewLb) closeMediaPreview(); });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape' && mediaPreviewLb.style.display !== 'none') closeMediaPreview(); });
+
+        // --- powerapps ---
+        let paMedia = [], paSelectedTags = new Set(), paCurrentSlug = null;
+        let paCurrentNotes = [], paDeletedNoteIds = new Set();
+        const paListView = document.getElementById('pa-list-view');
+        const paEditorView = document.getElementById('pa-editor-view');
+        paEditorView.style.display = 'none';
+
+        function renderPaMedia() {
+            const previews = document.getElementById('pa-media-previews');
+            previews.innerHTML = '';
+            paMedia.forEach((item, i) => {
+                const wrap = document.createElement('div');
+                wrap.className = 'media-thumb-wrap';
+                const isVid = item.type === 'new' ? item.file.type.startsWith('video/') : /\.(mp4|webm|mov)$/i.test(item.path);
+                const src = item.type === 'new' ? item.src : MEDIA_BASE + item.path;
+                let el;
+                if (isVid) { el = document.createElement('video'); el.src = src; el.muted = true; el.autoplay = true; el.loop = true; el.playsInline = true; }
+                else { el = document.createElement('img'); el.src = src; el.alt = ''; }
+                el.className = 'media-thumb'; el.style.cursor = 'zoom-in';
+                el.addEventListener('click', () => openMediaPreview(src, isVid));
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button'; removeBtn.className = 'remove-btn'; removeBtn.textContent = '×';
+                removeBtn.addEventListener('click', () => { paMedia.splice(i, 1); renderPaMedia(); });
+                const prevBtn = document.createElement('button');
+                prevBtn.type = 'button'; prevBtn.className = 'photo-move-btn photo-move-prev'; prevBtn.textContent = '←'; prevBtn.disabled = i === 0;
+                prevBtn.addEventListener('click', () => { [paMedia[i], paMedia[i-1]] = [paMedia[i-1], paMedia[i]]; renderPaMedia(); });
+                const nextBtn = document.createElement('button');
+                nextBtn.type = 'button'; nextBtn.className = 'photo-move-btn photo-move-next'; nextBtn.textContent = '→'; nextBtn.disabled = i === paMedia.length - 1;
+                nextBtn.addEventListener('click', () => { [paMedia[i], paMedia[i+1]] = [paMedia[i+1], paMedia[i]]; renderPaMedia(); });
+                wrap.appendChild(el); wrap.appendChild(removeBtn); wrap.appendChild(prevBtn); wrap.appendChild(nextBtn);
+                previews.appendChild(wrap);
+            });
+        }
+
+        const PA_LANGS = [
+            {id:'powerfx',label:'PowerFx'},{id:'javascript',label:'JavaScript'},{id:'typescript',label:'TypeScript'},
+            {id:'html',label:'HTML'},{id:'css',label:'CSS'},{id:'csharp',label:'C#'},
+            {id:'python',label:'Python'},{id:'sql',label:'SQL'},{id:'json',label:'JSON'},{id:'m',label:'Power Query (M)'},{id:'powershell',label:'PowerShell'}
+        ];
+
+        function renderPaNotes() {
+            const list = document.getElementById('pa-notes-list');
+            list.innerHTML = '';
+            paCurrentNotes.forEach((note, idx) => {
+                const block = document.createElement('div');
+                block.className = 'pa-note-block';
+                const header = document.createElement('div');
+                header.className = 'pa-note-header';
+                const badge = document.createElement('span');
+                badge.className = 'pa-note-type-badge'; badge.textContent = note.type;
+                header.appendChild(badge);
+                if (note.type === 'code') {
+                    const langSel = document.createElement('select');
+                    langSel.className = 'pa-note-lang-select';
+                    PA_LANGS.forEach(l => {
+                        const opt = document.createElement('option');
+                        opt.value = l.id; opt.textContent = l.label;
+                        if (l.id === (note.language || 'powerfx')) opt.selected = true;
+                        langSel.appendChild(opt);
+                    });
+                    langSel.addEventListener('change', () => { paCurrentNotes[idx].language = langSel.value; });
+                    header.appendChild(langSel);
+                }
+                const spacer = document.createElement('span');
+                spacer.className = 'pa-note-spacer';
+                header.appendChild(spacer);
+                const upBtn = document.createElement('button');
+                upBtn.type = 'button'; upBtn.className = 'pa-note-move-btn'; upBtn.textContent = '↑'; upBtn.disabled = idx === 0;
+                upBtn.addEventListener('click', () => { if (idx > 0) { [paCurrentNotes[idx], paCurrentNotes[idx-1]] = [paCurrentNotes[idx-1], paCurrentNotes[idx]]; renderPaNotes(); } });
+                const downBtn = document.createElement('button');
+                downBtn.type = 'button'; downBtn.className = 'pa-note-move-btn'; downBtn.textContent = '↓'; downBtn.disabled = idx === paCurrentNotes.length - 1;
+                downBtn.addEventListener('click', () => { if (idx < paCurrentNotes.length - 1) { [paCurrentNotes[idx], paCurrentNotes[idx+1]] = [paCurrentNotes[idx+1], paCurrentNotes[idx]]; renderPaNotes(); } });
+                const delBtn = document.createElement('button');
+                delBtn.type = 'button'; delBtn.className = 'pa-note-del-btn'; delBtn.textContent = '×';
+                delBtn.addEventListener('click', () => { if (note.id) paDeletedNoteIds.add(note.id); paCurrentNotes.splice(idx, 1); renderPaNotes(); });
+                header.appendChild(upBtn); header.appendChild(downBtn); header.appendChild(delBtn);
+                block.appendChild(header);
+                if (note.type === 'code') {
+                    const codeTA = document.createElement('textarea');
+                    codeTA.className = 'pa-note-code-ta';
+                    codeTA.placeholder = 'paste code here...';
+                    codeTA.value = note.content || '';
+                    codeTA.addEventListener('input', () => {
+                        paCurrentNotes[idx].content = codeTA.value;
+                        codeTA.style.height = 'auto'; codeTA.style.height = codeTA.scrollHeight + 'px';
+                    });
+                    requestAnimationFrame(() => { codeTA.style.height = 'auto'; codeTA.style.height = codeTA.scrollHeight + 'px'; });
+                    block.appendChild(codeTA);
+                } else {
+                    const fileInput = document.createElement('input');
+                    fileInput.type = 'file'; fileInput.accept = 'image/*,.pdf'; fileInput.style.display = 'none';
+                    const previewWrap = document.createElement('div');
+                    if (note._previewUrl || note.file_path) {
+                        const preview = document.createElement('img');
+                        preview.className = 'pa-note-attach-preview';
+                        preview.src = note._previewUrl || (MEDIA_BASE + note.file_path);
+                        previewWrap.appendChild(preview);
+                    }
+                    const chooseBtn = document.createElement('button');
+                    chooseBtn.type = 'button'; chooseBtn.className = 'btn-app pa-notes-add-row';
+                    chooseBtn.textContent = note._previewUrl || note.file_path ? 'change file' : 'choose file';
+                    chooseBtn.addEventListener('click', () => fileInput.click());
+                    fileInput.addEventListener('change', e => {
+                        const file = e.target.files[0]; if (!file) return;
+                        paCurrentNotes[idx]._file = file;
+                        const url = URL.createObjectURL(file);
+                        paCurrentNotes[idx]._previewUrl = url;
+                        previewWrap.innerHTML = '';
+                        const preview = document.createElement('img');
+                        preview.className = 'pa-note-attach-preview'; preview.src = url;
+                        previewWrap.appendChild(preview);
+                        chooseBtn.textContent = 'change file';
+                    });
+                    block.appendChild(fileInput); block.appendChild(previewWrap); block.appendChild(chooseBtn);
+                }
+                const descTA = document.createElement('textarea');
+                descTA.className = 'pa-note-desc-ta';
+                descTA.placeholder = 'description — what is this, what problem does it solve...';
+                descTA.value = note.description || '';
+                descTA.addEventListener('input', () => {
+                    paCurrentNotes[idx].description = descTA.value;
+                    descTA.style.height = 'auto'; descTA.style.height = descTA.scrollHeight + 'px';
+                });
+                requestAnimationFrame(() => { descTA.style.height = 'auto'; descTA.style.height = descTA.scrollHeight + 'px'; });
+                block.appendChild(descTA);
+                list.appendChild(block);
+            });
+        }
+
+        function addPaNote(type) {
+            paCurrentNotes.push({ id: null, type, language: type === 'code' ? 'powerfx' : null, content: '', file_path: '', description: '', sort_order: paCurrentNotes.length, _file: null, _previewUrl: null });
+            renderPaNotes();
+        }
+
+        document.getElementById('pa-add-code-btn').addEventListener('click', () => addPaNote('code'));
+        document.getElementById('pa-add-attach-btn').addEventListener('click', () => addPaNote('attachment'));
+
+        document.querySelectorAll('.tag-pill').forEach(pill => {
+            pill.addEventListener('click', () => {
+                if (paSelectedTags.has(pill.dataset.tag)) { paSelectedTags.delete(pill.dataset.tag); pill.classList.remove('selected'); }
+                else { paSelectedTags.add(pill.dataset.tag); pill.classList.add('selected'); }
+            });
+        });
+
+        document.getElementById('pa-media-input').addEventListener('change', e => {
+            Array.from(e.target.files).forEach(file => { paMedia.push({ type: 'new', file, src: URL.createObjectURL(file) }); renderPaMedia(); });
+            e.target.value = '';
+        });
+
+        async function loadPaList() {
+            const list = document.getElementById('pa-records-list');
+            list.innerHTML = '<p style="opacity:0.4;font-size:0.85rem">loading...</p>';
+            const { data, error } = await db.from('powerapps').select('slug, title').order('created_at', { ascending: false });
+            list.innerHTML = '';
+            if (error || !data?.length) { list.innerHTML = '<p style="opacity:0.4;font-size:0.85rem">none yet</p>'; return; }
+            data.forEach(entry => {
+                const record = document.createElement('div');
+                record.className = 'blog-record';
+                record.innerHTML = `<span class="blog-link">${entry.title}</span>`;
+                record.addEventListener('click', () => openPaEditor(entry.slug));
+                list.appendChild(record);
+            });
+        }
+
+        async function openPaEditor(slug) {
+            const { data, error } = await db.from('powerapps').select('*').eq('slug', slug).single();
+            if (error || !data) return;
+            paCurrentSlug = slug;
+            paMedia = (data.media || []).map(path => ({ type: 'existing', path }));
+            document.getElementById('pa-media-input').value = '';
+            renderPaMedia();
+            document.getElementById('pa-title').value = data.title || '';
+            const paWhat = document.getElementById('pa-what');
+            const paHow = document.getElementById('pa-how');
+            paWhat.value = data.what || '';
+            paHow.value = data.how || '';
+            requestAnimationFrame(() => {
+                [paWhat, paHow].forEach(ta => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; });
+            });
+            paSelectedTags = new Set(data.tags || []);
+            document.querySelectorAll('.tag-pill').forEach(p => { p.classList.toggle('selected', paSelectedTags.has(p.dataset.tag)); });
+            setSiteLink(`https://michiscoding.github.io/powerapps/view.html?slug=${slug}`);
+            backContext = 'pa';
+            paListView.style.display = 'none';
+            paEditorView.style.display = 'block';
+            revealTab(paEditorView);
+            setBackVisible(true);
+            paDeletedNoteIds = new Set();
+            document.getElementById('pa-notes-list').innerHTML = '';
+            const { data: notesData } = await db.from('powerapps_notes').select('*').eq('record_slug', slug).order('sort_order', { ascending: true });
+            paCurrentNotes = (notesData || []).map(n => ({ ...n, _file: null, _previewUrl: null }));
+            renderPaNotes();
+        }
+
+        document.getElementById('pa-save-btn').addEventListener('click', async () => {
+            const title = document.getElementById('pa-title').value.trim();
+            if (!title || !paCurrentSlug) return;
+            const adminDb = await getAdminClient();
+            if (!adminDb) return;
+            const btn = document.getElementById('pa-save-btn');
+            btn.textContent = 'saving...'; btn.disabled = true;
+            const newSlug = slugify(title);
+            let newFileIdx = 0;
+            const mediaPaths = [];
+            for (let i = 0; i < paMedia.length; i++) {
+                const item = paMedia[i];
+                if (item.type === 'existing') { mediaPaths.push(item.path); }
+                else {
+                    const ext = item.file.name.split('.').pop() || 'jpg';
+                    const path = `powerapps/${newSlug}-${newFileIdx + 1}.${ext}`;
+                    const ok = await uploadToR2(path, item.file, mimeType(item.file));
+                    if (ok) { paMedia[i] = { type: 'existing', path }; mediaPaths.push(path); }
+                    newFileIdx++;
+                }
+            }
+            const what = document.getElementById('pa-what').value;
+            const how = document.getElementById('pa-how').value;
+            const tags = [...paSelectedTags];
+            if (newSlug !== paCurrentSlug) {
+                await adminDb.from('powerapps_notes').update({ record_slug: newSlug }).eq('record_slug', paCurrentSlug);
+                await adminDb.from('powerapps').delete().eq('slug', paCurrentSlug);
+            }
+            const { error } = await adminDb.from('powerapps').upsert(
+                { slug: newSlug, title, tags, what, how, media: mediaPaths }, { onConflict: 'slug' }
+            );
+            if (error) { console.error(error); btn.textContent = 'error'; }
+            else {
+                paCurrentSlug = newSlug;
+                if (paDeletedNoteIds.size > 0) {
+                    await adminDb.from('powerapps_notes').delete().in('id', [...paDeletedNoteIds]);
+                    paDeletedNoteIds.clear();
+                }
+                for (let i = 0; i < paCurrentNotes.length; i++) {
+                    const note = paCurrentNotes[i];
+                    let file_path = note.file_path || '';
+                    if (note._file) {
+                        const ext = note._file.name.split('.').pop() || 'bin';
+                        const path = `powerapps-notes/${newSlug}-${Date.now()}-${i}.${ext}`;
+                        const ok = await uploadToR2(path, note._file);
+                        if (ok) { file_path = path; paCurrentNotes[i].file_path = path; paCurrentNotes[i]._file = null; }
+                    }
+                    const row = { record_slug: newSlug, type: note.type, language: note.language || null, content: note.content || '', file_path, description: note.description || '', sort_order: i };
+                    if (note.id) { await adminDb.from('powerapps_notes').update(row).eq('id', note.id); }
+                    else { const { data: ins } = await adminDb.from('powerapps_notes').insert(row).select('id').single(); if (ins) paCurrentNotes[i].id = ins.id; }
+                }
+                btn.textContent = 'saved!';
+            }
+            setTimeout(() => { btn.textContent = 'save'; btn.disabled = false; }, 2000);
+        });
+
+        let paDeletePending = false, paDeleteTimer = null;
+        document.getElementById('pa-delete-btn').addEventListener('click', async () => {
+            if (!paCurrentSlug) return;
+            const btn = document.getElementById('pa-delete-btn');
+            if (!paDeletePending) { paDeletePending = true; btn.textContent = 'sure?'; paDeleteTimer = setTimeout(() => { paDeletePending = false; btn.textContent = 'delete'; }, 3000); return; }
+            clearTimeout(paDeleteTimer); paDeletePending = false;
+            const adminDb = await getAdminClient(); if (!adminDb) return;
+            btn.textContent = 'deleting...';
+            await adminDb.from('powerapps_notes').delete().eq('record_slug', paCurrentSlug);
+            await adminDb.from('powerapps').delete().eq('slug', paCurrentSlug);
+            paCurrentSlug = null;
+            paEditorView.style.display = 'none';
+            paListView.style.display = 'block';
+            setBackVisible(false);
+            paListLoaded = false; loadPaList();
+        });
+
+        ['pa-what', 'pa-how'].forEach(id => {
+            document.getElementById(id).addEventListener('input', function() {
+                if (this.scrollHeight > this.clientHeight) this.style.height = this.scrollHeight + 'px';
+            });
+        });
+
+        // --- writings ---
+        let rCurrentSlug = null, rUploadedFiles = [], rDeletedUrls = [];
+        const rListView = document.getElementById('r-list-view');
+        const rEditorView = document.getElementById('r-editor-view');
+        rEditorView.style.display = 'none';
+
+        const rLinkPopup = document.getElementById('r-link-popup');
+        const rLpText = document.getElementById('r-lp-text');
+        const rLpUrl = document.getElementById('r-lp-url');
+        const rBody = document.getElementById('r-body');
+
+        document.getElementById('r-link-btn').addEventListener('click', () => {
+            const sel = rBody.value.substring(rBody.selectionStart, rBody.selectionEnd);
+            rLpText.value = sel; rLpUrl.value = '';
+            rLinkPopup.style.display = rLinkPopup.style.display === 'flex' ? 'none' : 'flex';
+            if (rLinkPopup.style.display === 'flex') (sel ? rLpUrl : rLpText).focus();
+        });
+        document.getElementById('r-lp-cancel').addEventListener('click', () => { rLinkPopup.style.display = 'none'; });
+
+        function rInsertLink() {
+            const text = rLpText.value || 'link';
+            const url = rLpUrl.value.trim();
+            if (!url) { rLpUrl.focus(); return; }
+            const md = `[${text}](${url})`;
+            const start = rBody.selectionStart, end = rBody.selectionEnd;
+            rBody.value = rBody.value.substring(0, start) + md + rBody.value.substring(end);
+            rBody.selectionStart = rBody.selectionEnd = start + md.length;
+            rLinkPopup.style.display = 'none'; rBody.focus();
+        }
+        document.getElementById('r-lp-insert').addEventListener('click', rInsertLink);
+        rLpUrl.addEventListener('keydown', e => { if (e.key === 'Enter') rInsertLink(); if (e.key === 'Escape') rLinkPopup.style.display = 'none'; });
+        rLpText.addEventListener('keydown', e => { if (e.key === 'Escape') rLinkPopup.style.display = 'none'; });
+
+        const OWNER = 'michiscoding', REPO = 'michiscoding.github.io', BRANCH = 'main';
+
+        function getToken() {
+            let token = localStorage.getItem('gh_token');
+            if (!token) { token = prompt('enter your github token:'); if (token) localStorage.setItem('gh_token', token); }
+            return token;
+        }
+
+        async function uploadToGitHub(file, slug) {
+            const token = getToken(); if (!token) return null;
+            const path = `reports/${slug}/${file.name}`;
+            const content = await new Promise(resolve => { const r = new FileReader(); r.onload = e => resolve(e.target.result.split(',')[1]); r.readAsDataURL(file); });
+            const checkRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const existing = checkRes.ok ? await checkRes.json() : null;
+            const body = { message: `upload ${file.name}`, content, branch: BRANCH };
+            if (existing?.sha) body.sha = existing.sha;
+            const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            return res.ok ? `/${path}` : null;
+        }
+
+        document.getElementById('r-attach-pick-btn').addEventListener('click', () => document.getElementById('r-attach-input').click());
+        document.getElementById('r-attach-input').addEventListener('change', async e => {
+            const files = Array.from(e.target.files); e.target.value = '';
+            if (!files.length) return;
+            const btn = document.getElementById('r-attach-pick-btn');
+            btn.textContent = 'uploading...'; btn.disabled = true;
+            for (const f of files) {
+                const isHtml = /\.html?$/i.test(f.name);
+                let url = null;
+                if (isHtml) { url = await uploadToGitHub(f, rCurrentSlug); }
+                else {
+                    const adminDb = await getAdminClient();
+                    if (adminDb) {
+                        const path = `attachments/${rCurrentSlug}/${f.name}`;
+                        const ok = await uploadToR2(path, f, mimeType(f));
+                        if (ok) url = MEDIA_BASE + path;
+                    }
+                }
+                if (url) rUploadedFiles.push({ file: f, url });
+            }
+            btn.textContent = '+ upload files'; btn.disabled = false;
+            renderRAttachList();
+        });
+
+        const rCreateAttachOverlay = document.getElementById('r-create-attach-overlay');
+        function openCreateAttach() { rCreateAttachOverlay.classList.add('open'); }
+        function closeCreateAttach() { rCreateAttachOverlay.classList.remove('open'); }
+
+        document.getElementById('r-create-attach-btn').addEventListener('click', openCreateAttach);
+        document.getElementById('r-attach-cancel-btn').addEventListener('click', closeCreateAttach);
+        rCreateAttachOverlay.addEventListener('click', e => { if (e.target === rCreateAttachOverlay) closeCreateAttach(); });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape' && rCreateAttachOverlay.classList.contains('open')) closeCreateAttach(); });
+
+        document.getElementById('r-attach-create-btn').addEventListener('click', async () => {
+            const title = document.getElementById('r-attach-title').value.trim();
+            const body = document.getElementById('r-attach-body').value;
+            if (!title || !body) return;
+            const btn = document.getElementById('r-attach-create-btn');
+            btn.textContent = 'creating...'; btn.disabled = true;
+            const attachSlug = slugify(title);
+            const escaped = body.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            const html = `<!doctype html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1.0">\n<style>\n* { box-sizing: border-box; margin: 0; padding: 0; }\nhtml, body { background: #fff; color: #111; }\nbody { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; max-width: 780px; margin: 0 auto; padding: 2.5rem 2rem; }\nh1 { font-size: 1.4rem; font-weight: 700; margin-bottom: 1.75rem; }\npre { white-space: pre-wrap; word-break: break-word; font-family: inherit; font-size: 0.88rem; line-height: 1.75; }\nbody.dark, html.dark { background: #111; color: #ddd; }\n</style>\n<title>${title}</title>\n</head>\n<body>\n<h1>${title}</h1>\n<pre>${escaped}</pre>\n<script>\nif (new URLSearchParams(location.search).get('theme') === 'dark') {\n  document.documentElement.classList.add('dark');\n  document.body.classList.add('dark');\n}\n<\/script>\n</body>\n</html>`;
+            const file = new File([html], `${attachSlug}.html`, { type: 'text/html' });
+            const url = await uploadToGitHub(file, rCurrentSlug);
+            if (url) {
+                rUploadedFiles.push({ file, url });
+                renderRAttachList();
+                closeCreateAttach();
+                document.getElementById('r-attach-title').value = '';
+                document.getElementById('r-attach-body').value = '';
+            }
+            btn.textContent = 'create & attach'; btn.disabled = false;
+        });
+
+        function renderRAttachList() {
+            const list = document.getElementById('r-attach-list');
+            list.innerHTML = '';
+            rUploadedFiles.forEach((item, i) => {
+                const row = document.createElement('div');
+                row.className = 'attach-file-row';
+                row.innerHTML = `<span class="attach-file-name">${item.file.name}</span><button type="button" class="attach-insert-btn">insert link</button><button type="button" class="attach-insert-btn">set as attachment</button><button type="button" class="attach-remove-btn">×</button>`;
+                const [insertBtn, setBtn] = row.querySelectorAll('.attach-insert-btn');
+                insertBtn.addEventListener('click', () => {
+                    const md = `[here](${item.url})`;
+                    const start = rBody.selectionStart, end = rBody.selectionEnd;
+                    rBody.value = rBody.value.substring(0, start) + md + rBody.value.substring(end);
+                    rBody.selectionStart = rBody.selectionEnd = start + md.length;
+                    rBody.focus();
+                });
+                setBtn.addEventListener('click', () => { document.getElementById('r-attachment-url').value = item.url; });
+                row.querySelector('.attach-remove-btn').addEventListener('click', () => {
+                    if (item.url.startsWith('/reports/') || item.url.startsWith('/attachments/')) rDeletedUrls.push(item.url);
+                    rUploadedFiles.splice(i, 1); renderRAttachList();
+                });
+                list.appendChild(row);
+            });
+        }
+
+        rBody.addEventListener('input', function() { if (this.scrollHeight > this.clientHeight) this.style.height = this.scrollHeight + 'px'; });
+
+        async function loadRList() {
+            document.getElementById('r-records-list').innerHTML = '<p style="opacity:0.4;font-size:0.85rem">loading...</p>';
+            const { data, error } = await db.from('records').select('slug, title').order('created_at', { ascending: false });
+            const list = document.getElementById('r-records-list');
+            list.innerHTML = '';
+            if (error || !data?.length) { list.innerHTML = '<p style="opacity:0.4;font-size:0.85rem">none yet</p>'; return; }
+            data.forEach(entry => {
+                const record = document.createElement('div');
+                record.className = 'blog-record';
+                record.innerHTML = `<span class="blog-link">${entry.title}</span>`;
+                record.addEventListener('click', () => openREditor(entry.slug));
+                list.appendChild(record);
+            });
+        }
+
+        async function openREditor(slug) {
+            const { data, error } = await db.from('records').select('*').eq('slug', slug).single();
+            if (error || !data) return;
+            rCurrentSlug = slug; rDeletedUrls = [];
+            rUploadedFiles = data.attachment_url ? [{ file: { name: data.attachment_url.split('/').pop() }, url: data.attachment_url }] : [];
+            const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g; let m;
+            while ((m = linkRegex.exec(data.body || '')) !== null) {
+                const url = m[2];
+                const isUploaded = url.startsWith('/reports/') || url.startsWith('/attachments/') || url.includes(SUPABASE_URL);
+                if (isUploaded && !rUploadedFiles.some(f => f.url === url)) rUploadedFiles.push({ file: { name: url.split('/').pop() }, url });
+            }
+            document.getElementById('r-title').value = data.title || '';
+            document.getElementById('r-tags').value = (data.tags || []).join(', ');
+            document.getElementById('r-attachment-url').value = data.attachment_url || '';
+            rBody.value = data.body || '';
+            rLinkPopup.style.display = 'none';
+            renderRAttachList();
+            requestAnimationFrame(() => { rBody.style.height = 'auto'; rBody.style.height = rBody.scrollHeight + 'px'; });
+            backContext = 'r';
+            rListView.style.display = 'none'; rEditorView.style.display = 'block';
+            revealTab(rEditorView); setBackVisible(true);
+        }
+
+        async function deleteFromGitHub(url) {
+            const token = getToken(); if (!token) return;
+            const path = url.replace(/^\//, '');
+            const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (!res.ok) return;
+            const { sha } = await res.json();
+            await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ message: `remove ${path.split('/').pop()}`, sha, branch: BRANCH }) });
+        }
+
+        document.getElementById('r-save-btn').addEventListener('click', async () => {
+            const title = document.getElementById('r-title').value.trim();
+            if (!title || !rCurrentSlug) return;
+            const adminDb = await getAdminClient(); if (!adminDb) return;
+            const btn = document.getElementById('r-save-btn');
+            btn.textContent = 'saving...'; btn.disabled = true;
+            const newSlug = slugify(title);
+            for (const url of rDeletedUrls) await deleteFromGitHub(url);
+            rDeletedUrls = [];
+            if (newSlug !== rCurrentSlug) await adminDb.from('records').delete().eq('slug', rCurrentSlug);
+            const attachmentUrl = document.getElementById('r-attachment-url').value.trim() || null;
+            const tags = document.getElementById('r-tags').value.split(',').map(t => t.trim()).filter(Boolean);
+            const { error } = await adminDb.from('records').upsert({ slug: newSlug, title, body: rBody.value, attachment_url: attachmentUrl, tags: tags.length ? tags : null }, { onConflict: 'slug' });
+            if (error) { console.error(error); btn.textContent = 'error'; }
+            else { rCurrentSlug = newSlug; btn.textContent = 'saved!'; }
+            setTimeout(() => { btn.textContent = 'save'; btn.disabled = false; }, 2000);
+        });
+
+        let rDeletePending = false, rDeleteTimer = null;
+        document.getElementById('r-delete-btn').addEventListener('click', async () => {
+            if (!rCurrentSlug) return;
+            const btn = document.getElementById('r-delete-btn');
+            if (!rDeletePending) { rDeletePending = true; btn.textContent = 'sure?'; rDeleteTimer = setTimeout(() => { rDeletePending = false; btn.textContent = 'delete'; }, 3000); return; }
+            clearTimeout(rDeleteTimer); rDeletePending = false;
+            const adminDb = await getAdminClient(); if (!adminDb) return;
+            btn.textContent = 'deleting...';
+            for (const item of rUploadedFiles) {
+                if (item.url.startsWith('/reports/') || item.url.startsWith('/attachments/')) await deleteFromGitHub(item.url);
+            }
+            await adminDb.from('records').delete().eq('slug', rCurrentSlug);
+            rCurrentSlug = null;
+            rEditorView.style.display = 'none'; rListView.style.display = 'block';
+            setBackVisible(false); rListLoaded = false; loadRList();
+        });
+
+        // --- resume ---
+        const RESUME_PATH = 'work/resume.html';
+
+        function addEduBlock(data = {}) {
+            const container = document.getElementById('edu-blocks');
+            const block = document.createElement('div');
+            block.className = 'edu-block-form';
+            block.innerHTML = `
+                <input type="text" class="edu-school" placeholder="school name" autocomplete="off" value="${data.school || ''}">
+                <div class="field-row">
+                    <input type="text" class="edu-program" placeholder="degree / program" autocomplete="off" value="${data.program || ''}">
+                    <input type="text" class="edu-location-input" placeholder="city, state" autocomplete="off" value="${data.location || ''}">
+                    <input type="text" class="edu-date-input" placeholder="may 2023" autocomplete="off" value="${data.date || ''}">
+                </div>
+                <textarea class="edu-courses" placeholder="relevant coursework...">${data.courses || ''}</textarea>
+                <button type="button" class="remove-edu-btn">remove</button>
+            `;
+            block.querySelector('.remove-edu-btn').addEventListener('click', () => block.remove());
+            block.querySelector('.edu-courses').addEventListener('input', function() {
+                if (this.scrollHeight > this.clientHeight) this.style.height = this.scrollHeight + 'px';
+            });
+            container.appendChild(block);
+        }
+
+        document.getElementById('add-edu-btn').addEventListener('click', () => addEduBlock());
+
+        async function loadResume() {
+            if (resumeLoaded) return;
+            const token = getToken(); if (!token) return;
+            const btn = document.getElementById('resume-save-btn');
+            btn.textContent = 'loading...';
+            try {
+                const apiRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${RESUME_PATH}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (!apiRes.ok) { btn.textContent = 'save'; return; }
+                const apiData = await apiRes.json();
+                const rawRes = await fetch(apiData.download_url);
+                const html = await rawRes.text();
+                btn.textContent = 'save'; resumeLoaded = true;
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                doc.querySelectorAll('.resume-section').forEach(section => {
+                    const label = section.querySelector('h2')?.textContent.trim().toLowerCase();
+                    if (label === 'experience') {
+                        const blurb = Array.from(section.querySelectorAll('.entry-content p')).find(p => !p.querySelector('a'));
+                        const ta = document.getElementById('exp-blurb');
+                        ta.value = blurb ? blurb.textContent.trim() : '';
+                    }
+                    if (label === 'education') {
+                        document.getElementById('edu-blocks').innerHTML = '';
+                        section.querySelectorAll('.edu-block').forEach(block => {
+                            const meta = block.querySelector('.edu-meta')?.textContent || '';
+                            const locParts = meta.split('·');
+                            addEduBlock({ school: block.querySelector('.edu-school')?.textContent.trim() || '', program: block.querySelector('.edu-degree')?.textContent.trim() || '', location: locParts[0]?.trim() || '', date: locParts[1]?.trim() || '', courses: block.querySelector('.edu-courses')?.textContent.trim() || '' });
+                        });
+                    }
+                    if (label === 'certifications') {
+                        const ta = document.getElementById('certs');
+                        const items = section.querySelectorAll('.cert-list li, .entry-content i');
+                        ta.value = Array.from(items).map(el => el.textContent.trim()).join('\n');
+                    }
+                });
+                requestAnimationFrame(() => requestAnimationFrame(() => {
+                    ['exp-blurb', 'certs'].forEach(id => {
+                        const ta = document.getElementById(id);
+                        ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px';
+                    });
+                }));
+            } catch(e) { console.error(e); document.getElementById('resume-save-btn').textContent = 'save'; }
+        }
+
+        document.getElementById('exp-blurb').addEventListener('input', function() { if (this.scrollHeight > this.clientHeight) this.style.height = this.scrollHeight + 'px'; });
+        document.getElementById('certs').addEventListener('input', function() { if (this.scrollHeight > this.clientHeight) this.style.height = this.scrollHeight + 'px'; });
+
+        document.getElementById('resume-save-btn').addEventListener('click', async () => {
+            const token = getToken(); if (!token) return;
+            const eduBlocks = document.querySelectorAll('.edu-block-form');
+            const btn = document.getElementById('resume-save-btn');
+            btn.textContent = 'saving...'; btn.disabled = true;
+            const certItems = document.getElementById('certs').value.split('\n').map(l=>l.trim()).filter(Boolean).map(l=>`          <li><i>${l}</i></li>`).join('\n');
+            const eduHTML = Array.from(eduBlocks).map(block => {
+                const school = block.querySelector('.edu-school').value.trim();
+                const program = block.querySelector('.edu-program').value.trim();
+                const location = block.querySelector('.edu-location-input').value.trim();
+                const date = block.querySelector('.edu-date-input').value.trim();
+                const courses = block.querySelector('.edu-courses').value.trim();
+                const lines = [`        <div class="edu-block"><div class="edu-header"><span class="edu-school">${school}</span><span class="edu-meta">${location} · ${date}</span></div>`];
+                if (program) lines.push(`          <div class="edu-degree">${program}</div>`);
+                if (courses) lines.push(`          <div class="edu-courses">${courses}</div>`);
+                lines.push('        </div>');
+                return lines.join('\n');
+            }).join('\n');
+            const expBlurb = document.getElementById('exp-blurb').value.trim();
+            const html = ['<!doctype html><html lang="en"><head>','    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">','    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&display=swap" rel="stylesheet">','    <link rel="stylesheet" href="/css/bootstrap.min.css">','    <link rel="stylesheet" href="/css/home.css"><link rel="stylesheet" href="/css/entry.css"><link rel="stylesheet" href="/css/resume.css">','    <style>:root{--maxWidth:67vw;}</style><title>resume</title></head><body>','  <div class="entry-container"><h1>resume</h1>','    <div class="resume-section"><h2>experience</h2><div class="entry-content">',`      <p>${expBlurb}</p><p>→ <a class="resume-link" href="/work.html#powerapps">see the work</a></p>`,'    </div></div>','    <div class="resume-section"><h2>education</h2><div class="entry-content">',eduHTML,'    </div></div>','    <div class="resume-section"><h2>certifications</h2><div class="entry-content"><ul class="cert-list">',certItems,'    </ul></div></div>','  </div><\/body><script src="/js/home.js"><\/script><\/html>'].join('\n');
+            const encoded = btoa(unescape(encodeURIComponent(html)));
+            const check = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${RESUME_PATH}`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const existing = await check.json();
+            const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${RESUME_PATH}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ message: 'update resume', content: encoded, sha: existing.sha, branch: BRANCH }) });
+            if (res.ok) { btn.textContent = 'saved!'; setTimeout(() => { btn.textContent = 'save'; btn.disabled = false; }, 2000); }
+            else { btn.textContent = 'error'; btn.disabled = false; }
+        });
+
+        // load powerapps on init
+        loadPaList();
+    </script>
+</body>
+</html>
