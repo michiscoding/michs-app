@@ -104,10 +104,11 @@ body.transitions-enabled {
         flex-direction: row;
         border-top: none;
         border-bottom: 1px solid #e8e8e8;
-        padding: 0 2rem;
-        justify-content: flex-start;
+        padding: 0;
+        justify-content: center;
         gap: 0;
         align-items: stretch;
+        position: relative;
     }
 
     .app-nav-item {
@@ -116,15 +117,35 @@ body.transitions-enabled {
         font-size: 0.82rem;
         height: 100%;
         gap: 0.35rem;
-        padding: 0 1rem;
+        padding: 0 1.1rem;
         border-bottom: 2px solid transparent;
         border-radius: 0;
+        white-space: nowrap;
     }
 
     .app-nav-item svg { width: 16px; height: 16px; }
     .app-nav-item.active { color: #111; border-bottom-color: #111; }
 
-    .app-nav-spacer { flex: 1; }
+    .app-nav-end {
+        position: absolute;
+        right: 1.75rem;
+        top: 0; bottom: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+    }
+
+    .app-nav-end a, .app-nav-end button {
+        color: #999;
+        background: none;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        line-height: 0;
+        transition: color 0.2s;
+    }
+
+    .app-nav-end a:hover, .app-nav-end button:hover { color: #111; }
 
     .app-top-bar { display: none; }
 
@@ -143,6 +164,8 @@ body.dark .app-nav-item.active { color: #eee; border-bottom-color: #eee; }
 body.dark .app-nav-item:hover { color: #aaa; }
 body.dark .app-top-bar a, body.dark .app-top-bar button { color: #555; }
 body.dark .app-top-bar a:hover, body.dark .app-top-bar button:hover { color: #eee; }
+body.dark .app-nav-end a, body.dark .app-nav-end button { color: #555; }
+body.dark .app-nav-end a:hover, body.dark .app-nav-end button:hover { color: #eee; }
 
 /* editable date label */
 #date-label {

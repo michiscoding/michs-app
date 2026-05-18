@@ -64,9 +64,10 @@
     nav.className = 'app-nav';
     nav.innerHTML = `
         ${tabsHtml}
-        <div class="app-nav-spacer"></div>
-        <a href="https://michiscoding.github.io/home.html" class="app-nav-item app-nav-desktop-only app-site-link" aria-label="view site">${eyeIcon}</a>
-        <button type="button" id="dark-toggle-desktop" class="app-nav-item app-nav-desktop-only" style="border:none;background:none;cursor:pointer;" aria-label="toggle dark mode"></button>
+        <div class="app-nav-end app-nav-desktop-only">
+            <a href="https://michiscoding.github.io/home.html" class="app-site-link" aria-label="view site">${eyeIcon}</a>
+            <button type="button" id="dark-toggle-desktop" aria-label="toggle dark mode"></button>
+        </div>
     `;
     document.body.appendChild(nav);
 
