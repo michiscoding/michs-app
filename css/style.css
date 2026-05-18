@@ -196,6 +196,21 @@ body.dark #history-btn:hover { color: #aaa; }
 #browse-filter-clear { background: none; border: none; color: #ccc; cursor: pointer; font-size: 1rem; padding: 0; line-height: 1; }
 body.dark #browse-filters select { border-bottom-color: #333; color: #666; }
 
+.entry-year-label { font-size: 0.7rem; font-weight: 600; color: #bbb; letter-spacing: 0.08em; text-transform: uppercase; margin: 1.25rem 0 0.4rem; }
+.entry-month-row { display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.55rem; }
+.entry-month-name { font-size: 0.72rem; color: #bbb; min-width: 2.8rem; letter-spacing: 0.02em; }
+.entry-day-chips { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.entry-day-chip {
+    background: none; border: none; padding: 0;
+    font-family: inherit; font-size: 0.82rem; color: #888;
+    cursor: pointer; line-height: 1; width: 1.8rem; text-align: center;
+    transition: color 0.15s;
+}
+.entry-day-chip:hover { color: #111; }
+body.dark .entry-year-label { color: #444; }
+body.dark .entry-month-name { color: #444; }
+body.dark .entry-day-chip { color: #555; }
+body.dark .entry-day-chip:hover { color: #eee; }
 
 /* photo strip */
 #photo-strip {
