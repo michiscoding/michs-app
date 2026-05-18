@@ -17,11 +17,12 @@
 
 
 
-    <div class="entry-container">
+    <div class="entry-container" id="entry-edit-view">
         <div class="entry-day-nav">
             <button type="button" id="entry-prev-btn" class="entry-nav-btn entry-nav-hidden">←</button>
             <h1 id="date-label" contenteditable="true" spellcheck="false">new entry</h1>
             <button type="button" id="entry-next-btn" class="entry-nav-btn entry-nav-hidden">→</button>
+            <button type="button" id="history-btn" class="entry-nav-btn" aria-label="browse entries">≡</button>
         </div>
 
         <div id="entry-carousel">
@@ -63,18 +64,19 @@
         </div>
 
         <button type="button" id="post-btn" class="btn-app">save</button>
+    </div>
 
-        <div id="browse-section">
-            <button type="button" id="browse-toggle">past entries ↓</button>
-            <div id="browse-panel" style="display:none">
-                <div id="browse-filters">
-                    <select id="browse-year-filter" aria-label="filter by year"></select>
-                    <select id="browse-month-filter" aria-label="filter by month"></select>
-                    <button type="button" id="browse-filter-clear">×</button>
-                </div>
-                <div id="browse-list"></div>
-            </div>
+    <div class="entry-container" id="entry-history-view" style="display:none">
+        <div class="entry-day-nav">
+            <button type="button" id="history-back-btn" class="entry-nav-btn">←</button>
+            <h1>entries</h1>
         </div>
+        <div id="browse-filters">
+            <select id="browse-year-filter" aria-label="filter by year"></select>
+            <select id="browse-month-filter" aria-label="filter by month"></select>
+            <button type="button" id="browse-filter-clear">×</button>
+        </div>
+        <div id="browse-list"></div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -410,8 +412,8 @@
                         chip.addEventListener('click', () => {
                             dateLabel.textContent = isoToCode(d);
                             loadEntryForDate(d, true);
-                            document.getElementById('browse-panel').style.display = 'none';
-                            document.getElementById('browse-toggle').textContent = 'past entries ↓';
+                            document.getElementById('entry-history-view').style.display = 'none';
+                            document.getElementById('entry-edit-view').style.display = '';
                         });
                         chips.appendChild(chip);
                     }
@@ -464,14 +466,19 @@
             renderBrowseList();
         }
 
-        document.getElementById('browse-toggle').addEventListener('click', () => {
-            const panel = document.getElementById('browse-panel');
-            const btn = document.getElementById('browse-toggle');
-            const open = panel.style.display === 'none';
-            panel.style.display = open ? '' : 'none';
-            btn.textContent = open ? 'past entries ↑' : 'past entries ↓';
-            if (open && !browseLoaded) { browseLoaded = true; loadBrowse(); }
-        });
+        function showHistoryView() {
+            document.getElementById('entry-edit-view').style.display = 'none';
+            document.getElementById('entry-history-view').style.display = '';
+            if (!browseLoaded) { browseLoaded = true; loadBrowse(); }
+        }
+
+        function showEditView() {
+            document.getElementById('entry-history-view').style.display = 'none';
+            document.getElementById('entry-edit-view').style.display = '';
+        }
+
+        document.getElementById('history-btn').addEventListener('click', showHistoryView);
+        document.getElementById('history-back-btn').addEventListener('click', showEditView);
     </script>
 </body>
 </html>
