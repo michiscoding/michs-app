@@ -214,7 +214,7 @@ body.dark .entry-nav-btn:hover { color: #ccc; }
     margin-top: 0.25rem;
 }
 
-#carousel-nav { display: flex; justify-content: space-between; margin-top: 0.4rem; min-height: 1.2rem; }
+#carousel-nav { display: flex; justify-content: space-between; margin-top: 0.4rem; }
 #carousel-nav-back, #carousel-nav-fwd { font-size: 0.75rem; color: #bbb; cursor: pointer; -webkit-user-select: none; user-select: none; }
 #carousel-nav-back:hover, #carousel-nav-fwd:hover { color: #555; }
 body.dark #carousel-nav-back, body.dark #carousel-nav-fwd { color: #444; }
