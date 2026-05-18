@@ -402,22 +402,30 @@
                     monthName.className = 'entry-month-name';
                     monthName.textContent = browseMonths[parseInt(mm) - 1];
                     row.appendChild(monthName);
-                    const chips = document.createElement('div');
-                    chips.className = 'entry-day-chips';
-                    const sorted = groups[yyyy][mm].slice().sort((a, b) => parseInt(b.split('-')[2]) - parseInt(a.split('-')[2]));
-                    for (const d of sorted) {
-                        const dd = parseInt(d.split('-')[2]);
-                        const chip = document.createElement('button');
-                        chip.type = 'button'; chip.className = 'entry-day-chip'; chip.textContent = dd;
-                        chip.addEventListener('click', () => {
-                            dateLabel.textContent = isoToCode(d);
-                            loadEntryForDate(d, true);
-                            document.getElementById('entry-history-view').style.display = 'none';
-                            document.getElementById('entry-edit-view').style.display = '';
-                        });
-                        chips.appendChild(chip);
+                    const grid = document.createElement('div');
+                    grid.className = 'entry-day-chips';
+                    const entrySet = new Set(groups[yyyy][mm].map(d => parseInt(d.split('-')[2])));
+                    const daysInMonth = new Date(parseInt(yyyy), parseInt(mm), 0).getDate();
+                    const firstDow = new Date(parseInt(yyyy), parseInt(mm) - 1, 1).getDay();
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        const hasEntry = entrySet.has(day);
+                        const cell = document.createElement(hasEntry ? 'button' : 'span');
+                        cell.className = hasEntry ? 'entry-day-chip' : 'entry-day-empty';
+                        cell.textContent = day;
+                        if (day === 1) cell.style.gridColumnStart = firstDow + 1;
+                        if (hasEntry) {
+                            cell.type = 'button';
+                            const isoDate = `${yyyy}-${mm}-${String(day).padStart(2, '0')}`;
+                            cell.addEventListener('click', () => {
+                                dateLabel.textContent = isoToCode(isoDate);
+                                loadEntryForDate(isoDate, true);
+                                document.getElementById('entry-history-view').style.display = 'none';
+                                document.getElementById('entry-edit-view').style.display = '';
+                            });
+                        }
+                        grid.appendChild(cell);
                     }
-                    row.appendChild(chips);
+                    row.appendChild(grid);
                     list.appendChild(row);
                 }
             }
