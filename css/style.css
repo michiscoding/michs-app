@@ -732,8 +732,7 @@ body.dark .tag-pill.selected { background: #eee; color: #111; }
 body.dark .edu-block-form { background: #1e1e1e; }
 
 #retag-section {
-    display: none;
-    margin-top: 2rem;
+    margin-bottom: 2rem;
 }
 
 .retag-header {
