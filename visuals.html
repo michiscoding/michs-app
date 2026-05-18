@@ -17,39 +17,44 @@
 
 
 
-    <div class="entry-container" id="retag-section">
+    <div class="entry-container">
         <h1>visuals</h1>
-        <div id="retag-subtabs">
-            <button type="button" class="retag-subtab active" data-filter="all">all</button>
-            <button type="button" class="retag-subtab" data-filter="home">home</button>
-            <button type="button" class="retag-subtab" data-filter="nature">nature</button>
-            <button type="button" class="retag-subtab" data-filter="jiu-jitsu">jiu jitsu</button>
-            <button type="button" class="retag-subtab" data-filter="vsco">vsco</button>
-            <button type="button" class="retag-subtab" data-filter="friends">friends</button>
-            <button type="button" class="retag-subtab" data-filter="me">me</button>
-            <button type="button" class="retag-subtab" data-filter="tattoos">tattoos</button>
-            <button type="button" id="retag-save-btn" class="btn-app">save</button>
+        <div class="edit-tabs edit-subtabs" id="visuals-subtabs">
+            <button type="button" class="edit-tab active" data-vtab="manage">manage</button>
+            <button type="button" class="edit-tab" data-vtab="upload">upload</button>
         </div>
-        <div id="retag-grid"></div>
-    </div>
 
-    <div class="entry-container visuals-container">
-        <h2 class="visuals-upload-heading">upload</h2>
-        <label id="drop-zone" for="file-input">
-            <p>drop a photo or video here</p>
-            <span>or browse files</span>
-            <input type="file" id="file-input" accept="image/*,video/*,.heic,.heif" multiple>
-        </label>
-
-        <div id="preview-container">
-            <div id="preview-wrapper">
-                <div class="col" id="col-0"></div>
-                <div class="col" id="col-1"></div>
-                <div class="col" id="col-2"></div>
+        <div id="visuals-manage">
+            <div id="retag-subtabs">
+                <button type="button" class="retag-subtab active" data-filter="all">all</button>
+                <button type="button" class="retag-subtab" data-filter="home">home</button>
+                <button type="button" class="retag-subtab" data-filter="nature">nature</button>
+                <button type="button" class="retag-subtab" data-filter="jiu-jitsu">jiu jitsu</button>
+                <button type="button" class="retag-subtab" data-filter="vsco">vsco</button>
+                <button type="button" class="retag-subtab" data-filter="friends">friends</button>
+                <button type="button" class="retag-subtab" data-filter="me">me</button>
+                <button type="button" class="retag-subtab" data-filter="tattoos">tattoos</button>
+                <button type="button" id="retag-save-btn" class="btn-app">save</button>
             </div>
-            <div id="preview-actions">
-                <button type="button" id="add-btn">+ add another</button>
-                <button type="button" id="post-btn" class="btn-app">post</button>
+            <div id="retag-grid"></div>
+        </div>
+
+        <div id="visuals-upload" class="visuals-container" style="display:none">
+            <label id="drop-zone" for="file-input">
+                <p>drop a photo or video here</p>
+                <span>or browse files</span>
+                <input type="file" id="file-input" accept="image/*,video/*,.heic,.heif" multiple>
+            </label>
+            <div id="preview-container">
+                <div id="preview-wrapper">
+                    <div class="col" id="col-0"></div>
+                    <div class="col" id="col-1"></div>
+                    <div class="col" id="col-2"></div>
+                </div>
+                <div id="preview-actions">
+                    <button type="button" id="add-btn">+ add another</button>
+                    <button type="button" id="post-btn" class="btn-app">post</button>
+                </div>
             </div>
         </div>
     </div>
@@ -168,6 +173,16 @@
         });
 
         loadRetag();
+
+        document.querySelectorAll('#visuals-subtabs .edit-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('#visuals-subtabs .edit-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                const isUpload = tab.dataset.vtab === 'upload';
+                document.getElementById('visuals-manage').style.display = isUpload ? 'none' : '';
+                document.getElementById('visuals-upload').style.display = isUpload ? '' : 'none';
+            });
+        });
     </script>
 </body>
 </html>
