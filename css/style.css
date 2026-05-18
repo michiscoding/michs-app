@@ -93,6 +93,8 @@ body.transitions-enabled {
 
 .app-top-bar a:hover, .app-top-bar button:hover { color: #333; }
 
+.app-nav-desktop-only { display: none; }
+
 /* desktop nav */
 @media (min-width: 901px) {
     body { margin-top: 0; margin-bottom: 0; margin-left: 160px; }
@@ -158,8 +160,6 @@ body.transitions-enabled {
 
     .app-nav-desktop-only { display: flex; }
 }
-
-.app-nav-desktop-only { display: none; }
 
 a { color: black; text-decoration: none; }
 a:hover { text-decoration: none; }
