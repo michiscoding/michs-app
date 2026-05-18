@@ -95,41 +95,49 @@ body.transitions-enabled {
 
 /* desktop nav */
 @media (min-width: 901px) {
-    body { margin-top: 48px; margin-bottom: 0; }
+    body { margin-top: 0; margin-bottom: 0; margin-left: 160px; }
 
     .app-nav {
-        bottom: auto;
         top: 0;
-        height: 48px;
-        flex-direction: row;
+        bottom: 0;
+        right: auto;
+        left: 0;
+        width: 160px;
+        height: auto;
+        flex-direction: column;
         border-top: none;
-        border-bottom: 1px solid #e8e8e8;
-        padding: 0;
-        justify-content: center;
-        gap: 0;
+        border-bottom: none;
+        border-right: 1px solid #e8e8e8;
+        padding: 2rem 0 1.5rem;
+        justify-content: flex-start;
         align-items: stretch;
+        gap: 0;
     }
 
     .app-nav-item {
         flex: 0;
         flex-direction: row;
-        font-size: 0.82rem;
-        height: 100%;
-        gap: 0.35rem;
-        padding: 0 1.1rem;
-        border-bottom: 2px solid transparent;
+        font-size: 0.85rem;
+        height: auto;
+        width: 100%;
+        gap: 0;
+        padding: 0.5rem 1.5rem;
+        border-bottom: none;
+        border-left: 2px solid transparent;
         border-radius: 0;
         white-space: nowrap;
+        justify-content: flex-start;
     }
 
-    .app-nav-item svg { width: 16px; height: 16px; }
-    .app-nav-item.active { color: #111; border-bottom-color: #111; }
+    .app-nav-item svg { display: none; }
+    .app-nav-item.active { color: #111; border-left-color: #111; border-bottom-color: transparent; }
 
     .app-nav-end {
-        position: absolute;
-        right: 1.75rem;
-        top: 0; bottom: 0;
+        position: static;
+        margin-top: auto;
+        padding: 0 1.5rem;
         display: flex;
+        flex-direction: row;
         align-items: center;
         gap: 0.85rem;
     }
@@ -159,7 +167,7 @@ a:hover { text-decoration: none; }
 /* dark mode nav */
 body.dark .app-nav { background: #111; border-color: #1e1e1e; }
 body.dark .app-nav-item { color: #444; }
-body.dark .app-nav-item.active { color: #eee; border-bottom-color: #eee; }
+body.dark .app-nav-item.active { color: #eee; border-bottom-color: transparent; border-left-color: #eee; }
 body.dark .app-nav-item:hover { color: #aaa; }
 body.dark .app-top-bar { background: rgba(10,10,10,0.8); }
 body.dark .app-top-bar a, body.dark .app-top-bar button { color: #999; }
