@@ -54,7 +54,7 @@
     const topBar = document.createElement('div');
     topBar.className = 'app-top-bar';
     topBar.innerHTML = `
-        <a href="https://michiscoding.github.io/home.html" class="app-site-link" aria-label="view site">${eyeIcon}</a>
+        <a href="https://michiscoding.github.io/home.html" class="app-site-link" target="_blank" rel="noopener" aria-label="view site">${eyeIcon}</a>
         <button type="button" id="dark-toggle" aria-label="toggle dark mode"></button>
     `;
     document.body.prepend(topBar);
@@ -65,7 +65,7 @@
     nav.innerHTML = `
         ${tabsHtml}
         <div class="app-nav-end app-nav-desktop-only">
-            <a href="https://michiscoding.github.io/home.html" class="app-site-link" aria-label="view site">${eyeIcon}</a>
+            <a href="https://michiscoding.github.io/home.html" class="app-site-link" target="_blank" rel="noopener" aria-label="view site">${eyeIcon}</a>
             <button type="button" id="dark-toggle-desktop" aria-label="toggle dark mode"></button>
         </div>
     `;
