@@ -180,6 +180,23 @@
 
         loadEntryForDate(currentDate(), false);
 
+        // swipe to navigate days
+        let swipeStartX = 0, swipeStartY = 0;
+        const editView = document.getElementById('entry-edit-view');
+        editView.addEventListener('touchstart', e => {
+            swipeStartX = e.touches[0].clientX;
+            swipeStartY = e.touches[0].clientY;
+        }, { passive: true });
+        editView.addEventListener('touchend', e => {
+            const dx = e.changedTouches[0].clientX - swipeStartX;
+            const dy = e.changedTouches[0].clientY - swipeStartY;
+            if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return;
+            const prevBtn = document.getElementById('entry-prev-btn');
+            const nextBtn = document.getElementById('entry-next-btn');
+            if (dx > 0 && prevBtn.onclick) prevBtn.onclick();
+            if (dx < 0 && nextBtn.onclick) nextBtn.onclick();
+        }, { passive: true });
+
         dateLabel.addEventListener('blur', () => {
             const date = currentDate();
             if (!date) { dateLabel.textContent = DEFAULT_CODE; return; }
