@@ -24,6 +24,7 @@
             <button type="button" id="entry-next-btn" class="entry-nav-btn entry-nav-hidden">→</button>
             <button type="button" id="history-btn" class="entry-nav-btn" aria-label="browse entries">≡</button>
         </div>
+        <div id="day-label"></div>
 
         <div id="entry-carousel">
             <div id="entry-carousel-track">
@@ -99,6 +100,13 @@
             return `20${code.slice(4,6)}-${code.slice(0,2)}-${code.slice(2,4)}`;
         }
 
+        const DAYS = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+        function setDayLabel(iso) {
+            if (!iso) { document.getElementById('day-label').textContent = ''; return; }
+            const [yyyy, mm, dd] = iso.split('-').map(Number);
+            document.getElementById('day-label').textContent = DAYS[new Date(yyyy, mm - 1, dd).getDay()];
+        }
+
         function isoToCode(iso) {
             const [yyyy, mm, dd] = iso.split('-');
             return `${mm}${dd}${yyyy.slice(2)}`;
@@ -134,6 +142,7 @@
                     db.from('jiu_jitsu').select('content, techniques, partners').eq('date', date).maybeSingle()
                 ]);
 
+                setDayLabel(date);
                 const musicVal = entryData?.music_url || '';
                 const thoughtVal = entryData?.thought || '';
                 document.getElementById('music-input').value = musicVal;

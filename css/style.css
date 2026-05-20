@@ -274,6 +274,8 @@ body.dark .entry-nav-btn { color: #555; }
 .entry-nav-btn:hover { color: #333; }
 body.dark .entry-nav-btn:hover { color: #ccc; }
 .entry-nav-hidden { display: none; }
+#day-label { font-size: 0.7rem; color: #bbb; letter-spacing: 0.12em; text-transform: lowercase; margin-bottom: 0.75rem; }
+body.dark #day-label { color: #444; }
 .photo-move-btn {
     position: absolute;
     bottom: 4px;
