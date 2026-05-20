@@ -1069,7 +1069,7 @@ body.dark #photo-add-btn { color: #888 !important; }
 
 textarea {
     width: 100%;
-    min-height: 100px;
+    min-height: 0;
     background: #ededed;
     border: none;
     border-radius: 8px;
