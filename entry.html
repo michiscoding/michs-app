@@ -153,7 +153,10 @@
                 const trainingNotes = jjData?.content || '';
                 const trainingTech = (jjData?.techniques || []).join(', ');
                 const trainingPartners = (jjData?.partners || []).join(', ');
-                document.getElementById('training-notes').value = trainingNotes;
+                const trainingTA = document.getElementById('training-notes');
+                trainingTA.value = trainingNotes;
+                trainingTA.style.height = 'auto';
+                trainingTA.style.height = trainingTA.scrollHeight + 'px';
                 document.getElementById('training-techniques').value = trainingTech;
                 document.getElementById('training-partners').value = trainingPartners;
                 slideCarousel(0);
@@ -298,6 +301,15 @@
         function slideCarousel(idx) {
             carouselSlide = idx;
             document.getElementById('entry-carousel-track').style.transform = `translateX(-${idx * 100}%)`;
+            if (idx === 1) {
+                document.getElementById('music-field-group').style.display = 'none';
+                document.getElementById('thought-field-group').style.display = 'none';
+                document.getElementById('music-add-btn').style.display = 'none';
+                document.getElementById('thought-add-btn').style.display = 'none';
+            } else {
+                setFieldVisible('music', !!document.getElementById('music-input').value.trim());
+                setFieldVisible('thought', !!document.getElementById('thought-input').value.trim());
+            }
             requestAnimationFrame(updateCarouselHeight);
             updateTrainingBtn();
         }
@@ -321,7 +333,8 @@
         });
 
         document.getElementById('training-notes').addEventListener('input', function() {
-            if (this.scrollHeight > this.clientHeight) this.style.height = this.scrollHeight + 'px';
+            this.style.height = 'auto';
+            this.style.height = this.scrollHeight + 'px';
             updateCarouselHeight();
         });
 
