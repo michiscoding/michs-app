@@ -22,6 +22,7 @@
             <button type="button" id="entry-prev-btn" class="entry-nav-btn entry-nav-hidden">←</button>
             <h1 id="date-label" contenteditable="true" spellcheck="false">new entry</h1>
             <button type="button" id="entry-next-btn" class="entry-nav-btn entry-nav-hidden">→</button>
+            <button type="button" id="today-btn" class="entry-nav-btn entry-nav-hidden">today</button>
             <button type="button" id="history-btn" class="entry-nav-btn" aria-label="browse entries">≡</button>
         </div>
         <div id="day-label"></div>
@@ -181,6 +182,9 @@
                 nextBtn.classList.toggle('entry-nav-hidden', !nextDate);
                 prevBtn.onclick = prevDate ? () => { dateLabel.textContent = isoToCode(prevDate); loadEntryForDate(prevDate, true); } : null;
                 nextBtn.onclick = nextDate ? () => { dateLabel.textContent = isoToCode(nextDate); loadEntryForDate(nextDate, true); } : null;
+
+                const todayIso = new Date().toISOString().slice(0, 10);
+                document.getElementById('today-btn').classList.toggle('entry-nav-hidden', date === todayIso);
 
                 siteLinks.forEach(l => l.href = `https://michiscoding.github.io/entries/view.html?date=${date}`);
 
@@ -528,6 +532,10 @@
             document.getElementById('entry-edit-view').style.display = '';
         }
 
+        document.getElementById('today-btn').addEventListener('click', () => {
+            dateLabel.textContent = DEFAULT_CODE;
+            loadEntryForDate(codeToIso(DEFAULT_CODE), true);
+        });
         document.getElementById('history-btn').addEventListener('click', showHistoryView);
         document.getElementById('history-back-btn').addEventListener('click', showEditView);
     </script>
