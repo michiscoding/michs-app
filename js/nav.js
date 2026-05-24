@@ -50,11 +50,15 @@
             ${t.label}
         </a>`).join('');
 
+    const isEntry = currentFile === 'entry.html';
+    const refreshBtn = isEntry ? `<button type="button" id="refresh-btn" class="app-refresh-btn" aria-label="refresh entry">↺</button>` : '';
+
     // mobile top bar
     const topBar = document.createElement('div');
     topBar.className = 'app-top-bar';
     topBar.innerHTML = `
         <a href="https://michiscoding.github.io/home.html" class="app-site-link" target="_blank" rel="noopener" aria-label="view site">${eyeIcon}</a>
+        ${refreshBtn}
         <button type="button" id="dark-toggle" aria-label="toggle dark mode"></button>
     `;
     document.body.prepend(topBar);
@@ -66,6 +70,7 @@
         ${tabsHtml}
         <div class="app-nav-end app-nav-desktop-only">
             <a href="https://michiscoding.github.io/home.html" class="app-site-link" target="_blank" rel="noopener" aria-label="view site">${eyeIcon}</a>
+            ${refreshBtn.replace('id="refresh-btn"', 'id="refresh-btn-desktop"')}
             <button type="button" id="dark-toggle-desktop" aria-label="toggle dark mode"></button>
         </div>
     `;

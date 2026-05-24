@@ -967,6 +967,11 @@ body.dark #site-link:hover { color: #eee; }
 body.dark .burger-btn { color: #888; }
 body.dark .burger-btn:hover { color: #eee; }
 
+.app-refresh-btn { background: none; border: none; font-size: 1.05rem; cursor: pointer; color: #888; padding: 0; line-height: 1; outline: none; transition: color 0.2s, opacity 0.2s; }
+.app-refresh-btn:hover { color: #333; }
+body.dark .app-refresh-btn { color: #666; }
+body.dark .app-refresh-btn:hover { color: #eee; }
+
 /* dark mode toggle */
 #dark-toggle {
     background: none;
