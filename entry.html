@@ -183,8 +183,7 @@
                 prevBtn.onclick = prevDate ? () => { dateLabel.textContent = isoToCode(prevDate); loadEntryForDate(prevDate, true); } : null;
                 nextBtn.onclick = nextDate ? () => { dateLabel.textContent = isoToCode(nextDate); loadEntryForDate(nextDate, true); } : null;
 
-                const todayIso = new Date().toISOString().slice(0, 10);
-                document.getElementById('today-btn').classList.toggle('entry-nav-hidden', date === todayIso);
+                document.getElementById('today-btn').classList.toggle('entry-nav-hidden', date === codeToIso(DEFAULT_CODE));
 
                 siteLinks.forEach(l => l.href = `https://michiscoding.github.io/entries/view.html?date=${date}`);
 
