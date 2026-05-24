@@ -23,6 +23,7 @@
             <h1 id="date-label" contenteditable="true" spellcheck="false">new entry</h1>
             <button type="button" id="entry-next-btn" class="entry-nav-btn entry-nav-hidden">→</button>
             <button type="button" id="today-btn" class="entry-nav-btn entry-nav-hidden">today</button>
+            <button type="button" id="refresh-btn" class="entry-nav-btn" aria-label="refresh entry">↺</button>
             <button type="button" id="history-btn" class="entry-nav-btn" aria-label="browse entries">≡</button>
         </div>
         <div id="day-label"></div>
@@ -534,6 +535,14 @@
         document.getElementById('today-btn').addEventListener('click', () => {
             dateLabel.textContent = DEFAULT_CODE;
             loadEntryForDate(codeToIso(DEFAULT_CODE), true);
+        });
+        document.getElementById('refresh-btn').addEventListener('click', async () => {
+            const btn = document.getElementById('refresh-btn');
+            btn.style.opacity = '0.4';
+            btn.style.pointerEvents = 'none';
+            await loadEntryForDate(currentDate(), false);
+            btn.style.opacity = '';
+            btn.style.pointerEvents = '';
         });
         document.getElementById('history-btn').addEventListener('click', showHistoryView);
         document.getElementById('history-back-btn').addEventListener('click', showEditView);
