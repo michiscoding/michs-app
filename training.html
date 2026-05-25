@@ -164,13 +164,13 @@
             const card = document.createElement('div');
             card.className = 'jj-session-card';
             card.innerHTML = `
-                <div class="jj-session-header">
-                    <input type="text" list="jj-time-options" class="jj-time-input" placeholder="time">
-                    <button type="button" class="jj-remove-btn" aria-label="remove session">×</button>
-                </div>
+                <button type="button" class="jj-remove-btn" aria-label="remove session">×</button>
                 <div class="field-group">
                     <label class="field-label">notes</label>
-                    <textarea class="jj-notes"></textarea>
+                    <div class="jj-notes-row">
+                        <input type="text" list="jj-time-options" class="jj-time-input" placeholder="time">
+                        <textarea class="jj-notes"></textarea>
+                    </div>
                 </div>
                 <div class="field-group">
                     <label class="field-label">techniques</label>
