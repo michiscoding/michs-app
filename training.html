@@ -14,12 +14,19 @@
 </head>
 
 <body>
+    <datalist id="jj-time-options">
+        <option value="9:30am">
+        <option value="11am">
+        <option value="12pm">
+        <option value="5:30pm">
+        <option value="6:45pm">
+    </datalist>
 
     <div class="entry-container">
         <div id="jj-list-view">
             <div class="page-title-row">
                 <h1>jiu jitsu</h1>
-                <button type="button" class="btn-inline" id="jj-new-btn">+ new jiu jitsu entry</button>
+                <button type="button" class="btn-inline" id="jj-new-btn">+ new entry</button>
             </div>
             <div id="jj-filters">
                 <select id="jj-year-filter" aria-label="filter by year"></select>
@@ -27,6 +34,7 @@
                 <button type="button" id="jj-filter-clear">×</button>
             </div>
             <div id="jj-entries-list"></div>
+            <button type="button" class="btn-inline" id="jj-migrate-btn" style="display:none;margin-top:2rem">↑ migrate from old table</button>
         </div>
 
         <div id="jj-editor-view" style="display:none">
@@ -40,18 +48,9 @@
                 <input type="date" id="jj-new-date">
             </div>
 
-            <div class="field-group">
-                <label class="field-label" for="jj-textarea">notes</label>
-                <textarea id="jj-textarea"></textarea>
-            </div>
-            <div class="field-group">
-                <label class="field-label" for="jj-techniques">techniques</label>
-                <input type="text" id="jj-techniques" placeholder="comma separated...">
-            </div>
-            <div class="field-group">
-                <label class="field-label" for="jj-partners">partners</label>
-                <input type="text" id="jj-partners" placeholder="comma separated...">
-            </div>
+            <div id="jj-sessions-container"></div>
+            <button type="button" class="btn-inline" id="jj-add-session-btn">+ add session</button>
+
             <div class="editor-actions">
                 <button type="button" id="jj-save-btn" class="btn-app">save</button>
             </div>
@@ -66,7 +65,6 @@
         const jjListView = document.getElementById('jj-list-view');
         const jjEditorView = document.getElementById('jj-editor-view');
         const jjEditorTitle = document.getElementById('jj-editor-title');
-        const jjTextarea = document.getElementById('jj-textarea');
         const jjYearFilter = document.getElementById('jj-year-filter');
         const jjMonthFilter = document.getElementById('jj-month-filter');
         const jjMonths = ['january','february','march','april','may','june','july','august','september','october','november','december'];
@@ -160,10 +158,67 @@
             jjYearFilter.value = 'all'; rebuildJJMonthFilter(); renderJJList();
         });
 
+        // --- session cards ---
+
+        function createSessionCard(session) {
+            const card = document.createElement('div');
+            card.className = 'jj-session-card';
+            card.innerHTML = `
+                <div class="jj-session-header">
+                    <input type="text" list="jj-time-options" class="jj-time-input" placeholder="time">
+                    <button type="button" class="jj-remove-btn" aria-label="remove session">×</button>
+                </div>
+                <div class="field-group">
+                    <label class="field-label">notes</label>
+                    <textarea class="jj-notes"></textarea>
+                </div>
+                <div class="field-group">
+                    <label class="field-label">techniques</label>
+                    <input type="text" class="jj-techniques" placeholder="comma separated...">
+                </div>
+                <div class="field-group">
+                    <label class="field-label">partners</label>
+                    <input type="text" class="jj-partners" placeholder="comma separated...">
+                </div>`;
+
+            card.querySelector('.jj-time-input').value = session.time || '';
+            card.querySelector('.jj-techniques').value = (session.techniques || []).join(', ');
+            card.querySelector('.jj-partners').value = (session.partners || []).join(', ');
+
+            const ta = card.querySelector('.jj-notes');
+            ta.value = session.notes || '';
+            requestAnimationFrame(() => {
+                ta.style.height = 'auto';
+                ta.style.height = ta.scrollHeight + 'px';
+            });
+            ta.addEventListener('input', () => {
+                ta.style.height = 'auto';
+                ta.style.height = ta.scrollHeight + 'px';
+            });
+
+            card.querySelector('.jj-remove-btn').addEventListener('click', () => {
+                if (document.getElementById('jj-sessions-container').children.length > 1) card.remove();
+            });
+
+            return card;
+        }
+
+        function renderSessionCards(sessions) {
+            const container = document.getElementById('jj-sessions-container');
+            container.innerHTML = '';
+            (sessions?.length ? sessions : [{}]).forEach(s => container.appendChild(createSessionCard(s)));
+        }
+
+        // --- DB ---
+
         async function loadJJ() {
-            const { data } = await db.from('jiu_jitsu').select('date').order('date', { ascending: false });
-            if (!data) return;
-            allJJFiles = data.map(row => ({ name: row.date }));
+            const { data } = await db.from('jiu_jitsu_sessions').select('date').order('date', { ascending: false });
+            const seen = new Set();
+            allJJFiles = (data || []).filter(r => {
+                if (seen.has(r.date)) return false;
+                seen.add(r.date); return true;
+            }).map(r => ({ name: r.date }));
+
             const seenYr = new Set();
             jjYearFilter.innerHTML = '<option value="all">year</option>';
             allJJFiles.forEach(f => {
@@ -177,20 +232,19 @@
             });
             rebuildJJMonthFilter();
             renderJJList();
+            document.getElementById('jj-migrate-btn').style.display = allJJFiles.length ? 'none' : '';
         }
 
         async function openJJEntry(date) {
-            const [{ data: jjData }, { data: prevRows }, { data: nextRows }] = await Promise.all([
-                db.from('jiu_jitsu').select('content, techniques, partners').eq('date', date).single(),
-                db.from('jiu_jitsu').select('date').lt('date', date).order('date', { ascending: false }).limit(1),
-                db.from('jiu_jitsu').select('date').gt('date', date).order('date', { ascending: true }).limit(1)
+            const [{ data: sessions }, { data: prevRows }, { data: nextRows }] = await Promise.all([
+                db.from('jiu_jitsu_sessions').select('*').eq('date', date).order('created_at', { ascending: true }),
+                db.from('jiu_jitsu_sessions').select('date').lt('date', date).order('date', { ascending: false }).limit(1),
+                db.from('jiu_jitsu_sessions').select('date').gt('date', date).order('date', { ascending: true }).limit(1)
             ]);
+
             jjCurrentDate = date;
             jjEditorTitle.textContent = jjIsoToCode(date);
-            jjTextarea.value = jjData?.content || '';
-            jjTextarea.style.height = 'auto';
-            document.getElementById('jj-techniques').value = (jjData?.techniques || []).join(', ');
-            document.getElementById('jj-partners').value = (jjData?.partners || []).join(', ');
+            renderSessionCards(sessions);
 
             const prevDate = prevRows?.[0]?.date;
             const nextDate = nextRows?.[0]?.date;
@@ -206,9 +260,6 @@
             setSiteLink(`https://michiscoding.github.io/jiu-jitsu/view.html?date=${date}`);
             jjListView.style.display = 'none';
             jjEditorView.style.display = 'block';
-            requestAnimationFrame(() => {
-                jjTextarea.style.height = jjTextarea.scrollHeight + 'px';
-            });
         }
 
         document.getElementById('jj-back-btn').addEventListener('click', showList);
@@ -218,18 +269,16 @@
             document.getElementById('jj-existing-date-group').style.display = 'none';
             document.getElementById('jj-new-date-group').style.display = '';
             document.getElementById('jj-new-date').value = new Date().toISOString().slice(0,10);
-            jjTextarea.value = '';
-            jjTextarea.style.height = '';
-            document.getElementById('jj-techniques').value = '';
-            document.getElementById('jj-partners').value = '';
+            renderSessionCards([]);
             setSiteLink('https://michiscoding.github.io/training.html');
             jjListView.style.display = 'none';
             jjEditorView.style.display = 'block';
-            jjTextarea.focus();
         });
 
-        jjTextarea.addEventListener('input', () => {
-            if (jjTextarea.scrollHeight > jjTextarea.clientHeight) jjTextarea.style.height = jjTextarea.scrollHeight + 'px';
+        document.getElementById('jj-add-session-btn').addEventListener('click', () => {
+            const card = createSessionCard({});
+            document.getElementById('jj-sessions-container').appendChild(card);
+            card.querySelector('.jj-time-input').focus();
         });
 
         document.getElementById('jj-save-btn').addEventListener('click', async () => {
@@ -240,19 +289,25 @@
             const btn = document.getElementById('jj-save-btn');
             btn.textContent = 'saving...';
 
-            const techniques = document.getElementById('jj-techniques').value.split(',').map(s => s.trim()).filter(Boolean);
-            const partners = document.getElementById('jj-partners').value.split(',').map(s => s.trim()).filter(Boolean);
+            const sessions = Array.from(document.querySelectorAll('.jj-session-card')).map(card => ({
+                date,
+                time: card.querySelector('.jj-time-input').value.trim() || null,
+                notes: card.querySelector('.jj-notes').value,
+                techniques: card.querySelector('.jj-techniques').value.split(',').map(s => s.trim()).filter(Boolean),
+                partners: card.querySelector('.jj-partners').value.split(',').map(s => s.trim()).filter(Boolean),
+            })).filter(s => s.notes || s.time);
 
-            const { error } = await adminDb.from('jiu_jitsu').upsert(
-                { date, content: jjTextarea.value, techniques, partners },
-                { onConflict: 'date' }
-            );
-            if (error) {
-                btn.textContent = 'error — check console';
-                console.error(error);
-                setTimeout(() => btn.textContent = 'save', 3000);
+            if (!sessions.length) {
+                btn.textContent = 'nothing to save';
+                setTimeout(() => btn.textContent = 'save', 2000);
                 return;
             }
+
+            const { error: delErr } = await adminDb.from('jiu_jitsu_sessions').delete().eq('date', date);
+            if (delErr) { btn.textContent = 'error'; console.error(delErr); setTimeout(() => btn.textContent = 'save', 3000); return; }
+
+            const { error: insErr } = await adminDb.from('jiu_jitsu_sessions').insert(sessions);
+            if (insErr) { btn.textContent = 'error'; console.error(insErr); setTimeout(() => btn.textContent = 'save', 3000); return; }
 
             jjCurrentDate = date;
             if (!allJJFiles.find(f => f.name === date)) {
@@ -261,9 +316,80 @@
                 rebuildJJMonthFilter();
                 renderJJList();
             }
+            document.getElementById('jj-migrate-btn').style.display = 'none';
             setSiteLink(`https://michiscoding.github.io/jiu-jitsu/view.html?date=${date}`);
             btn.textContent = 'saved!';
             setTimeout(() => btn.textContent = 'save', 2000);
+        });
+
+        // --- migration ---
+
+        function parseJJContent(content) {
+            if (!content?.trim()) return [];
+            const timeRe = /^(\d{1,4}(?::\d{2})?(?:a|am|p|pm)?)\s*-\s+/i;
+            const lines = content.split('\n');
+            const sessions = [];
+            let current = null;
+            for (const line of lines) {
+                const m = line.match(timeRe);
+                if (m) {
+                    if (current) sessions.push(current);
+                    current = { time: m[1], notes: line.slice(m[0].length) };
+                } else if (current) {
+                    current.notes += '\n' + line;
+                } else {
+                    current = { time: null, notes: line };
+                }
+            }
+            if (current) sessions.push(current);
+            sessions.forEach(s => { s.notes = s.notes.trim(); });
+            return sessions.length ? sessions : [{ time: null, notes: content.trim() }];
+        }
+
+        document.getElementById('jj-migrate-btn').addEventListener('click', async () => {
+            const adminDb = await getAdminClient();
+            if (!adminDb) return;
+            const btn = document.getElementById('jj-migrate-btn');
+            btn.textContent = 'reading...';
+
+            const { data: oldData, error } = await db.from('jiu_jitsu').select('date, content, techniques, partners').order('date', { ascending: true });
+            if (error || !oldData?.length) {
+                btn.textContent = error ? 'error reading old table' : 'no old data found';
+                setTimeout(() => btn.textContent = '↑ migrate from old table', 3000);
+                return;
+            }
+
+            const sessions = [];
+            for (const row of oldData) {
+                const parsed = parseJJContent(row.content);
+                parsed.forEach((s, i) => {
+                    sessions.push({
+                        date: row.date,
+                        time: s.time,
+                        notes: s.notes,
+                        techniques: i === parsed.length - 1 ? (row.techniques || []) : [],
+                        partners: i === parsed.length - 1 ? (row.partners || []) : [],
+                    });
+                });
+            }
+
+            if (!confirm(`found ${sessions.length} sessions across ${oldData.length} dates. migrate now?`)) {
+                btn.textContent = '↑ migrate from old table';
+                return;
+            }
+
+            btn.textContent = 'migrating...';
+            const { error: insErr } = await adminDb.from('jiu_jitsu_sessions').insert(sessions);
+            if (insErr) {
+                btn.textContent = 'error — check console';
+                console.error(insErr);
+                setTimeout(() => btn.textContent = '↑ migrate from old table', 3000);
+                return;
+            }
+
+            btn.style.display = 'none';
+            btn.textContent = '↑ migrate from old table';
+            loadJJ();
         });
 
         loadJJ();
