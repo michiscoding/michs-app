@@ -276,10 +276,10 @@ body.dark .entry-nav-btn:hover { color: #ccc; }
 .entry-nav-hidden { display: none; }
 .jj-session-card { position: relative; border: 1px solid #ececec; border-radius: 8px; padding: 1rem 2.5rem 1rem 1rem; margin-bottom: 1rem; }
 body.dark .jj-session-card { border-color: #252525; }
-.jj-notes-row { display: flex; gap: 0.6rem; align-items: flex-start; }
-.jj-time-input { flex: 0 0 62px !important; width: 62px !important; background: #f5f5f5; border: none; border-radius: 5px; font-family: inherit; font-size: 0.78rem; font-weight: 600; color: #555; padding: 0.3rem 0.4rem; outline: none; text-align: center; margin-top: 2px; }
+.jj-notes-row { position: relative; }
+.jj-time-input { float: left !important; width: 62px !important; background: #f5f5f5; border: none; border-radius: 5px; font-family: inherit; font-size: 0.78rem; font-weight: 600; color: #555; padding: 0.3rem 0.4rem; outline: none; text-align: center; margin: 2px 0.6rem 0.4rem 0; }
 body.dark .jj-time-input { background: #222; color: #aaa; }
-.jj-notes-row textarea { flex: 1; min-width: 0; }
+.jj-notes-row textarea { width: 100%; }
 .jj-remove-btn { position: absolute; top: 0.7rem; right: 0.75rem; background: none; border: none; font-size: 1.1rem; color: #ddd; cursor: pointer; padding: 0; line-height: 1; transition: color 0.15s; }
 body.dark .jj-remove-btn { color: #333; }
 .jj-remove-btn:hover { color: #e55 !important; }
