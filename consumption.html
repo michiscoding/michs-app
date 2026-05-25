@@ -223,11 +223,21 @@
             </div>
         </div>
         <div id="csub-videos" style="display:none">
-            <div class="field-group"><label class="field-label">youtube url</label><input type="text" id="vid-url-input" autocomplete="off" placeholder="youtube or spotify url..."></div>
-            <div class="field-group"><label class="field-label">caption</label><input type="text" id="vid-caption-input" autocomplete="off" placeholder="optional"></div>
-            <div style="margin-bottom:1.5rem"><button type="button" id="vid-add-btn" class="btn-app">+ add video</button></div>
-            <div class="c-list-label">your videos</div>
-            <div id="videos-list"></div>
+            <div id="videos-list-view">
+                <div class="field-group"><label class="field-label">url</label><input type="text" id="vid-url-input" autocomplete="off" placeholder="youtube or spotify url..."></div>
+                <div class="field-group"><label class="field-label">caption</label><input type="text" id="vid-caption-input" autocomplete="off" placeholder="optional"></div>
+                <div style="margin-bottom:1.5rem"><button type="button" id="vid-add-btn" class="btn-app">+ add</button></div>
+                <div class="c-list-label">your videos</div>
+                <div id="videos-list"></div>
+            </div>
+            <div id="videos-editor-view" style="display:none">
+                <div class="field-group"><label class="field-label">url</label><input type="text" id="vid-edit-url" autocomplete="off"></div>
+                <div class="field-group"><label class="field-label">caption</label><input type="text" id="vid-edit-caption" autocomplete="off"></div>
+                <div class="editor-actions">
+                    <button type="button" id="vid-delete-btn" class="danger-btn">delete</button>
+                    <button type="button" id="vid-save-btn" class="btn-app">save</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -289,6 +299,8 @@
             document.getElementById('food-list-view').style.display = '';
             document.getElementById('venue-editor-view').style.display = 'none';
             document.getElementById('venue-list-view').style.display = '';
+            document.getElementById('videos-editor-view').style.display = 'none';
+            document.getElementById('videos-list-view').style.display = '';
             ['bk','mv','tv','fd','vn'].forEach(p => {
                 const sec = document.getElementById(`${p}-search-section`);
                 if (sec) sec.style.display = '';
@@ -992,6 +1004,8 @@
             renderVideosList(data || []);
         }
 
+        let currentVideoId = null;
+
         function renderVideosList(videos) {
             const listEl = document.getElementById('videos-list');
             listEl.innerHTML = '';
@@ -999,7 +1013,7 @@
             videos.forEach(video => {
                 const parsed = parseMediaUrl(video.url);
                 const row = document.createElement('div');
-                row.className = 'vid-row';
+                row.className = 'vid-row'; row.style.cursor = 'pointer';
                 let thumb;
                 if (parsed?.type === 'youtube') {
                     thumb = `<img src="https://img.youtube.com/vi/${parsed.id}/mqdefault.jpg" style="width:80px;height:45px;object-fit:cover;border-radius:5px;flex-shrink:0;">`;
@@ -1012,25 +1026,51 @@
                     <div class="vid-row-info">
                         <div class="vid-row-title">${video.caption || video.url}</div>
                         ${video.caption ? `<div class="vid-row-url">${video.url}</div>` : ''}
-                    </div>
-                    <button type="button" class="attach-remove-btn">×</button>`;
-                let deletePending = false, deleteTimer = null;
-                const delBtn = row.querySelector('.attach-remove-btn');
-                delBtn.addEventListener('click', async () => {
-                    if (!deletePending) {
-                        deletePending = true; delBtn.textContent = 'sure?';
-                        deleteTimer = setTimeout(() => { deletePending = false; delBtn.textContent = '×'; }, 3000);
-                        return;
-                    }
-                    clearTimeout(deleteTimer); deletePending = false;
-                    const adminDb = await getAdminClient(); if (!adminDb) return;
-                    delBtn.textContent = '...'; delBtn.disabled = true;
-                    await adminDb.from('videos').delete().eq('id', video.id);
-                    videosLoaded = false; loadVideosList();
-                });
+                    </div>`;
+                row.addEventListener('click', () => openVideoEditor(video));
                 listEl.appendChild(row);
             });
         }
+
+        function openVideoEditor(video) {
+            currentVideoId = video.id;
+            document.getElementById('vid-edit-url').value = video.url || '';
+            document.getElementById('vid-edit-caption').value = video.caption || '';
+            document.getElementById('videos-list-view').style.display = 'none';
+            document.getElementById('videos-editor-view').style.display = '';
+            setBackVisible(true);
+        }
+
+        document.getElementById('vid-save-btn').addEventListener('click', async () => {
+            const btn = document.getElementById('vid-save-btn');
+            const url = document.getElementById('vid-edit-url').value.trim();
+            if (!url || !parseMediaUrl(url)) { btn.textContent = 'invalid url'; setTimeout(() => { btn.textContent = 'save'; }, 2000); return; }
+            const caption = document.getElementById('vid-edit-caption').value.trim() || null;
+            const adminDb = await getAdminClient(); if (!adminDb) return;
+            btn.textContent = 'saving...'; btn.disabled = true;
+            const { error } = await adminDb.from('videos').update({ url, caption }).eq('id', currentVideoId);
+            btn.textContent = error ? 'error' : 'saved!'; btn.disabled = false;
+            setTimeout(() => { btn.textContent = 'save'; }, 2000);
+            if (!error) { videosLoaded = false; loadVideosList(); }
+        });
+
+        let vidDeletePending = false, vidDeleteTimer = null;
+        document.getElementById('vid-delete-btn').addEventListener('click', async () => {
+            const btn = document.getElementById('vid-delete-btn');
+            if (!vidDeletePending) {
+                vidDeletePending = true; btn.textContent = 'sure?';
+                vidDeleteTimer = setTimeout(() => { vidDeletePending = false; btn.textContent = 'delete'; }, 3000);
+                return;
+            }
+            clearTimeout(vidDeleteTimer); vidDeletePending = false;
+            const adminDb = await getAdminClient(); if (!adminDb) return;
+            btn.textContent = 'deleting...';
+            await adminDb.from('videos').delete().eq('id', currentVideoId);
+            currentVideoId = null;
+            document.getElementById('videos-editor-view').style.display = 'none';
+            document.getElementById('videos-list-view').style.display = '';
+            setBackVisible(false); videosLoaded = false; loadVideosList();
+        });
 
         document.getElementById('vid-add-btn').addEventListener('click', async () => {
             const url = document.getElementById('vid-url-input').value.trim();
