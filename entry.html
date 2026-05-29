@@ -92,8 +92,11 @@
         const photoInput = document.getElementById('photo-input');
         const photoPreviews = document.getElementById('photo-previews');
         const siteLinks = document.querySelectorAll('.app-site-link');
-        const _d = new Date();
-        const DEFAULT_CODE = `${String(_d.getMonth()+1).padStart(2,'0')}${String(_d.getDate()).padStart(2,'0')}${String(_d.getFullYear()).slice(2)}`;
+        function getTodayCode() {
+            const d = new Date();
+            return `${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}${String(d.getFullYear()).slice(2)}`;
+        }
+        const DEFAULT_CODE = getTodayCode();
         dateLabel.textContent = DEFAULT_CODE;
 
         function codeToIso(code) {
@@ -114,7 +117,7 @@
         }
 
         function currentDate() {
-            return codeToIso(dateLabel.textContent.trim()) || codeToIso(DEFAULT_CODE);
+            return codeToIso(dateLabel.textContent.trim()) || codeToIso(getTodayCode());
         }
 
         const entryContent = [textarea, document.getElementById('photo-strip')];
@@ -183,7 +186,7 @@
                 prevBtn.onclick = prevDate ? () => { dateLabel.textContent = isoToCode(prevDate); loadEntryForDate(prevDate, true); } : null;
                 nextBtn.onclick = nextDate ? () => { dateLabel.textContent = isoToCode(nextDate); loadEntryForDate(nextDate, true); } : null;
 
-                document.getElementById('today-btn').classList.toggle('entry-nav-hidden', date === codeToIso(DEFAULT_CODE));
+                document.getElementById('today-btn').classList.toggle('entry-nav-hidden', date === codeToIso(getTodayCode()));
 
                 siteLinks.forEach(l => l.href = `https://michiscoding.github.io/entries/view.html?date=${date}`);
 
@@ -214,7 +217,7 @@
 
         dateLabel.addEventListener('blur', () => {
             const date = currentDate();
-            if (!date) { dateLabel.textContent = DEFAULT_CODE; return; }
+            if (!date) { dateLabel.textContent = getTodayCode(); return; }
             loadEntryForDate(date, true);
         });
 
@@ -532,8 +535,9 @@
         }
 
         document.getElementById('today-btn').addEventListener('click', () => {
-            dateLabel.textContent = DEFAULT_CODE;
-            loadEntryForDate(codeToIso(DEFAULT_CODE), true);
+            const todayCode = getTodayCode();
+            dateLabel.textContent = todayCode;
+            loadEntryForDate(codeToIso(todayCode), true);
         });
         async function doRefresh() {
             ['refresh-btn', 'refresh-btn-desktop'].forEach(id => {
