@@ -235,6 +235,20 @@ body.dark .entry-day-empty { color: #222; }
     display: none;
 }
 
+#photo-previews.photo-previews-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    overflow-x: unset;
+    flex-wrap: unset;
+    gap: 0.4rem;
+}
+#photo-previews.photo-previews-grid .photo-thumb {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+    flex-shrink: unset;
+}
+
 .photo-thumb {
     position: relative;
     flex-shrink: 0;

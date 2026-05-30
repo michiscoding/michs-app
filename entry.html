@@ -199,16 +199,18 @@
         loadEntryForDate(currentDate(), false);
 
         // swipe to navigate days
-        let swipeStartX = 0, swipeStartY = 0;
+        let swipeStartX = 0, swipeStartY = 0, swipeStartTarget = null;
         const editView = document.getElementById('entry-edit-view');
         editView.addEventListener('touchstart', e => {
             swipeStartX = e.touches[0].clientX;
             swipeStartY = e.touches[0].clientY;
+            swipeStartTarget = e.target;
         }, { passive: true });
         editView.addEventListener('touchend', e => {
             const dx = e.changedTouches[0].clientX - swipeStartX;
             const dy = e.changedTouches[0].clientY - swipeStartY;
             if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return;
+            if (swipeStartTarget?.closest('#photo-strip')) return;
             const prevBtn = document.getElementById('entry-prev-btn');
             const nextBtn = document.getElementById('entry-next-btn');
             if (dx > 0 && prevBtn.onclick) prevBtn.onclick();
@@ -233,6 +235,7 @@
 
         function renderAllPhotos() {
             photoPreviews.innerHTML = '';
+            photoPreviews.classList.toggle('photo-previews-grid', photos.length >= 5);
             photos.forEach((entry, i) => {
                 const isVideo = entry.type === 'new' ? entry.file.type.startsWith('video/') : /\.(mp4|webm|mov)$/i.test(entry.storage_path || '');
                 const thumb = document.createElement('div');
