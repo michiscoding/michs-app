@@ -138,11 +138,9 @@
                 textarea.style.height = '';
                 photos = [];
 
-                const [{ data: entryData }, { data: photoData }, { data: prevRows }, { data: nextRows }, { data: jjData }] = await Promise.all([
+                const [{ data: entryData }, { data: photoData }, { data: jjData }] = await Promise.all([
                     db.from('entries').select('content, music_url, thought').eq('date', date).single(),
                     db.from('entry_photos').select('storage_path').eq('entry_date', date),
-                    db.from('entries').select('date').lt('date', date).order('date', { ascending: false }).limit(1),
-                    db.from('entries').select('date').gt('date', date).order('date', { ascending: true }).limit(1),
                     db.from('jiu_jitsu').select('content, techniques, partners').eq('date', date).maybeSingle()
                 ]);
 
@@ -177,14 +175,18 @@
                 }
                 renderAllPhotos();
 
-                const prevDate = prevRows?.[0]?.date;
-                const nextDate = nextRows?.[0]?.date;
+                const d = new Date(date + 'T12:00:00');
+                const prevDate = new Date(d); prevDate.setDate(d.getDate() - 1);
+                const nextDate = new Date(d); nextDate.setDate(d.getDate() + 1);
+                const prevDateStr = prevDate.toISOString().slice(0, 10);
+                const nextDateStr = nextDate.toISOString().slice(0, 10);
+                const todayStr = codeToIso(getTodayCode());
                 const prevBtn = document.getElementById('entry-prev-btn');
                 const nextBtn = document.getElementById('entry-next-btn');
-                prevBtn.classList.toggle('entry-nav-hidden', !prevDate);
-                nextBtn.classList.toggle('entry-nav-hidden', !nextDate);
-                prevBtn.onclick = prevDate ? () => { dateLabel.textContent = isoToCode(prevDate); loadEntryForDate(prevDate, true); } : null;
-                nextBtn.onclick = nextDate ? () => { dateLabel.textContent = isoToCode(nextDate); loadEntryForDate(nextDate, true); } : null;
+                prevBtn.classList.remove('entry-nav-hidden');
+                nextBtn.classList.toggle('entry-nav-hidden', nextDateStr > todayStr);
+                prevBtn.onclick = () => { dateLabel.textContent = isoToCode(prevDateStr); loadEntryForDate(prevDateStr, true); };
+                nextBtn.onclick = () => { dateLabel.textContent = isoToCode(nextDateStr); loadEntryForDate(nextDateStr, true); };
 
                 document.getElementById('today-btn').classList.toggle('entry-nav-hidden', date === codeToIso(getTodayCode()));
 
