@@ -168,6 +168,7 @@
                     <div id="pa-notes-list"></div>
                     <div class="pa-notes-add-row">
                         <button type="button" id="pa-add-code-btn" class="btn-app">+ code block</button>
+                        <button type="button" id="pa-add-text-btn" class="btn-app">+ text</button>
                         <button type="button" id="pa-add-attach-btn" class="btn-app">+ attachment</button>
                     </div>
                 </div>
@@ -465,6 +466,18 @@
                     });
                     requestAnimationFrame(() => { codeTA.style.height = 'auto'; codeTA.style.height = codeTA.scrollHeight + 'px'; });
                     block.appendChild(codeTA);
+                } else if (note.type === 'text') {
+                    const textTA = document.createElement('textarea');
+                    textTA.className = 'pa-note-desc-ta';
+                    textTA.placeholder = 'write a note...';
+                    textTA.value = note.content || '';
+                    textTA.style.marginTop = '0';
+                    textTA.addEventListener('input', () => {
+                        paCurrentNotes[idx].content = textTA.value;
+                        textTA.style.height = 'auto'; textTA.style.height = textTA.scrollHeight + 'px';
+                    });
+                    requestAnimationFrame(() => { textTA.style.height = 'auto'; textTA.style.height = textTA.scrollHeight + 'px'; });
+                    block.appendChild(textTA);
                 } else {
                     const fileInput = document.createElement('input');
                     fileInput.type = 'file'; fileInput.accept = 'image/*,.pdf'; fileInput.style.display = 'none';
@@ -492,16 +505,18 @@
                     });
                     block.appendChild(fileInput); block.appendChild(previewWrap); block.appendChild(chooseBtn);
                 }
-                const descTA = document.createElement('textarea');
-                descTA.className = 'pa-note-desc-ta';
-                descTA.placeholder = 'description — what is this, what problem does it solve...';
-                descTA.value = note.description || '';
-                descTA.addEventListener('input', () => {
-                    paCurrentNotes[idx].description = descTA.value;
-                    descTA.style.height = 'auto'; descTA.style.height = descTA.scrollHeight + 'px';
-                });
-                requestAnimationFrame(() => { descTA.style.height = 'auto'; descTA.style.height = descTA.scrollHeight + 'px'; });
-                block.appendChild(descTA);
+                if (note.type !== 'text') {
+                    const descTA = document.createElement('textarea');
+                    descTA.className = 'pa-note-desc-ta';
+                    descTA.placeholder = 'description — what is this, what problem does it solve...';
+                    descTA.value = note.description || '';
+                    descTA.addEventListener('input', () => {
+                        paCurrentNotes[idx].description = descTA.value;
+                        descTA.style.height = 'auto'; descTA.style.height = descTA.scrollHeight + 'px';
+                    });
+                    requestAnimationFrame(() => { descTA.style.height = 'auto'; descTA.style.height = descTA.scrollHeight + 'px'; });
+                    block.appendChild(descTA);
+                }
                 list.appendChild(block);
             });
         }
@@ -512,6 +527,7 @@
         }
 
         document.getElementById('pa-add-code-btn').addEventListener('click', () => addPaNote('code'));
+        document.getElementById('pa-add-text-btn').addEventListener('click', () => addPaNote('text'));
         document.getElementById('pa-add-attach-btn').addEventListener('click', () => addPaNote('attachment'));
 
         document.querySelectorAll('.tag-pill').forEach(pill => {
