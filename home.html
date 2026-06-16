@@ -13,10 +13,7 @@
 <body>
 
     <div class="dash-wrap">
-        <div class="dash-hero" id="dash-hero" style="display:none">
-            <img id="dash-photo-img" src="" alt="" style="opacity:0;transition:opacity 0.5s">
-            <div class="dash-hero-date" id="dash-hero-date"></div>
-        </div>
+        <div class="dash-photo-grid" id="dash-grid"></div>
         <div class="dash-stats">
             <a href="entry.html" class="dash-stat">
                 <div class="dash-stat-num" id="dash-entry-icon">—</div>
@@ -35,7 +32,13 @@
     <script src="js/app.js"></script>
     <script src="js/nav.js"></script>
     <script>
-        const months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+        function shuffle(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
 
         async function loadDash() {
             const now = new Date();
@@ -43,23 +46,25 @@
             const monthStart = todayStr.slice(0, 8) + '01';
 
             const [photoRes, entryRes, jjRes] = await Promise.all([
-                db.from('entry_photos').select('storage_path, entry_date').order('entry_date', { ascending: false }).limit(40),
+                db.from('entry_photos').select('storage_path, entry_date').order('entry_date', { ascending: false }).limit(80),
                 db.from('entries').select('content, thought').eq('date', todayStr).maybeSingle(),
                 db.from('jiu_jitsu').select('date', { count: 'exact', head: true }).gte('date', monthStart).lte('date', todayStr)
             ]);
 
-            // random recent photo
-            const photos = (photoRes.data || []).filter(p => p.storage_path);
-            if (photos.length) {
-                const pick = photos[Math.floor(Math.random() * photos.length)];
-                const hero = document.getElementById('dash-hero');
-                const img = document.getElementById('dash-photo-img');
+            // randomized photo grid (9 picks)
+            const photos = shuffle((photoRes.data || []).filter(p => p.storage_path));
+            const grid = document.getElementById('dash-grid');
+            photos.slice(0, 9).forEach(p => {
+                const cell = document.createElement('div');
+                cell.className = 'dash-photo-cell';
+                const img = document.createElement('img');
+                img.src = p.storage_path.startsWith('http') ? p.storage_path : MEDIA_BASE + p.storage_path;
+                img.alt = '';
                 img.onload = () => { img.style.opacity = '1'; };
-                img.src = pick.storage_path.startsWith('http') ? pick.storage_path : MEDIA_BASE + pick.storage_path;
-                const [, mm, dd] = pick.entry_date.split('-');
-                document.getElementById('dash-hero-date').textContent = `${months[parseInt(mm)-1]} ${parseInt(dd)}`;
-                hero.style.display = '';
-            }
+                cell.appendChild(img);
+                grid.appendChild(cell);
+            });
+            if (!photos.length) grid.style.display = 'none';
 
             // today's entry
             const wrote = entryRes.data?.content?.trim();
