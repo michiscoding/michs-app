@@ -58,10 +58,10 @@
                 const cell = document.createElement('div');
                 cell.className = 'dash-photo-cell';
                 const img = document.createElement('img');
-                img.src = p.storage_path.startsWith('http') ? p.storage_path : MEDIA_BASE + p.storage_path;
                 img.alt = '';
                 img.onload = () => { img.style.opacity = '1'; };
                 img.onerror = () => { cell.style.display = 'none'; };
+                img.src = p.storage_path.startsWith('http') ? p.storage_path : MEDIA_BASE + p.storage_path;
                 cell.appendChild(img);
                 grid.appendChild(cell);
             });
