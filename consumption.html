@@ -80,6 +80,7 @@
             <div class="c-list-label">your books</div>
             <div id="books-list-view"><div id="books-list"></div></div>
             <div id="books-editor-view" style="display:none">
+                <div class="media-editor-cover" id="bk-cover" style="display:none"><img src="" alt=""></div>
                 <div class="field-group"><label class="field-label">title</label><input type="text" id="bk-title" autocomplete="off"></div>
                 <div class="field-group"><label class="field-label">notes</label><textarea id="bk-notes" placeholder="thoughts..."></textarea></div>
                 <div class="field-group"><label class="field-label">rating</label><div class="edit-star-row" id="bk-stars"><button type="button" class="edit-star" data-prefix="bk" data-val="1">★</button><button type="button" class="edit-star" data-prefix="bk" data-val="2">★</button><button type="button" class="edit-star" data-prefix="bk" data-val="3">★</button><button type="button" class="edit-star" data-prefix="bk" data-val="4">★</button><button type="button" class="edit-star" data-prefix="bk" data-val="5">★</button></div></div>
@@ -105,6 +106,7 @@
             </div>
             <div id="movies-list-view"><div id="movies-list"></div></div>
             <div id="movies-editor-view" style="display:none">
+                <div class="media-editor-cover" id="mv-cover" style="display:none"><img src="" alt=""></div>
                 <div class="field-group"><label class="field-label">title</label><input type="text" id="mv-title" autocomplete="off"></div>
                 <div class="field-group"><label class="field-label">status</label>
                     <div class="edit-tabs edit-subtabs" id="mv-editor-status-tabs">
@@ -137,6 +139,7 @@
             </div>
             <div id="tv-list-view"><div id="tv-list"></div></div>
             <div id="tv-editor-view" style="display:none">
+                <div class="media-editor-cover" id="tv-cover" style="display:none"><img src="" alt=""></div>
                 <div class="field-group"><label class="field-label">title</label><input type="text" id="tv-title" autocomplete="off"></div>
                 <div class="field-group"><label class="field-label">status</label>
                     <div class="edit-tabs edit-subtabs" id="tv-editor-status-tabs">
@@ -411,9 +414,10 @@
         async function openMediaEditor(id, type) {
             const { data } = await db.from('media').select('*').eq('id', id).single();
             if (!data) return;
-            currentMediaId = id; currentMediaType = type;
+            currentMediaId = id; currentMediaType = type; currentMediaCoverUrl = data.cover_url || null;
             const p = type === 'book' ? 'bk' : type === 'tv' ? 'tv' : 'mv';
             const listKey = type === 'book' ? 'books' : type === 'tv' ? 'tv' : 'movies';
+            setEditorCover(p, data.cover_url);
             document.getElementById(`${p}-title`).value = data.title || '';
             document.getElementById(`${p}-notes`).value = data.notes || '';
             setEditRating(p, data.rating || 0);
@@ -802,8 +806,8 @@
             el.innerHTML = '';
             items.forEach(item => {
                 const row = document.createElement('div');
-                row.className = 'blog-record'; row.style.cursor = 'pointer';
-                row.innerHTML = `<div class="blog-details-1">${item.title}</div>${item.sub ? `<div class="blog-details-2">${item.sub}</div>` : ''}`;
+                row.className = 'blog-record c-search-result-row'; row.style.cursor = 'pointer';
+                row.innerHTML = `${item.cover ? `<img class="c-search-result-cover" src="${item.cover}" alt="">` : '<div class="c-search-result-cover"></div>'}<div class="c-search-result-text"><div class="blog-details-1">${item.title}</div>${item.sub ? `<div class="blog-details-2">${item.sub}</div>` : ''}</div>`;
                 row.addEventListener('click', () => { el.innerHTML = ''; onSelect(item); });
                 el.appendChild(row);
             });
@@ -910,10 +914,17 @@
             }
         }
 
+        function setEditorCover(p, url) {
+            const cover = document.getElementById(`${p}-cover`);
+            if (url) { cover.querySelector('img').src = url; cover.style.display = ''; }
+            else { cover.style.display = 'none'; }
+        }
+
         function openMediaEditorForAdd(type, item) {
             const p = type === 'book' ? 'bk' : type === 'tv' ? 'tv' : 'mv';
             const listKey = type === 'book' ? 'books' : type === 'tv' ? 'tv' : 'movies';
             currentMediaId = null; currentMediaType = type; currentMediaCoverUrl = item.cover || null;
+            setEditorCover(p, item.cover);
             document.getElementById(`${p}-title`).value = item.title || '';
             document.getElementById(`${p}-notes`).value = '';
             setEditRating(p, 0);

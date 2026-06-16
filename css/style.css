@@ -1034,6 +1034,12 @@ body.dark .blog-link { color: #ddd; }
 .blog-details-1 { font-size: 0.9rem; font-weight: 600; }
 .blog-details-2 { font-size: 0.75rem; font-weight: 400; color: #aaa; }
 body.dark .blog-details-2 { color: #666; }
+.c-search-result-row { display: flex; align-items: center; gap: 0.6rem; }
+.c-search-result-cover { width: 36px; height: 54px; object-fit: cover; border-radius: 4px; flex-shrink: 0; background: #eee; }
+.c-search-result-text { flex: 1; min-width: 0; }
+body.dark .c-search-result-cover { background: #222; }
+.media-editor-cover { margin-bottom: 0.75rem; }
+.media-editor-cover img { width: 90px; border-radius: 6px; display: block; }
 
 /* entry filters */
 #entry-filters,
