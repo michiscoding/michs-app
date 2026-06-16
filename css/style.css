@@ -73,12 +73,13 @@ body.transitions-enabled {
     height: 40px;
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: space-between;
     padding: 0 1.25rem;
-    gap: 1rem;
     z-index: 200;
     background: transparent;
 }
+
+.app-top-bar-right { display: flex; align-items: center; gap: 1rem; }
 
 .app-top-bar a, .app-top-bar button {
     color: #888;
@@ -92,6 +93,44 @@ body.transitions-enabled {
 }
 
 .app-top-bar a:hover, .app-top-bar button:hover { color: #333; }
+
+.app-home-btn { color: #888; transition: color 0.2s; }
+.app-home-btn:hover, .app-home-btn.active { color: #111; }
+body.dark .app-home-btn { color: #555; }
+body.dark .app-home-btn.active, body.dark .app-home-btn:hover { color: #eee; }
+
+/* sidebar home icon (desktop only) */
+.app-nav-home { display: none; }
+@media (min-width: 901px) {
+    .app-nav-home {
+        display: flex;
+        align-items: center;
+        padding: 0 1.5rem 1.5rem;
+        color: #aaa;
+        line-height: 0;
+        transition: color 0.2s;
+    }
+    .app-nav-home:hover, .app-nav-home.active { color: #111; }
+    body.dark .app-nav-home { color: #444; }
+    body.dark .app-nav-home.active, body.dark .app-nav-home:hover { color: #eee; }
+}
+
+/* dashboard */
+.dash-wrap { max-width: 540px; margin: 0 auto; padding: 1.25rem 1.25rem 5rem; }
+.dash-hero { position: relative; width: 100%; border-radius: 14px; overflow: hidden; background: #eee; aspect-ratio: 4/5; margin-bottom: 1.25rem; cursor: pointer; transition: opacity 0.15s; }
+.dash-hero:hover { opacity: 0.88; }
+body.dark .dash-hero { background: #222; }
+.dash-hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.dash-hero-date { position: absolute; bottom: 0.75rem; right: 0.85rem; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; color: rgba(255,255,255,0.8); text-shadow: 0 1px 4px rgba(0,0,0,0.5); pointer-events: none; }
+.dash-stats { display: flex; gap: 0.75rem; margin-bottom: 1.25rem; }
+.dash-stat { flex: 1; background: #f5f5f5; border-radius: 12px; padding: 1rem 1rem 0.85rem; text-decoration: none; color: inherit; display: block; transition: opacity 0.15s; }
+.dash-stat:hover { opacity: 0.7; text-decoration: none; color: inherit; }
+body.dark .dash-stat { background: #1a1a1a; }
+.dash-stat-num { font-size: 1.75rem; font-weight: 800; line-height: 1; margin-bottom: 0.3rem; color: #111; }
+body.dark .dash-stat-num { color: #eee; }
+.dash-stat-label { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.06em; color: #aaa; text-transform: lowercase; }
+.dash-thought { font-size: 0.88rem; font-style: italic; color: #666; line-height: 1.6; border-left: 2px solid #e0e0e0; padding-left: 0.85rem; }
+body.dark .dash-thought { color: #666; border-color: #2e2e2e; }
 
 .app-nav-desktop-only { display: none; }
 

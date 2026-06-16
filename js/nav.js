@@ -32,18 +32,18 @@
         },
     ];
 
+    const homeIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`;
     const eyeIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
     const moonIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
     const sunIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
 
     const path = window.location.pathname;
-    const currentFile = path.split('/').pop() || 'entry.html';
+    const currentFile = path.split('/').pop() || 'index.html';
 
     function activeFor(href) {
         return currentFile === href ? ' active' : '';
     }
 
-    // build tab items HTML
     const tabsHtml = tabs.map(t => `
         <a href="${t.href}" class="app-nav-item${activeFor(t.href)}" aria-label="${t.label}">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${t.icon}</svg>
@@ -53,20 +53,24 @@
     const isEntry = currentFile === 'entry.html';
     const refreshBtn = isEntry ? `<button type="button" id="refresh-btn" class="app-refresh-btn" aria-label="refresh entry">↺</button>` : '';
 
-    // mobile top bar
+    // mobile top bar — home icon left, utils right
     const topBar = document.createElement('div');
     topBar.className = 'app-top-bar';
     topBar.innerHTML = `
-        <a href="https://michiscoding.github.io/home.html" class="app-site-link" target="_blank" rel="noopener" aria-label="view site">${eyeIcon}</a>
-        ${refreshBtn}
-        <button type="button" id="dark-toggle" aria-label="toggle dark mode"></button>
+        <a href="home.html" class="app-home-btn${activeFor('home.html')}" aria-label="home">${homeIcon}</a>
+        <div class="app-top-bar-right">
+            <a href="https://michiscoding.github.io/home.html" class="app-site-link" target="_blank" rel="noopener" aria-label="view site">${eyeIcon}</a>
+            ${refreshBtn}
+            <button type="button" id="dark-toggle" aria-label="toggle dark mode"></button>
+        </div>
     `;
     document.body.prepend(topBar);
 
-    // main nav (bottom on mobile, top on desktop)
+    // main nav (bottom on mobile, sidebar on desktop)
     const nav = document.createElement('nav');
     nav.className = 'app-nav';
     nav.innerHTML = `
+        <a href="home.html" class="app-nav-home${activeFor('home.html')}" aria-label="home">${homeIcon}</a>
         ${tabsHtml}
         <div class="app-nav-end app-nav-desktop-only">
             <a href="https://michiscoding.github.io/home.html" class="app-site-link" target="_blank" rel="noopener" aria-label="view site">${eyeIcon}</a>
@@ -98,7 +102,6 @@
         document.getElementById('dark-toggle-desktop')?.addEventListener('click', toggleDark);
     });
 
-    // if DOM already loaded (script at end of body)
     if (document.readyState !== 'loading') {
         updateToggleIcons();
         document.getElementById('dark-toggle')?.addEventListener('click', toggleDark);
