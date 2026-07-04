@@ -134,6 +134,7 @@
 
         async function loadEntryForDate(date, animate) {
             const doLoad = async () => {
+                window.scrollTo(0, 0);
                 textarea.value = '';
                 textarea.style.height = '';
                 photos = [];
@@ -535,6 +536,7 @@
         function showEditView() {
             document.getElementById('entry-history-view').style.display = 'none';
             document.getElementById('entry-edit-view').style.display = '';
+            window.scrollTo(0, 0);
         }
 
         document.getElementById('today-btn').addEventListener('click', () => {
