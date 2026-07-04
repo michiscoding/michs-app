@@ -246,7 +246,8 @@ body.dark #browse-filters select { border-bottom-color: #333; color: #666; }
     transition: color 0.15s;
 }
 .entry-day-chip:hover { color: #111; }
-.entry-day-empty { font-size: 0.8rem; color: #ddd; text-align: center; line-height: 1.9; }
+.entry-day-empty { font-size: 0.8rem; color: #ddd; text-align: center; line-height: 1.9; background: none; border: none; cursor: pointer; padding: 0; }
+.entry-day-empty:hover { color: #aaa; }
 body.dark .entry-year-label { color: #444; }
 body.dark .entry-month-name { color: #444; }
 body.dark .entry-day-chip { color: #555; }
