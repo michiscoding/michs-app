@@ -13,6 +13,6 @@ async function uploadToR2(path, file, contentType) {
         headers: { 'Authorization': `Bearer ${secret}`, 'Content-Type': ct },
         body: file
     });
-    if (!resp.ok) localStorage.removeItem('uploadSecret');
+    if (resp.status === 401 || resp.status === 403) localStorage.removeItem('uploadSecret');
     return resp.ok;
 }
